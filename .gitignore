@@ -1,0 +1,10 @@
+*~
+.idea/
+.vscode/
+target/
+.spin/
+.env
+**/*insert.sql
+**/*session.sql
+spin.dev.toml
+runtime-config.dev.toml
