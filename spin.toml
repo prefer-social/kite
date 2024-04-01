@@ -1,0 +1,149 @@
+spin_manifest_version = 2
+
+[application]
+name = "kite"
+version = "0.1.0"
+authors = ["Seungjin Kim <seungjin@duck.com>"]
+description = ""
+
+[variables]
+redis_host = { required = true }
+redis_credential = { required = true, secret = true }
+redis_port = { required = true }
+redis_channel = { required = true }
+s3_access_key = { required = true, secret = true }
+s3_secret_key = { required = true, secret = true }
+s3_provider = { required = true }
+s3_bucket = { required = true }
+s3_endpoint = { required = true }
+s3_region = { required = true }
+
+[application.trigger.redis]
+address = "redis://{{ redis_credential }}@{{ redis_host }}:{{ redis_port }}"
+
+[component.static]
+source = { url = "https://github.com/fermyon/spin-fileserver/releases/download/v0.1.0/spin_static_fs.wasm", digest = "sha256:96c76d9af86420b39eb6cd7be5550e3cb5d4cc4de572ce0fd1f6a29471536cb4" }
+files = [{ source = "assets", destination = "/" }]
+
+[[trigger.http]]
+route = "/.well-known/webfinger/..."
+component = "webfinger"
+
+[component.webfinger]
+source = "target/wasm32-wasi/release/webfinger.wasm"
+sqlite_databases = ["default"]
+allowed_outbound_hosts = []
+files = [{ source = "webfinger/static", destination = "/" }]
+[component.webfinger.build]
+command = "cargo build --target wasm32-wasi --release"
+workdir = "webfinger"
+watch = ["target/wasm32-wasi/release/webfinger.wasm"]
+
+[[trigger.http]]
+route = "/..."
+component = "web"
+
+[component.web]
+source = "target/wasm32-wasi/release/web.wasm"
+sqlite_databases = ["default"]
+allowed_outbound_hosts = ["https://*:*", "http://*:*"]
+[component.web.build]
+command = "cargo build --target wasm32-wasi --release"
+workdir = "web"
+watch = ["target/wasm32-wasi/release/web.wasm"]
+
+[[trigger.http]]
+route = "/api/v1/..."
+component = "api-v1"
+
+[component.api-v1]
+source = "target/wasm32-wasi/release/api_v1.wasm"
+allowed_outbound_hosts = [
+    "https://*:*",
+    "redis://{{ redis_host }}:{{ redis_port }}",
+]
+sqlite_databases = ["default"]
+[component.api-v1.build]
+command = "cargo build --target wasm32-wasi --release"
+workdir = "api_v1"
+watch = ["target/wasm32-wasi/release/api_v1.wasm"]
+[component.api-v1.variables]
+redis_host = "{{ redis_host }}"
+redis_credential = "{{ redis_credential }}"
+redis_port = "{{ redis_port }}"
+redis_channel = "{{ redis_channel }}"
+s3_access_key = "{{ s3_access_key }}"
+s3_secret_key = "{{ s3_secret_key }}"
+s3_provider = "{{ s3_provider }}"
+s3_bucket = "{{ s3_bucket }}"
+s3_endpoint = "{{ s3_endpoint }}"
+s3_region = "{{ s3_region }}"
+
+
+[[trigger.http]]
+route = "/api/v2/..."
+component = "api-v2"
+
+[component.api-v2]
+source = "target/wasm32-wasi/release/api_v2.wasm"
+allowed_outbound_hosts = [
+    "https://*:*",
+    "redis://{{ redis_host }}:{{ redis_port }}",
+]
+sqlite_databases = ["default"]
+[component.api-v2.build]
+command = "cargo build --target wasm32-wasi --release"
+workdir = "api_v2"
+watch = ["target/wasm32-wasi/release/api_v2.wasm"]
+[component.api-v2.variables]
+redis_host = "{{ redis_host }}"
+redis_credential = "{{ redis_credential }}"
+redis_port = "{{ redis_port }}"
+redis_channel = "{{ redis_channel }}"
+s3_access_key = "{{ s3_access_key }}"
+s3_secret_key = "{{ s3_secret_key }}"
+s3_provider = "{{ s3_provider }}"
+s3_bucket = "{{ s3_bucket }}"
+s3_endpoint = "{{ s3_endpoint }}"
+s3_region = "{{ s3_region }}"
+
+[[trigger.http]]
+route = "/oauth/..."
+component = "oauth"
+
+[component.oauth]
+source = "target/wasm32-wasi/release/oauth.wasm"
+allowed_outbound_hosts = ["https://*:*"]
+sqlite_databases = ["default"]
+[component.oauth.build]
+command = "cargo build --target wasm32-wasi --release"
+workdir = "oauth"
+watch = ["target/wasm32-wasi/release/oauth.wasm"]
+
+[[trigger.redis]]
+channel = "{{ redis_channel }}"
+component = "postbox"
+
+[component.postbox]
+source = { url = "https://github.com/prefer-social/postbox/releases/download/v0.1.0/postbox.wasm", digest = "sha256:" }
+allowed_outbound_hosts = [
+    "https://*:*",
+    "http://*:*",
+    "redis://{{ redis_host }}:{{ redis_port }}",
+]
+sqlite_databases = ["default"]
+[component.postbox.build]
+command = "cargo build --target wasm32-wasi --release"
+workdir = "postbox"
+watch = ["target/wasm32-wasi/release/postbox.wasm"]
+[component.postbox.variables]
+redis_host = "{{ redis_host }}"
+redis_credential = "{{ redis_credential }}"
+redis_port = "{{ redis_port }}"
+redis_channel = "{{ redis_channel }}"
+s3_access_key = "{{ s3_access_key }}"
+s3_secret_key = "{{ s3_secret_key }}"
+s3_provider = "{{ s3_provider }}"
+s3_bucket = "{{ s3_bucket }}"
+s3_endpoint = "{{ s3_endpoint }}"
+s3_region = "{{ s3_region }}"
