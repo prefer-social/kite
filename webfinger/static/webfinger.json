@@ -1,0 +1,28 @@
+{
+  "subject": "acct:seungjin2@vigorously-subtle-guinea.ngrok-free.app",
+  "aliases": [
+    "https://vigorously-subtle-guinea.ngrok-free.app/@seungjin2",
+    "https://vigorously-subtle-guinea.ngrok-free.app/users/seungjin2"
+  ],
+  "links": [
+    {
+      "rel": "http://webfinger.net/rel/profile-page",
+      "type": "text/html",
+      "href": "https://vigorously-subtle-guinea.ngrok-free.app/@seungjin2"
+    },
+    {
+      "rel": "self",
+      "type": "application/activity+json",
+      "href": "https://vigorously-subtle-guinea.ngrok-free.app/users/seungjin2"
+    },
+    {
+      "rel": "http://ostatus.org/schema/1.0/subscribe",
+      "template": "https://vigorously-subtle-guinea.ngrok-free.app/authorize_interaction?uri={uri}"
+    },
+    {
+      "rel": "http://webfinger.net/rel/avatar",
+      "type": "image/jpeg",
+      "href": "https://media-mstd.seungjin.net/accounts/avatars/109/737/937/659/013/254/original/626c9187e341632b.jpg"
+    }
+  ]
+}

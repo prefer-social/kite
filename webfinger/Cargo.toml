@@ -1,0 +1,23 @@
+[package]
+name = "webfinger"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+anyhow = "1"
+spin-sdk = { git = "https://github.com/fermyon/spin-rust-sdk", branch = "main" }
+#spin-sdk = { path = "../../../rust/spin-rust-sdk" }
+serde = { version = "1.0.193", features = ["derive"] }
+serde_json = { version = "1.0.108", features = ["preserve_order"] }
+url = "2"
+itertools = "0.12.0"
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = [
+    "env-filter",
+    "fmt",
+    "std",
+] }
+sparrow = { git = "https://github.com/prefer-social/sparrow", branch = "main" }

@@ -125,7 +125,7 @@ channel = "{{ redis_channel }}"
 component = "postbox"
 
 [component.postbox]
-source = { url = "https://github.com/prefer-social/postbox/releases/download/v0.1.0/postbox.wasm", digest = "sha256:" }
+source = { url = "https://github.com/prefer-social/postbox/releases/download/canary/postbox.wasm" }
 allowed_outbound_hosts = [
     "https://*:*",
     "http://*:*",
@@ -134,7 +134,6 @@ allowed_outbound_hosts = [
 sqlite_databases = ["default"]
 [component.postbox.build]
 command = "cargo build --target wasm32-wasi --release"
-workdir = "postbox"
 watch = ["target/wasm32-wasi/release/postbox.wasm"]
 [component.postbox.variables]
 redis_host = "{{ redis_host }}"
