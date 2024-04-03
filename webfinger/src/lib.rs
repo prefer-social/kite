@@ -7,7 +7,6 @@ use spin_sdk::{
     sqlite::{Connection, QueryResult, Value},
 };
 use std::collections::HashMap;
-use tracing::debug;
 use tracing_subscriber::filter::EnvFilter;
 use tracing_subscriber::FmtSubscriber;
 use url::Url;
@@ -17,27 +16,30 @@ async fn webfinger(req: Request) -> anyhow::Result<impl IntoResponse> {
     let subscriber = FmtSubscriber::builder()
         .with_env_filter(EnvFilter::from_env("APP_LOG_LEVEL"))
         .finish();
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    tracing::subscriber::set_global_default(subscriber)
+        .expect("setting default subscriber failed");
 
     let request_path_and_query = req.path_and_query().unwrap();
     let request_method = req.method().to_string();
-    debug!("<---------- ({request_method}) {request_path_and_query} --------->");
+    tracing::debug!(
+        "<---------- ({request_method}) {request_path_and_query} --------->"
+    );
 
     let from = req.header("spin-client-addr").unwrap().as_str().unwrap();
-    debug!("-> Webfinger requested from: {from}");
+    tracing::debug!("-> Webfinger requested from: {from}");
 
     let k = req.query();
-    debug!("{k}");
+    tracing::debug!("{k}");
 
     let parsed_url = Url::parse(req.uri())?;
 
-    let hash_query: HashMap<String, String> = parsed_url.query_pairs().into_owned().collect();
+    let hash_query: HashMap<String, String> =
+        parsed_url.query_pairs().into_owned().collect();
 
     // TODO: This gets Error, no resource in query when I search the server in Mobile App.
     let resource = hash_query.get("resource").unwrap();
     let mut ww = resource.split(":");
     if ww.next().unwrap() == "acct" {
-        //println!("{}", ww.next().unwrap());
         match get_webfinger(ww.next().unwrap()).await.unwrap() {
             Some(wf) => {
                 return Ok(Response::builder()
@@ -58,7 +60,11 @@ async fn webfinger(req: Request) -> anyhow::Result<impl IntoResponse> {
 #[derive(Debug, Serialize)]
 struct Link {
     rel: String,
-    #[serde(default, rename = "type", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        rename = "type",
+        skip_serializing_if = "Option::is_none"
+    )]
     link_type: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     href: Option<String>,
@@ -74,9 +80,14 @@ struct Webfinger {
 }
 
 pub async fn get_webfinger(acct: &str) -> Result<Option<String>> {
-    let mut at = acct.split("@");
-    let username = at.next().unwrap();
-    let hostname = at.next().unwrap();
+    let at = acct.split("@").collect::<Vec<&str>>();
+
+    let mut username = at[0];
+    let hostname = at[1];
+
+    if username == "" {
+        username = at[1].split(".").collect::<Vec<&str>>()[0];
+    }
 
     let aliases_rowset = sparrow::db::Connection::builder()
         .await
@@ -132,9 +143,14 @@ pub async fn get_webfinger(acct: &str) -> Result<Option<String>> {
         .rows()
         .map(|row| row.get::<&str>("linkId").unwrap());
 
-    let unique_linkids: Vec<String> = r2.unique().map(|e| e.to_string()).collect();
+    let unique_linkids: Vec<String> =
+        r2.unique().map(|e| e.to_string()).collect();
 
-    fn query_tool(qr: &QueryResult, linkId: &str, key: &str) -> Option<String> {
+    fn query_tool(
+        qr: &QueryResult,
+        linkId: &str,
+        key: &str,
+    ) -> Option<String> {
         let mut val = String::new();
         for row in qr.rows() {
             if row.get::<&str>("linkId").unwrap() == linkId {
