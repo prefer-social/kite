@@ -8,7 +8,8 @@ use rsa::signature::Signer;
 use rsa::RsaPrivateKey;
 use serde_json::{json, Value};
 use spin_sdk::http::{
-    self, IncomingResponse, IntoResponse, Method, Params, Request, RequestBuilder, Response,
+    self, IncomingResponse, IntoResponse, Method, Params, Request,
+    RequestBuilder, Response,
 };
 use spin_sdk::sqlite::Value as SV;
 use tracing::{debug, info};
@@ -17,8 +18,13 @@ use uuid::Uuid;
 
 use crate::utils::get_current_time_in_RFC_1123;
 
-pub async fn following_request(req: Request, params: Params) -> Result<impl IntoResponse> {
-    let my_actor = Url::parse("https://ap.dev.seungjin.net/users/seungjin").unwrap();
+pub async fn following_request(
+    req: Request,
+    params: Params,
+) -> Result<impl IntoResponse> {
+    let my_actor =
+        Url::parse("https://seungjin.ap.dev.seungjin.net/users/seungjin")
+            .unwrap();
     let recipient_actor = Url::parse("https://mas.to/users/seungjin").unwrap();
     //let recipient_actor = Url::parse("https://mstd.seungjin.net/users/wsj").unwrap();
 
@@ -31,7 +37,8 @@ pub async fn following_request(req: Request, params: Params) -> Result<impl Into
         ).await;
 
         // FIXME: FIXME!
-        let private_key = qr.rows().next().unwrap().get::<&str>("privateKey").unwrap();
+        let private_key =
+            qr.rows().next().unwrap().get::<&str>("privateKey").unwrap();
         Ok(private_key.to_string())
     }
 
@@ -93,12 +100,15 @@ pub async fn following_request(req: Request, params: Params) -> Result<impl Into
 
     // The signature string is constructed using the values of the HTTP headers defined in headers, joined by newlines. Typically, you will want to include the request target, as well as the host and the date. Mastodon assumes Date: header if none are provided. For the above GET request, to generate a Signature: with headers="(request-target) host date"
     // https://github.com/RustCrypto/RSA/issues/341
-    let private_key =
-        RsaPrivateKey::from_pkcs8_pem(&private_key_pem).expect("RsaPrivateKey creation failed");
+    let private_key = RsaPrivateKey::from_pkcs8_pem(&private_key_pem)
+        .expect("RsaPrivateKey creation failed");
     let signing_key: SigningKey<Sha256> = SigningKey::new(private_key);
-    let signature =
-        <SigningKey<Sha256> as Signer<Signature>>::sign(&signing_key, signature_string.as_bytes());
-    let encoded_signature = general_purpose::STANDARD.encode(signature.to_bytes().as_ref());
+    let signature = <SigningKey<Sha256> as Signer<Signature>>::sign(
+        &signing_key,
+        signature_string.as_bytes(),
+    );
+    let encoded_signature =
+        general_purpose::STANDARD.encode(signature.to_bytes().as_ref());
 
     let sig_header = format!(
         r#"keyId="https://ap.dev.seungjin.net/users/seungjin#main-key",algorithm="rsa-sha256",headers="(request-target) host date digest content-type",signature="{}""#,
@@ -107,14 +117,17 @@ pub async fn following_request(req: Request, params: Params) -> Result<impl Into
 
     debug!("sig_header --> {sig_header}");
 
-    let request = RequestBuilder::new(Method::Post, format!("{}/inbox", recipient_actor)) // TODO: recipient uri should get from actor.
-        .header("Date", date)
-        .header("Signature", sig_header)
-        .header("Digest", digest)
-        .header("Content-Type", &content_type)
-        .header("Accept", &content_type)
-        .body(request_body.to_string())
-        .build();
+    let request = RequestBuilder::new(
+        Method::Post,
+        format!("{}/inbox", recipient_actor),
+    ) // TODO: recipient uri should get from actor.
+    .header("Date", date)
+    .header("Signature", sig_header)
+    .header("Digest", digest)
+    .header("Content-Type", &content_type)
+    .header("Accept", &content_type)
+    .body(request_body.to_string())
+    .build();
     let response: IncomingResponse = http::send(request).await?;
     let status = response.status();
 
@@ -128,7 +141,10 @@ pub async fn following_request(req: Request, params: Params) -> Result<impl Into
         .build())
 }
 
-pub async fn root(_req: Request, _params: Params) -> Result<impl IntoResponse> {
+pub async fn root(
+    _req: Request,
+    _params: Params,
+) -> Result<impl IntoResponse> {
     Ok(Response::builder()
         .status(200)
         .header("Content-Type", "application/json")
@@ -136,7 +152,10 @@ pub async fn root(_req: Request, _params: Params) -> Result<impl IntoResponse> {
         .build())
 }
 
-pub async fn modified_header_test(req: Request, _params: Params) -> Result<impl IntoResponse> {
+pub async fn modified_header_test(
+    req: Request,
+    _params: Params,
+) -> Result<impl IntoResponse> {
     let a = req.header("foo").expect("no foo header key");
     println!("{a:?}");
 

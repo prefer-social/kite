@@ -26,9 +26,6 @@ derive_builder = "0.12.0"
 epoch = "0.0.2"
 pem = "3.0.3"
 pickledb = "0.5.1"
-activitystreams = { git = "https://git.asonix.dog/asonix/activitystreams.git" }
-activitystreams-ext = { git = "https://git.asonix.dog/asonix/activitystreams.git" }
-activitystreams-kinds = "0.3.0"
 time = "0.3"
 mime = "0.3.17"
 regex = "1.10.2"

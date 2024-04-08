@@ -136,7 +136,7 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
             atom_uri: format!("{my_actor}/statuses/112001985738281244"),
             in_relpay_to_atom_uri: None,
             converation:
-                "tag:ap.dev.seungjin.net,2024-02-27:objectId=306721066:objectType=Conversation"
+                "tag:seungjin.ap.dev.seungjin.net,2024-02-27:objectId=306721066:objectType=Conversation"
                     .to_string(),
             content: status_html.clone(),
             content_map: vec![hashmap! {
@@ -271,7 +271,7 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
         account: Account {
             id: "1".to_string(),
             username: "seungjin".to_string(),
-            acct: "seungjin@ap.dev.seungjin.net".to_string(),
+            acct: "seungjin@seungjin.ap.dev.seungjin.net".to_string(),
             display_name: "Seungjin Kim".to_string(),
             locked: false,
             bot: false,

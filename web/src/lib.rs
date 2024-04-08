@@ -19,7 +19,8 @@ async fn handle_route(req: Request) -> Response {
     let subscriber = FmtSubscriber::builder()
         .with_env_filter(EnvFilter::from_env("APP_LOG_LEVEL"))
         .finish();
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    tracing::subscriber::set_global_default(subscriber)
+        .expect("setting default subscriber failed");
 
     let request_path_and_query = req.path_and_query().unwrap();
     let request_method = req.method().to_string();
@@ -81,11 +82,17 @@ async fn handle_route(req: Request) -> Response {
         }
     }
 
+    router.get_async("/", users::request);
+    router.get_async("/inbox", users::inbox::request);
+
     router.get_async("/users/:user", users::request);
+
     router.any_async("/users/:user/inbox", users::inbox::request);
     router.any_async("/users/:user/outbox", users::outbox::request);
 
+    router.any_async("/following", users::following::request);
     router.any_async("/users/:user/following", users::following::request);
+    router.any_async("/followers", users::followers::request);
     router.any_async("/users/:user/followers", users::followers::request);
     router.any_async("/users/:user/collections/featured", featured::request);
     //router.get_async("/users/:user/collections/tags", tags::request);
@@ -96,6 +103,6 @@ async fn handle_route(req: Request) -> Response {
     //
     router.any_async("/foo/following_request", foo::following_request);
     router.any_async("/foo", foo::modified_header_test);
-    router.any_async("/", foo::root);
+    //router.any_async("/", foo::root);
     router.handle_async(req).await
 }

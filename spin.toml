@@ -37,7 +37,7 @@ files = [{ source = "webfinger/static", destination = "/" }]
 [component.webfinger.build]
 command = "cargo build --target wasm32-wasi --release"
 workdir = "webfinger"
-watch = ["target/wasm32-wasi/release/webfinger.wasm"]
+watch = ["webfinger/src/**/*.rs", "web/Cargo.toml"]
 
 [[trigger.http]]
 route = "/..."
@@ -50,7 +50,7 @@ allowed_outbound_hosts = ["https://*:*", "http://*:*"]
 [component.web.build]
 command = "cargo build --target wasm32-wasi --release"
 workdir = "web"
-watch = ["target/wasm32-wasi/release/web.wasm"]
+watch = ["web/src/**/*.rs", "web/Cargo.toml"]
 
 [[trigger.http]]
 route = "/api/v1/..."
@@ -66,7 +66,7 @@ sqlite_databases = ["default"]
 [component.api-v1.build]
 command = "cargo build --target wasm32-wasi --release"
 workdir = "api_v1"
-watch = ["target/wasm32-wasi/release/api_v1.wasm"]
+watch = ["api_v1/src/**/*.rs", "api_v1/Cargo.toml"]
 [component.api-v1.variables]
 redis_host = "{{ redis_host }}"
 redis_credential = "{{ redis_credential }}"
@@ -94,7 +94,8 @@ sqlite_databases = ["default"]
 [component.api-v2.build]
 command = "cargo build --target wasm32-wasi --release"
 workdir = "api_v2"
-watch = ["target/wasm32-wasi/release/api_v2.wasm"]
+watch = ["api_v2/src/**/*.rs", "web/Cargo.toml"]
+
 [component.api-v2.variables]
 redis_host = "{{ redis_host }}"
 redis_credential = "{{ redis_credential }}"
@@ -118,14 +119,14 @@ sqlite_databases = ["default"]
 [component.oauth.build]
 command = "cargo build --target wasm32-wasi --release"
 workdir = "oauth"
-watch = ["target/wasm32-wasi/release/oauth.wasm"]
+watch = ["oauth/src/**/*.rs", "web/Cargo.toml"]
 
 [[trigger.redis]]
 channel = "{{ redis_channel }}"
 component = "postbox"
 
 [component.postbox]
-source = { url = "https://github.com/prefer-social/postbox/releases/download/canary/postbox.wasm" }
+source = { url = "https://github.com/prefer-social/postbox/releases/download/v0.0.2/postbox.wasm", digest = "sha256:d28a2fa47187ebd4adeb9907937d5325604071ab52276b389c3f9ce77af87c0f" }
 allowed_outbound_hosts = [
     "https://*:*",
     "http://*:*",
@@ -134,7 +135,7 @@ allowed_outbound_hosts = [
 sqlite_databases = ["default"]
 [component.postbox.build]
 command = "cargo build --target wasm32-wasi --release"
-watch = ["target/wasm32-wasi/release/postbox.wasm"]
+
 [component.postbox.variables]
 redis_host = "{{ redis_host }}"
 redis_credential = "{{ redis_credential }}"

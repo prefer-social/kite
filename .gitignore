@@ -8,3 +8,9 @@ target/
 **/*session.sql
 spin.dev.toml
 runtime-config.dev.toml
+
+.gitignore
+deploy.sh
+Compose.yaml
+TODOs.md
+runtime-config.toml

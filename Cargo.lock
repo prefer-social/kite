@@ -9,29 +9,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c71b1793ee61086797f5c80b6efa2b8ffa6d5dd703f118545808a7f2e27f7046"
 
 [[package]]
-name = "activitystreams"
-version = "0.7.0-alpha.25"
-source = "git+https://git.asonix.dog/asonix/activitystreams.git#2d2756c2bb280e501619f98229c922caf70b0113"
-dependencies = [
- "activitystreams-kinds 0.3.0 (git+https://git.asonix.dog/asonix/activitystreams.git)",
- "iri-string",
- "mime 0.3.17",
- "serde",
- "serde_json",
- "time 0.3.34",
-]
-
-[[package]]
-name = "activitystreams-ext"
-version = "0.1.0-alpha.3"
-source = "git+https://git.asonix.dog/asonix/activitystreams.git#2d2756c2bb280e501619f98229c922caf70b0113"
-dependencies = [
- "activitystreams",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "activitystreams-kinds"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -39,15 +16,6 @@ checksum = "e97dfe76efd8c0b113cc3580a6b5f4acba47662e3cfbbfcce081c9ac89798990"
 dependencies = [
  "serde",
  "url 2.5.0",
-]
-
-[[package]]
-name = "activitystreams-kinds"
-version = "0.3.0"
-source = "git+https://git.asonix.dog/asonix/activitystreams.git#2d2756c2bb280e501619f98229c922caf70b0113"
-dependencies = [
- "iri-string",
- "serde",
 ]
 
 [[package]]
@@ -1671,16 +1639,6 @@ checksum = "233cf39063f058ea2caae4091bf4a3ef70a653afbc026f5c4a4135d114e3c177"
 dependencies = [
  "equivalent",
  "hashbrown 0.14.3",
- "serde",
-]
-
-[[package]]
-name = "iri-string"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "21859b667d66a4c1dacd9df0863b3efb65785474255face87f5bca39dd8407c0"
-dependencies = [
- "memchr",
  "serde",
 ]
 
@@ -3356,7 +3314,7 @@ name = "sparrow"
 version = "0.1.0"
 source = "git+https://github.com/prefer-social/sparrow?branch=main#0b40c70abdc0d0dd916e13151c987e91f04dbb33"
 dependencies = [
- "activitystreams-kinds 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "activitystreams-kinds",
  "anyhow",
  "async-trait",
  "base64 0.22.0",
@@ -4170,9 +4128,6 @@ dependencies = [
 name = "web"
 version = "0.1.0"
 dependencies = [
- "activitystreams",
- "activitystreams-ext",
- "activitystreams-kinds 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "anyhow",
  "async-trait",
  "base64 0.21.7",

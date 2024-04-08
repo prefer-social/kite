@@ -5,7 +5,10 @@ use spin_sdk::{
 };
 use tracing::debug;
 
-pub async fn request(req: Request, params: Params) -> Result<impl IntoResponse> {
+pub async fn request(
+    req: Request,
+    params: Params,
+) -> Result<impl IntoResponse> {
     match req.method() {
         Method::Get => get(req, params).await,
         _ => not_found(req, params).await,
@@ -14,16 +17,15 @@ pub async fn request(req: Request, params: Params) -> Result<impl IntoResponse> 
 
 // TODO: GET /api/v1/instance
 pub async fn get(_req: Request, _params: Params) -> Result<Response> {
-
     let foo = r#"{
-      "uri": "ap.dev.seungjin.net",
+      "uri": "seungjin.ap.dev.seungjin.net",
       "title": "AP dev server",
       "short_description": "short description for ap dev server",
       "description": "",
       "email": "seungjin@duck.com",
       "version": "0.0.1",
       "urls": {
-        "streaming_api": "wss://ap.dev.seungjin.net"
+        "streaming_api": "wss://seungjin.ap.dev.seungjin.net"
       },
       "stats": {
         "user_count": 1,

@@ -1,13 +1,40 @@
 // https://kite.seungjin.net/users/seungjin/outbox
 // https://kite.seungjin.net/users/seungjin/outbox
-use activitystreams::{collection::OrderedCollection, context, iri, object::ApObject, prelude::*};
+
+
+//use activitystreams::{collection::OrderedCollection, context, iri, object::ApObject, prelude::*};
+
 use anyhow::Result;
 use spin_sdk::{
     http::{responses, IntoResponse, Method, Params, Request, Response},
     sqlite::{Connection, Value},
 };
-
+use serde_derive::{Deserialize, Serialize};
 use crate::utils::not_found;
+
+
+
+// {
+//     "@context": "https://www.w3.org/ns/activitystreams",
+//     "id": "https://mas.to/users/seungjin/outbox",
+//     "type": "OrderedCollection",
+//     "totalItems": 0,
+//     "first": "https://mas.to/users/seungjin/outbox?page=true",
+//     "last": "https://mas.to/users/seungjin/outbox?min_id=0&page=true"
+// }
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OutboxActor {
+    #[serde(rename = "@context")]
+    pub context: Vec<String>,
+    pub id: String,
+    #[serde(rename = "type")]
+    pub kind: String,
+    pub total_items: u32, 
+    pub first: Option<String>, 
+    pub last: Option<String>,
+}
 
 pub async fn request(req: Request, params: Params) -> Result<impl IntoResponse> {
     match req.method() {
@@ -31,12 +58,15 @@ pub async fn get(_req: Request, params: Params) -> Result<Response> {
     let last = format!("{id}?min_id=0&page=true");
     let total_items: u32 = 0;
 
-    let mut outbox = ApObject::new(OrderedCollection::new());
-    outbox.set_content(context().to_string());
-    outbox.set_id(iri!(id));
-    outbox.set_first(first);
-    outbox.set_last(last);
-    outbox.set_total_items(total_items);
+    let outbox = OutboxActor {
+        context: vec!("arsars".to_string()),
+        id: id.to_string(), 
+        kind: "OrderedCollection".to_string(),
+        total_items: total_items, 
+        first: Some(first), 
+        last: Some(last),
+    };
+
     let s = serde_json::to_string(&outbox)?;
     Ok(Response::builder()
         .status(200)
