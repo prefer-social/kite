@@ -26,18 +26,18 @@ source = { url = "https://github.com/fermyon/spin-fileserver/releases/download/v
 files = [{ source = "assets", destination = "/" }]
 
 [[trigger.http]]
-route = "/.well-known/webfinger/..."
-component = "webfinger"
+route = "/.well-known/..."
+component = "well-known"
 
-[component.webfinger]
-source = "target/wasm32-wasi/release/webfinger.wasm"
+[component.well-known]
+source = "target/wasm32-wasi/release/well_known.wasm"
 sqlite_databases = ["default"]
 allowed_outbound_hosts = []
-files = [{ source = "webfinger/static", destination = "/" }]
-[component.webfinger.build]
+files = [{ source = "well-known/static", destination = "/" }]
+[component.well-known.build]
 command = "cargo build --target wasm32-wasi --release"
-workdir = "webfinger"
-watch = ["webfinger/src/**/*.rs", "web/Cargo.toml"]
+workdir = "well-known"
+watch = ["well-known/src/**/*.rs", "well-known/Cargo.toml"]
 
 [[trigger.http]]
 route = "/..."
@@ -50,7 +50,7 @@ allowed_outbound_hosts = ["https://*:*", "http://*:*"]
 [component.web.build]
 command = "cargo build --target wasm32-wasi --release"
 workdir = "web"
-watch = ["web/src/**/*.rs", "web/Cargo.toml"]
+watch = ["web/src/**/*.rs", "well-known/Cargo.toml"]
 
 [[trigger.http]]
 route = "/api/v1/..."
@@ -94,7 +94,7 @@ sqlite_databases = ["default"]
 [component.api-v2.build]
 command = "cargo build --target wasm32-wasi --release"
 workdir = "api_v2"
-watch = ["api_v2/src/**/*.rs", "web/Cargo.toml"]
+watch = ["api_v2/src/**/*.rs", "api_v2/Cargo.toml"]
 
 [component.api-v2.variables]
 redis_host = "{{ redis_host }}"
@@ -119,7 +119,7 @@ sqlite_databases = ["default"]
 [component.oauth.build]
 command = "cargo build --target wasm32-wasi --release"
 workdir = "oauth"
-watch = ["oauth/src/**/*.rs", "web/Cargo.toml"]
+watch = ["oauth/src/**/*.rs", "oauth/Cargo.toml"]
 
 [[trigger.redis]]
 channel = "{{ redis_channel }}"

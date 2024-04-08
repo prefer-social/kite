@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "web",
-    "webfinger",
+    "well-known",
     "api_v1",
     "api_v2",
     "oauth",

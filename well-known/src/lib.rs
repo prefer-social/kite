@@ -2,9 +2,9 @@ use anyhow::Result;
 use itertools::Itertools;
 use serde::Serialize;
 use spin_sdk::{
-    http::{IntoResponse, Request, Response},
+    http::{IntoResponse, Request, Response, Router, Params},
     http_component,
-    sqlite::{Connection, QueryResult, Value},
+    sqlite::{QueryResult, Value},
 };
 use std::collections::HashMap;
 use tracing_subscriber::filter::EnvFilter;
@@ -12,7 +12,7 @@ use tracing_subscriber::FmtSubscriber;
 use url::Url;
 
 #[http_component]
-async fn webfinger(req: Request) -> anyhow::Result<impl IntoResponse> {
+async fn handle_route(req: Request) -> Response {
     let subscriber = FmtSubscriber::builder()
         .with_env_filter(EnvFilter::from_env("APP_LOG_LEVEL"))
         .finish();
@@ -22,8 +22,24 @@ async fn webfinger(req: Request) -> anyhow::Result<impl IntoResponse> {
     let request_path_and_query = req.path_and_query().unwrap();
     let request_method = req.method().to_string();
     tracing::debug!(
-        "<---------- ({request_method}) {request_path_and_query} --------->"
+            "<---------- ({request_method}) {request_path_and_query} --------->"
     );
+
+    
+
+
+    let mut router = Router::new();
+
+    router.get_async("/.well-known/webfinger", webfinger);
+    //router.any_async("/", foo::root);
+    router.handle_async(req).await
+}
+
+
+async fn webfinger(req: Request, _params: Params) -> anyhow::Result<impl IntoResponse> {
+    
+
+    
 
     let from = req.header("spin-client-addr").unwrap().as_str().unwrap();
     tracing::debug!("-> Webfinger requested from: {from}");
