@@ -126,7 +126,8 @@ channel = "{{ redis_channel }}"
 component = "postbox"
 
 [component.postbox]
-source = { url = "https://github.com/prefer-social/postbox/releases/download/v0.0.2/postbox.wasm", digest = "sha256:d28a2fa47187ebd4adeb9907937d5325604071ab52276b389c3f9ce77af87c0f" }
+source = { url = "https://github.com/prefer-social/postbox/releases/download/v0.0.5/postbox.wasm", digest = "sha256:940ccf362da5439fb4bfb335d11adbb56d695dee1ebcc3dcfb063655a38045f2" }
+#source = "../postbox/target/wasm32-wasi/debug/postbox.wasm"
 allowed_outbound_hosts = [
     "https://*:*",
     "http://*:*",
