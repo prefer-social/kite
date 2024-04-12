@@ -9,7 +9,7 @@ use spin_sdk::variables;
 use url::Url;
 use uuid::Uuid;
 
-use sparrow::apo::Follow;
+use sparrow::activitypub::apo::Follow;
 use sparrow::postbox::Envelop;
 use sparrow::utils::{get_current_time_in_iso_8601, get_inbox_from_actor};
 

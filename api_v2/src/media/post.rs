@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::media::{allowed_mime_type, get_multipart_boundary};
 use frameshop::preview_image;
-use sparrow::mastodon::strt::media::{MediaAttachment, MediaType};
+use sparrow::mastodon::media::{MediaAttachment, MediaType};
 
 pub async fn post(req: Request, params: Params) -> Result<Response> {
     tracing::debug!("Requeted -> POST /api/v2/media");

@@ -6,7 +6,7 @@
 use anyhow::Result;
 use maplit::hashmap;
 use serde_json::Value;
-use sparrow::mastodon::strt::media::MediaAttachment;
+use sparrow::mastodon::media::MediaAttachment;
 use spin_sdk::http::{Method, Params, Request, Response};
 use spin_sdk::redis;
 use spin_sdk::sqlite::Value as SV;
@@ -15,8 +15,8 @@ use std::str;
 use uuid::Uuid;
 use comrak::{markdown_to_html, Options};
 
-use sparrow::apo::{CollectionPage, Create, Note, Replies, RsaSignature2017};
-use sparrow::mastodon::strt::{account::Account, application::Application, status::Status};
+use sparrow::activitypub::apo::{CollectionPage, Create, Note, Replies, RsaSignature2017};
+use sparrow::mastodon::{account::Account, application::Application, status::Status};
 use sparrow::postbox::Envelop;
 use sparrow::utils::get_current_time_in_iso_8601;
 
@@ -75,7 +75,7 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
 
     for media in media_ids_1 {
         let id = media.as_str().unwrap();
-        let ma = sparrow::mastodon::strt::media::MediaAttachment::create(id).await;
+        let ma = sparrow::mastodon::media::MediaAttachment::create(id).await;
         //let c = serde_json::to_string(&b).unwrap();
         media_attachements.push(ma);
     }

@@ -26,6 +26,5 @@ rand = "0.8"
 uuid = { version = "1", features = ["v4", "fast-rng"] }
 maplit = "1.0.2"
 comrak = "0.21"
-
-sparrow = { git = "https://github.com/prefer-social/sparrow", branch = "main" }
-postbox = { git = "https://github.com/prefer-social/postbox", branch = "main" }
+#sparrow = { git = "https://github.com/prefer-social/sparrow", branch = "main" }
+sparrow = { path = "../../sparrow" }

@@ -20,4 +20,4 @@ tracing-subscriber = { version = "0.3.18", features = [
     "fmt",
     "std",
 ] }
-sparrow = { git = "https://github.com/prefer-social/sparrow", branch = "main" }
+sparrow = { path = "../../sparrow" }

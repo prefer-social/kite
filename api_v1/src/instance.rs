@@ -16,6 +16,7 @@ pub async fn request(
 }
 
 // TODO: GET /api/v1/instance
+// https://docs.joinmastodon.org/methods/instance/#v1
 pub async fn get(_req: Request, _params: Params) -> Result<Response> {
     let foo = r#"{
       "uri": "seungjin.ap.dev.seungjin.net",
@@ -53,31 +54,6 @@ pub async fn get(_req: Request, _params: Params) -> Result<Response> {
             "image/jpeg",
             "image/png",
             "image/gif",
-            "image/heic",
-            "image/heif",
-            "image/webp",
-            "image/avif",
-            "video/webm",
-            "video/mp4",
-            "video/quicktime",
-            "video/ogg",
-            "audio/wave",
-            "audio/wav",
-            "audio/x-wav",
-            "audio/x-pn-wave",
-            "audio/vnd.wave",
-            "audio/ogg",
-            "audio/vorbis",
-            "audio/mpeg",
-            "audio/mp3",
-            "audio/webm",
-            "audio/flac",
-            "audio/aac",
-            "audio/m4a",
-            "audio/x-m4a",
-            "audio/mp4",
-            "audio/3gpp",
-            "video/x-ms-asf"
           ],
           "image_size_limit": 16777216,
           "image_matrix_limit": 33177600,

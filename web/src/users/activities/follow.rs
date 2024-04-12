@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-use sparrow::apo::{Accept, Follow};
+use sparrow::activitypub::apo::{Accept, Follow};
 use spin_sdk::sqlite::Value as SV;
 
 pub async fn follow_action(activity: serde_json::Value) {

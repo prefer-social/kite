@@ -4,7 +4,7 @@ use anyhow::Result;
 use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
 use spin_sdk::sqlite::Value as SV;
 
-use sparrow::mastodon::strt::media::{MediaAttachment, MediaType};
+use sparrow::mastodon::media::{MediaAttachment, MediaType};
 
 // https://docs.joinmastodon.org/methods/media/#get
 pub async fn get(req: Request, params: Params) -> Result<Response> {
@@ -12,14 +12,17 @@ pub async fn get(req: Request, params: Params) -> Result<Response> {
 
     let media_id = params.get("id").unwrap();
 
-    let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap() {
+    let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap()
+    {
         sparrow::auth::TokenAuth::InValid => {
             return crate::http_responses::unauthorized().await;
         }
         sparrow::auth::TokenAuth::TokenNotProvided => {
             return crate::http_responses::unauthorized().await;
         }
-        sparrow::auth::TokenAuth::Valid(userid) => Some(userid).unwrap() as i64,
+        sparrow::auth::TokenAuth::Valid(userid) => {
+            Some(userid).unwrap() as i64
+        }
     };
 
     let media = sparrow::db::Connection::builder()

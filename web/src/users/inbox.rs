@@ -11,8 +11,8 @@ use url::Url;
 use crate::users::activities::{accept, follow, undo};
 use crate::utils::{not_found, unauthorized};
 
-use sparrow::apo::AcceptedActivity;
-use sparrow::apo::AcceptedTypes;
+use sparrow::activitypub::accepted_activity::AcceptedActivity;
+use sparrow::activitypub::accepted_activity::AcceptedTypes;
 use sparrow::utils::get_public_key;
 
 pub async fn request(

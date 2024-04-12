@@ -21,8 +21,16 @@ s3_region = { required = true }
 [application.trigger.redis]
 address = "redis://{{ redis_credential }}@{{ redis_host }}:{{ redis_port }}"
 
+[[trigger.http]]
+route = "/assets/..."
+component = "static"
+
+[[trigger.http]]
+route = "/robots.txt"
+component = "static"
+
 [component.static]
-source = { url = "https://github.com/fermyon/spin-fileserver/releases/latest/download/spin_static_fs.wasm", digest = "sha256:ef88708817e107bf49985c7cefe4dd1f199bf26f6727819183d5c996baa3d148" }
+source = { url = "https://github.com/fermyon/spin-fileserver/releases/download/v0.3.0/spin_static_fs.wasm", digest = "sha256:ef88708817e107bf49985c7cefe4dd1f199bf26f6727819183d5c996baa3d148" }
 files = [{ source = "assets", destination = "/" }]
 
 [[trigger.http]]
@@ -33,7 +41,6 @@ component = "well-known"
 source = "target/wasm32-wasi/release/well_known.wasm"
 sqlite_databases = ["default"]
 allowed_outbound_hosts = []
-files = [{ source = "well-known/static", destination = "/" }]
 [component.well-known.build]
 command = "cargo build --target wasm32-wasi --release"
 workdir = "well-known"

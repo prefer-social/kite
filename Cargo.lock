@@ -110,12 +110,11 @@ dependencies = [
  "chrono",
  "comrak",
  "maplit",
- "postbox",
  "rand 0.8.5",
  "serde",
  "serde_derive",
  "serde_json",
- "sparrow 0.1.0 (git+https://github.com/prefer-social/sparrow?branch=main)",
+ "sparrow",
  "spin-sdk",
  "tracing",
  "tracing-subscriber",
@@ -132,13 +131,12 @@ dependencies = [
  "frameshop",
  "mime 0.3.17",
  "multipart-2021",
- "postbox",
  "rand 0.8.5",
  "regex",
  "serde",
  "serde_derive",
  "serde_json",
- "sparrow 0.1.0 (git+https://github.com/prefer-social/sparrow?branch=main)",
+ "sparrow",
  "spin-sdk",
  "tracing",
  "tracing-subscriber",
@@ -187,9 +185,9 @@ checksum = "97be891acc47ca214468e09425d02cef3af2c94d0d82081cd02061f996802f14"
 
 [[package]]
 name = "async-trait"
-version = "0.1.79"
+version = "0.1.80"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a507401cad91ec6a857ed5513a2073c82a9b9048762b885bb98655b306964681"
+checksum = "c6fa2087f2753a7da8cc1c0dbfcf89579dd57458e36769de5ac750b4671737ca"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -901,17 +899,6 @@ checksum = "206868b8242f27cecce124c19fd88157fbd0dd334df2587f36417bafbc85097b"
 dependencies = [
  "derive_builder_core 0.20.0",
  "syn 2.0.58",
-]
-
-[[package]]
-name = "derive_more"
-version = "0.99.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fb810d30a7c1953f91334de7244731fc3f3c10d7fe163338a35b9f640960321"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 1.0.109",
 ]
 
 [[package]]
@@ -2137,22 +2124,11 @@ dependencies = [
  "querystring",
  "serde",
  "serde_json",
- "sparrow 0.1.0 (git+https://github.com/prefer-social/sparrow?branch=main)",
+ "sparrow",
  "spin-sdk",
  "tracing",
  "tracing-subscriber",
  "url 2.5.0",
-]
-
-[[package]]
-name = "object"
-version = "0.34.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7090bae93f8585aad99e595b7073c5de9ba89fbd6b4e9f0cdd7a10177273ac8"
-dependencies = [
- "flate2",
- "memchr",
- "ruzstd",
 ]
 
 [[package]]
@@ -2583,28 +2559,6 @@ dependencies = [
  "fdeflate",
  "flate2",
  "miniz_oxide",
-]
-
-[[package]]
-name = "postbox"
-version = "0.1.0"
-source = "git+https://github.com/prefer-social/postbox?branch=main#35ef6b0cc4374d0cd9107d7cb1ab2228d40e1006"
-dependencies = [
- "anyhow",
- "base64 0.21.7",
- "bytes",
- "chrono",
- "rand 0.8.5",
- "rsa",
- "serde",
- "serde_derive",
- "serde_json",
- "sparrow 0.1.0 (git+https://github.com/prefer-social/sparrow?branch=main)",
- "spin-sdk",
- "tracing",
- "tracing-subscriber",
- "url 2.5.0",
- "uuid",
 ]
 
 [[package]]
@@ -3076,17 +3030,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ruzstd"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5174a470eeb535a721ae9fdd6e291c2411a906b96592182d05217591d5c5cf7b"
-dependencies = [
- "byteorder",
- "derive_more",
- "twox-hash",
-]
-
-[[package]]
 name = "ryu"
 version = "1.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3329,7 +3272,6 @@ dependencies = [
  "hex-literal",
  "hmac",
  "itertools 0.12.1",
- "object",
  "once_cell",
  "passwords",
  "pem",
@@ -3340,54 +3282,7 @@ dependencies = [
  "regex",
  "rsa",
  "serde",
- "serde_json",
- "sha2",
- "spin-sdk",
- "thiserror",
- "time 0.3.36",
- "tracing",
- "tracing-subscriber",
- "url 2.5.0",
- "urlencoding",
- "uuid",
- "validator",
-]
-
-[[package]]
-name = "sparrow"
-version = "0.1.0"
-source = "git+https://github.com/prefer-social/sparrow?branch=main#b2a058f5b3c6348f74577144484992609f2fb7a5"
-dependencies = [
- "activitystreams-kinds",
- "anyhow",
- "async-trait",
- "base64 0.22.0",
- "bech32",
- "bytes",
- "chrono",
- "config",
- "derive_builder 0.20.0",
- "digest 0.11.0-pre.8",
- "dyn-clone",
- "ed25519-dalek",
- "enum_delegate",
- "futures-core",
- "headers",
- "hex",
- "hex-literal",
- "hmac",
- "itertools 0.12.1",
- "object",
- "once_cell",
- "passwords",
- "pem",
- "pin-project",
- "pin-project-lite",
- "pkcs1",
- "rand 0.8.5",
- "regex",
- "rsa",
- "serde",
+ "serde_derive",
  "serde_json",
  "sha2",
  "spin-sdk",
@@ -3819,16 +3714,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "twox-hash"
-version = "1.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
-dependencies = [
- "cfg-if",
- "static_assertions",
-]
-
-[[package]]
 name = "typeable"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4189,7 +4074,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "sha2",
- "sparrow 0.1.0",
+ "sparrow",
  "spin-sdk",
  "time 0.3.36",
  "tracing",
@@ -4212,7 +4097,7 @@ dependencies = [
  "itertools 0.12.1",
  "serde",
  "serde_json",
- "sparrow 0.1.0 (git+https://github.com/prefer-social/sparrow?branch=main)",
+ "sparrow",
  "spin-sdk",
  "tracing",
  "tracing-subscriber",
@@ -4403,9 +4288,9 @@ checksum = "32b752e52a2da0ddfbdbcc6fceadfeede4c939ed16d13e648833a61dfb611ed8"
 
 [[package]]
 name = "winnow"
-version = "0.6.5"
+version = "0.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dffa400e67ed5a4dd237983829e66475f0a4a26938c4b04c21baede6262215b8"
+checksum = "f0c976aaaa0e1f90dbb21e9587cdaf1d9679a1cde8875c0d6bd83ab96a208352"
 dependencies = [
  "memchr",
 ]
