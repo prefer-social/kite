@@ -17,7 +17,8 @@ serde = { version = "1.0.193", features = ["derive"] }
 chrono = { version = "0.4.31", features = ["serde"] }
 url = { version = "2.5.0", features = ["serde"] }
 async-trait = { version = "0.1.74", features = [] }
-sparrow = { git = "https://github.com/prefer-social/sparrow", branch = "main" }
+#sparrow = { git = "https://github.com/prefer-social/sparrow", branch = "main" }
+sparrow = { path = "../../sparrow" }
 rand = "0.8.5"
 serde_derive = "1"
 rsa = { version = "0.9.6", features = ["serde", "sha2"] }

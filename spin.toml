@@ -22,7 +22,7 @@ s3_region = { required = true }
 address = "redis://{{ redis_credential }}@{{ redis_host }}:{{ redis_port }}"
 
 [component.static]
-source = { url = "https://github.com/fermyon/spin-fileserver/releases/download/v0.1.0/spin_static_fs.wasm", digest = "sha256:96c76d9af86420b39eb6cd7be5550e3cb5d4cc4de572ce0fd1f6a29471536cb4" }
+source = { url = "https://github.com/fermyon/spin-fileserver/releases/latest/download/spin_static_fs.wasm", digest = "sha256:ef88708817e107bf49985c7cefe4dd1f199bf26f6727819183d5c996baa3d148" }
 files = [{ source = "assets", destination = "/" }]
 
 [[trigger.http]]
@@ -61,6 +61,7 @@ source = "target/wasm32-wasi/release/api_v1.wasm"
 allowed_outbound_hosts = [
     "https://*:*",
     "redis://{{ redis_host }}:{{ redis_port }}",
+    "rediss://{{ redis_host }}:{{ redis_port }}",
 ]
 sqlite_databases = ["default"]
 [component.api-v1.build]
@@ -89,6 +90,7 @@ source = "target/wasm32-wasi/release/api_v2.wasm"
 allowed_outbound_hosts = [
     "https://*:*",
     "redis://{{ redis_host }}:{{ redis_port }}",
+    "rediss://{{ redis_host }}:{{ redis_port }}",
 ]
 sqlite_databases = ["default"]
 [component.api-v2.build]
@@ -126,12 +128,13 @@ channel = "{{ redis_channel }}"
 component = "postbox"
 
 [component.postbox]
-source = { url = "https://github.com/prefer-social/postbox/releases/download/v0.0.5/postbox.wasm", digest = "sha256:940ccf362da5439fb4bfb335d11adbb56d695dee1ebcc3dcfb063655a38045f2" }
-#source = "../postbox/target/wasm32-wasi/debug/postbox.wasm"
+source = { url = "https://github.com/prefer-social/postbox/releases/latest/download/postbox.wasm", digest = "sha256:940ccf362da5439fb4bfb335d11adbb56d695dee1ebcc3dcfb063655a38045f2" }
+#source = "../postbox/target/wasm32-wasi/release/postbox.wasm"
 allowed_outbound_hosts = [
     "https://*:*",
     "http://*:*",
     "redis://{{ redis_host }}:{{ redis_port }}",
+    "rediss://{{ redis_host }}:{{ redis_port }}",
 ]
 sqlite_databases = ["default"]
 [component.postbox.build]

@@ -22,15 +22,14 @@ async fn handle_route(req: Request) -> Response {
     let request_path_and_query = req.path_and_query().unwrap();
     let request_method = req.method().to_string();
     tracing::debug!(
-            "<---------- ({request_method}) {request_path_and_query} --------->"
+        "<---------- ({request_method}) {request_path_and_query} --------->"
     );
-
-    
-
 
     let mut router = Router::new();
 
     router.get_async("/.well-known/webfinger", webfinger);
+    router.get_async("/.well-known/host-meta", hostmeta);
+
     //router.any_async("/", foo::root);
     router.handle_async(req).await
 }
@@ -38,9 +37,6 @@ async fn handle_route(req: Request) -> Response {
 
 async fn webfinger(req: Request, _params: Params) -> anyhow::Result<impl IntoResponse> {
     
-
-    
-
     let from = req.header("spin-client-addr").unwrap().as_str().unwrap();
     tracing::debug!("-> Webfinger requested from: {from}");
 
@@ -70,6 +66,25 @@ async fn webfinger(req: Request, _params: Params) -> anyhow::Result<impl IntoRes
     Ok(Response::builder()
         .status(404)
         .header("content-type", "text/html")
+        .build())
+}
+
+async fn hostmeta(req: Request, _params: Params) -> anyhow::Result<impl IntoResponse> {
+    
+    let from = req.header("spin-client-addr").unwrap().as_str().unwrap();
+    tracing::debug!("-> host-meta requested from: {from}");
+
+    let host: Url = req.uri().parse().unwrap();
+        
+    let a = format!(r#"<?xml version="1.0" encoding="UTF-8"?>
+    <XRD xmlns="http://docs.oasis-open.org/ns/xri/xrd-1.0">
+    <Link rel="lrdd" template="https://{}/.well-known/webfinger?resource={{uri}}"/>
+    </XRD>"#,host.host().unwrap());
+        
+    Ok(Response::builder()
+        .status(200)
+        .header("content-type", "application/xrd+xml")
+        .body(a)
         .build())
 }
 

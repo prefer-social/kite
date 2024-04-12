@@ -8,6 +8,7 @@ target/
 **/*session.sql
 spin.dev.toml
 runtime-config.dev.toml
+spin.dev.toml
 
 .gitignore
 deploy.sh

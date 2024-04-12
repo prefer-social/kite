@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use spin_sdk::{
     http::{HeaderValue, Params, Request, Response, Router},
     http_component,
@@ -6,7 +8,7 @@ use tracing_subscriber::{filter::EnvFilter, FmtSubscriber};
 use url::Url;
 
 pub mod featured;
-pub mod foo;
+//pub mod foo;
 pub mod http_responses;
 pub mod outbox;
 pub mod tests;
@@ -19,8 +21,7 @@ async fn handle_route(req: Request) -> Response {
     let subscriber = FmtSubscriber::builder()
         .with_env_filter(EnvFilter::from_env("APP_LOG_LEVEL"))
         .finish();
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("setting default subscriber failed");
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     let request_path_and_query = req.path_and_query().unwrap();
     let request_method = req.method().to_string();
@@ -35,7 +36,7 @@ async fn handle_route(req: Request) -> Response {
 
     tracing::debug!("<---------- ({request_method}) {request_path_and_query} ({ip:?}) --------->");
 
-    // Modifying headers, Custom header
+    // Modifying headers, Custom header (Sample)
     let mut headers = req
         .headers()
         .map(|(k, v)| (k.to_string(), v.as_bytes().to_vec()))
@@ -56,13 +57,23 @@ async fn handle_route(req: Request) -> Response {
 
     let _domain = req.header("host").unwrap().as_str().unwrap();
 
-    if let Some(a) = req.header("accept") {
-        if let Some("application/activity+json") = a.as_str() {
-            let original_uri_str = req.uri();
-            let original_uri = Url::parse(original_uri_str).unwrap();
+    //if let Some(a) = req.header("accept") {
+    //    if let Some("application/activity+json") = a.as_str() {
+    let original_uri_str = req.uri();
+    let original_uri = Url::parse(original_uri_str).unwrap();
 
-            let a = &req.path_and_query().unwrap()[..2];
-            if a == "/@" {
+    let path = &req.path_and_query().unwrap();
+
+    match *path {
+        "/" => {
+            router.get_async("/", users::request);
+            return router.handle_async(req).await;
+        }
+        _ => {
+            let a = &req.path_and_query().unwrap();
+            let b = *a;
+            let c = b.to_string();
+            if c.starts_with("/@") {
                 let user = &req.path_and_query().unwrap()[2..];
                 let uri = format!(
                     "{}://{}/users/{}",
@@ -81,9 +92,11 @@ async fn handle_route(req: Request) -> Response {
             }
         }
     }
+    //    }
+    //}
 
     router.get_async("/", users::request);
-    router.get_async("/inbox", users::inbox::request);
+    router.any_async("/inbox", users::inbox::request);
 
     router.get_async("/users/:user", users::request);
 
@@ -101,8 +114,8 @@ async fn handle_route(req: Request) -> Response {
     router.any_async("/tests/db", tests::db);
 
     //
-    router.any_async("/foo/following_request", foo::following_request);
-    router.any_async("/foo", foo::modified_header_test);
+    //router.any_async("/foo/following_request", foo::following_request);
+    //router.any_async("/foo", foo::modified_header_test);
     //router.any_async("/", foo::root);
     router.handle_async(req).await
 }

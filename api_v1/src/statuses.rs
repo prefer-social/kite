@@ -188,60 +188,7 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
         let channel = variables::get("redis_channel").unwrap();
         let _ = conn.publish(channel.as_str(), &payload);
     }
-    /*
-
-    {
-      "@context":[
-        "https://www.w3.org/ns/activitystreams",
-        { "ostatus":"http://ostatus.org#",
-          "atomUri":"ostatus:atomUri",
-          "inReplyToAtomUri":"ostatus:inReplyToAtomUri",
-          "conversation":"ostatus:conversation",
-          "sensitive":"as:sensitive",
-          "toot":"http://joinmastodon.org/ns#",
-          "votersCount":"toot:votersCount"}
-      ],
-      "id":"https://mas.to/users/seungjin/statuses/112001985738281244/activity",
-      "type":"Create",
-      "actor":"https://mas.to/users/seungjin",
-      "published":"2024-02-27T06:17:54Z",
-      "to":["https://www.w3.org/ns/activitystreams#Public"],
-      "cc":["https://mas.to/users/seungjin/followers"],
-      "object": {
-        "id":"https://mas.to/users/seungjin/statuses/112001985738281244",
-        "type":"Note",
-        "summary":null,
-        "inReplyTo":null,
-        "published":"2024-02-27T06:17:54Z",
-        "url":"https://mas.to/@seungjin/112001985738281244",
-        "attributedTo":"https://mas.to/users/seungjin",
-        "to":["https://www.w3.org/ns/activitystreams#Public"],
-        "cc":["https://mas.to/users/seungjin/followers"],
-        "sensitive":false,
-        "atomUri":"https://mas.to/users/seungjin/statuses/112001985738281244",
-        "inReplyToAtomUri":null,
-        "conversation":"tag:mas.to,2024-02-27:objectId=306721066:objectType=Conversation",
-        "content":"RRRRRR",
-        "contentMap":{"en":"RRRRR"},
-        "attachment":[],
-        "tag":[],
-        "replies": {
-          "id":"https://mas.to/users/seungjin/statuses/112001985738281244/replies",
-          "type":"Collection",
-          "first": {
-            "type":"CollectionPage",
-            "next":"https://mas.to/users/seungjin/statuses/112001985738281244/replies?only_other_accounts=true\u0026page=true",
-            "partOf":"https://mas.to/users/seungjin/statuses/112001985738281244/replies",
-            "items":[]
-          }
-        }
-      },
-      "signature":{"type":"RsaSignature2017","creator":"https://mas.to/users/seungjin#main-key","created":"2024-02-27T06:17:55Z","signatureValue":"dEzcX8ndVHBIie1FzPB+I9GbXadowi4HldMtox049o05B08AN0XnYcR0HLVsEZeU2a4002bHHqSWkbiBg3uV0eYnFbC/jzI89N9Otfl9C+xkgID1qv5oelYwlXnl+4rcK7tHvi/pU5KC8q+hzQLd/fIIrFzR6FFsd2l8NhZrAMy6oSSNyEjjbBaWGl5A9kni6FjbSPrOxUGBzq5LNVibszndGN3fxzmo5ejnQLQRXP4hqG8vDh5SfQ+F/qUTY+XMolKmS1dS0ZIgDaVx2ckPf8zigAEmjUgg+31fey1byh4QW2MbQwrgYvyMXNa4SQHv0AYS/XGz1hCa/nQeI9eYSw=="}
-    }
-
-
-    */
-
+  
     // PASS TO POSTBOX
 
     let status = Status {

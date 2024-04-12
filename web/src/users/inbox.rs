@@ -1,14 +1,17 @@
 use anyhow::Result;
+use serde_derive::{Deserialize, Serialize};
 use spin_sdk::{
     http::{IntoResponse, Method, Params, Request, Response},
     sqlite::Value,
 };
 use std::collections::HashMap;
 use std::str;
+use url::Url;
 
 use crate::users::activities::{accept, follow, undo};
 use crate::utils::{not_found, unauthorized};
 
+use sparrow::apo::AcceptedActivity;
 use sparrow::apo::AcceptedTypes;
 use sparrow::utils::get_public_key;
 
@@ -59,12 +62,36 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
 
     let key_id = get_id_from_sig_header(sig_header);
 
-    let pubkey_str = get_public_key(&key_id).await.unwrap();
+    let ki: Url = key_id.parse().unwrap();
+    let actor_from_key_id =
+        format!("{}://{}{}", ki.scheme(), ki.host().unwrap(), ki.path());
+
+    tracing::debug!(actor_from_key_id);
+
+    let pubkey_str = match get_public_key(&actor_from_key_id).await {
+        Ok(x) => x,
+        Err(x) => {
+            tracing::debug!("------------");
+            tracing::debug!(
+                "Getting an error from getting pubkey: {:?} {:?})",
+                x,
+                &actor_from_key_id
+            );
+
+            return Ok(Response::builder()
+                .status(200)
+                .header("Context-Type", "application/activity+json")
+                .build());
+        }
+    };
 
     let valid_signature =
         sparrow::mastodon::validate_mastodon_request(&req, &pubkey_str)
             .await
             .unwrap();
+
+    tracing::debug!("valid signature: {:?}", valid_signature);
+
     let b = str::from_utf8(req.body()).unwrap();
 
     if valid_signature {
@@ -84,20 +111,15 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
         .build())
 }
 
-pub struct AcceptedActivity {
-
+/*
+{
+"@context":"https://www.w3.org/ns/activitystreams",
+"id":"https://mas.to/10a53d78-4f95-4ee0-b2c7-89458a761298",
+"type":"Follow",
+"actor":"https://mas.to/users/seungjin",
+"object":"https://seungjin.ap.dev.seungjin.net/users/seungjin"
 }
-
-pub enum ActivityTypes {
-    Accept,
-    Announce,
-    Create,
-    Delete,
-    Follow,
-    Reject,
-    Update,
-    Undo,
-}
+*/
 
 pub async fn handle_activity(a: &str) -> Result<(), anyhow::Error> {
     //debug!("Actor: {:?}", activity.actor());
@@ -106,21 +128,22 @@ pub async fn handle_activity(a: &str) -> Result<(), anyhow::Error> {
     tracing::debug!("--- handling acticity ---");
     tracing::debug!("----> {}", a);
 
-    // let activity: AcceptedActivity = serde_json::from_str(a)?;
-    // let b: serde_json::Value = serde_json::from_str(a).unwrap();
+    let activity: AcceptedActivity = serde_json::from_str(a)?;
+    tracing::debug!("{:?}", activity);
+    let b: serde_json::Value = serde_json::from_str(a).unwrap();
+    tracing::debug!("{:?}", b);
 
-    // match activity.kind() {
-    //     //Some(AcceptedTypes::Accept) => println!("Accept"),
-    //     Some(AcceptedTypes::Accept) => accept::accept_action(b).await,
-    //     Some(AcceptedTypes::Announce) => println!("Announce"),
-    //     Some(AcceptedTypes::Create) => println!("Create"),
-    //     Some(AcceptedTypes::Delete) => println!("Delete"),
-    //     Some(AcceptedTypes::Follow) => follow::follow_action(b).await,
-    //     Some(AcceptedTypes::Reject) => println!("Reject"),
-    //     Some(AcceptedTypes::Update) => println!("Update"),
-    //     Some(AcceptedTypes::Undo) => undo::undo_action(b).await,
-    //     None => return Err(anyhow::Error::msg("No activity type provided")),
-    // }
+    match activity.kind() {
+        Some(AcceptedTypes::Accept) => accept::accept_action(b).await,
+        Some(AcceptedTypes::Announce) => println!("Announce"),
+        Some(AcceptedTypes::Create) => println!("Create"),
+        Some(AcceptedTypes::Delete) => println!("Delete"),
+        Some(AcceptedTypes::Follow) => follow::follow_action(b).await,
+        Some(AcceptedTypes::Reject) => println!("Reject"),
+        Some(AcceptedTypes::Update) => println!("Update"),
+        Some(AcceptedTypes::Undo) => undo::undo_action(b).await,
+        None => return Err(anyhow::Error::msg("No activity type provided")),
+    }
 
     Ok(())
 }

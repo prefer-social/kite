@@ -6,12 +6,12 @@ use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
 use spin_sdk::redis;
 use spin_sdk::sqlite::Value as SV;
 use spin_sdk::variables;
-use tracing::debug;
 use url::Url;
 use uuid::Uuid;
 
 use sparrow::apo::Follow;
 use sparrow::postbox::Envelop;
+use sparrow::utils::{get_current_time_in_iso_8601, get_inbox_from_actor};
 
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
@@ -21,26 +21,28 @@ pub async fn request(req: Request, params: Params) -> Result<Response> {
 }
 
 pub async fn post(req: Request, params: Params) -> Result<Response> {
-    let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap() {
+    let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap()
+    {
         sparrow::auth::TokenAuth::InValid => {
             return crate::http_responses::unauthorized().await;
         }
         sparrow::auth::TokenAuth::TokenNotProvided => {
             return crate::http_responses::unauthorized().await;
         }
-        sparrow::auth::TokenAuth::Valid(userid) => Some(userid).unwrap() as i64,
+        sparrow::auth::TokenAuth::Valid(userid) => {
+            Some(userid).unwrap() as i64
+        }
     };
 
-    let user_db_id = params.get("id").unwrap().to_string();
-    let recipient = sparrow::utils::get_actor_url_from_id(user_db_id)
+    let follow_user = params.get("id").unwrap().to_string();
+    let recipient = sparrow::utils::get_actor_url_from_id(follow_user)
         .await
         .unwrap();
-    let recipient_actor = Url::parse(&recipient.as_str()).unwrap();
-    let (federation_id, private_key) = sparrow::utils::get_local_user(userid).await.unwrap();
+
+    let (federation_id, _private_key) =
+        sparrow::utils::get_local_user(userid).await.unwrap();
+
     let my_actor = Url::parse(&federation_id).unwrap();
-    let private_key_pem = sparrow::utils::get_privatekey_with_user_name("seungjin")
-        .await
-        .unwrap();
 
     let uuid = Uuid::now_v7().to_string();
     let id = format!(
@@ -54,8 +56,8 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
         context: "https://www.w3.org/ns/activitystreams".to_string(),
         id: id,
         kind: "Follow".to_string(),
-        actor: my_actor.to_string(),
-        object: recipient_actor.to_string(),
+        actor: federation_id,
+        object: recipient.clone(),
     };
 
     let envelop = Envelop {
@@ -66,7 +68,6 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
     let paylod = serde_json::to_vec(&envelop).unwrap();
 
     let rc = variables::get("redis_credential").unwrap();
-    tracing::debug!("rc --> {}", rc);
 
     let address = format!(
         "redis://{}@{}:{}",
@@ -76,17 +77,20 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
     );
     let conn = redis::Connection::open(&address)?;
 
-    let put_into_postbox = conn.publish("postbox", &paylod);
+    let redis_channel = variables::get("redis_channel").unwrap();
+    tracing::debug!("-------------?------------");
+    tracing::debug!(redis_channel);
+    let put_into_postbox = conn.publish(redis_channel.as_str(), &paylod);
 
-    debug!("{put_into_postbox:?}");
+    tracing::debug!("---> {put_into_postbox:?}");
 
     let _rq = sparrow::db::Connection::builder()
         .await
         .execute(
-            "INSERT INTO following(userId, federationId, object) VALUES(?,?,?)",
+            "INSERT OR IGNORE INTO following(userId, federationId, object) VALUES(?,?,?)",
             &[
                 SV::Text(userid.to_string()),
-                SV::Text(recipient_actor.to_string()),
+                SV::Text(recipient.clone()),
                 SV::Text(serde_json::to_string(&follow_object).unwrap()),
             ],
         )
@@ -110,7 +114,8 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
         }}"#
         );
 
-        let json_val: serde_json::Value = serde_json::from_str(foo.as_str()).unwrap();
+        let json_val: serde_json::Value =
+            serde_json::from_str(foo.as_str()).unwrap();
         Ok(Response::builder()
             .status(200)
             .header("Context-Type", "application/activity+json")
