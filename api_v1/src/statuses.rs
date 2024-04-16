@@ -14,6 +14,7 @@ use spin_sdk::variables;
 use std::str;
 use uuid::Uuid;
 use comrak::{markdown_to_html, Options};
+use chrono::{TimeZone, Utc};
 
 use sparrow::activitypub::apo::{CollectionPage, Create, Note, Replies, RsaSignature2017};
 use sparrow::mastodon::{account::Account, application::Application, status::Status};
@@ -65,7 +66,6 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
     let mut options = Options::default();
     options.extension.autolink = true;
     let status_html = markdown_to_html(status, &options);
-
 
     let media_ids: &Value = body.get("media_ids").unwrap();
     let mut media_ids_1 = media_ids.as_array().unwrap();
@@ -224,7 +224,7 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
             bot: false,
             discoverable: true,
             group: false,
-            created_at: "2016-03-16T14:34:26.392Z".to_string(),
+            created_at: Utc.with_ymd_and_hms(2015, 5, 15, 0, 0, 0).unwrap(),
             note: "<p>FOOOFOOOFFOOO</p>".to_string(),
             url: "https://mastodon.social/@Gargron".to_string(),
             avatar: "https://files.mastodon.social/accounts/avatars/000/000/001/original/d96d39a0abb45b92.jpg".to_string(),
@@ -234,27 +234,30 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
             followers_count: 322930,
             following_count: 459,
             statuses_count: 61323,
-            last_status_at: "2019-12-10T08:14:44.811Z".to_string(),
-            emojis: vec![],
-            fields: vec![]
+            last_status_at: Some(Utc.with_ymd_and_hms(2015, 5, 15, 0, 0, 0).unwrap()),
+            emojis: None,
+            fields: None, 
         },
-        media_attachments: media_attachements,
-        mentions: vec![],
-        tags: vec![],
-        emojis: vec![],
+        media_attachments: Some(media_attachements),
+        mentions: None,
+        tags: None,
+        emojis: None,
         card: None, 
         poll: None,
     };
 
-   
+
+
     let json_str = serde_json::to_string(&status).unwrap();
+    
 
-    tracing::debug!("????????????????????????????????????");
-    tracing::debug!(json_str);
 
-    Ok(Response::builder()
+
+
+    Ok(
+        Response::builder()
         .status(200)
-        .header("Context-Type", "application/activity+json")
-        .body(json_str)
-        .build())
+        .header("Content-Type", "application/activity+json")
+        .build()
+    )
 }

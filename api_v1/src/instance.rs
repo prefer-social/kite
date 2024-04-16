@@ -53,7 +53,7 @@ pub async fn get(_req: Request, _params: Params) -> Result<Response> {
           "supported_mime_types": [
             "image/jpeg",
             "image/png",
-            "image/gif",
+            "image/gif"
           ],
           "image_size_limit": 16777216,
           "image_matrix_limit": 33177600,

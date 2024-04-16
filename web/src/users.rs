@@ -69,7 +69,7 @@ pub async fn get(req: Request, params: Params) -> Result<Response> {
     }
 
     //let users = Users::build(user_rowset);
-    let user = User::get_with_name(name.as_str()).await.unwrap();
+    let user = User::get(name.as_str()).await.unwrap();
     //let user: User = users.get(0).unwrap().clone();
 
     //let actor: PersonActor = user.to_actor().await;

@@ -25,6 +25,6 @@ tracing-subscriber = { version = "0.3.18", features = [
 rand = "0.8"
 uuid = { version = "1", features = ["v4", "fast-rng"] }
 maplit = "1.0.2"
-comrak = "0.21"
+comrak = "0.22"
 #sparrow = { git = "https://github.com/prefer-social/sparrow", branch = "main" }
 sparrow = { path = "../../sparrow" }

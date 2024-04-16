@@ -70,4 +70,6 @@ impl Actor {
             .get::<&str>("publicKey")
             .unwrap();
     }
+
+  let a = arsoo
 }
