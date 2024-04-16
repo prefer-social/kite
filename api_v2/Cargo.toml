@@ -29,4 +29,4 @@ uuid = { version = "1", features = ["v4", "v7", "fast-rng"] }
 mime = "0.3"
 
 sparrow = { path = "../../sparrow" }
-frameshop = { git = "https://github.com/prefer-social/frameshop", branch = "main" }
+frameshop = { path = "../../frameshop" }

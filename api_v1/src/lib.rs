@@ -11,7 +11,6 @@ pub mod accounts;
 pub mod apps;
 pub mod bookmarks;
 pub mod favourites;
-pub mod http_responses;
 pub mod instance;
 pub mod list;
 pub mod media;

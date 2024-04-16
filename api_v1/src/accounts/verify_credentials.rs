@@ -10,7 +10,7 @@ use url::Url;
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
         Method::Get => get(req, params).await,
-        _ => crate::http_responses::notfound().await,
+        _ => sparrow::http_response::HttpResponse::not_found().await,
         //_ => get(req, params).await,
     }
 }
@@ -18,14 +18,17 @@ pub async fn request(req: Request, params: Params) -> Result<Response> {
 // TODO: After basic OAUTH, app is calling here with "/app/v1/accounts/verify_credentials"
 // https://docs.joinmastodon.org/methods/accounts/#verify_credentials
 pub async fn get(req: Request, _params: Params) -> Result<Response> {
-    let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap() {
+    let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap()
+    {
         sparrow::auth::TokenAuth::InValid => {
-            return crate::http_responses::unauthorized().await;
+            return sparrow::http_response::HttpResponse::unauthorized().await;
         }
         sparrow::auth::TokenAuth::TokenNotProvided => {
-            return crate::http_responses::unauthorized().await;
+            return sparrow::http_response::HttpResponse::unauthorized().await;
         }
-        sparrow::auth::TokenAuth::Valid(userid) => Some(userid).unwrap() as i64,
+        sparrow::auth::TokenAuth::Valid(userid) => {
+            Some(userid).unwrap() as i64
+        }
     };
 
     let user = sparrow::db::Connection::builder()
@@ -67,7 +70,8 @@ pub async fn get(req: Request, _params: Params) -> Result<Response> {
             &[SV::Integer(userid)],
         )
         .await;
-    let followers_count = follower_qr.rows().next().unwrap().get::<i32>("A").unwrap();
+    let followers_count =
+        follower_qr.rows().next().unwrap().get::<i32>("A").unwrap();
 
     let following_qr = sparrow::db::Connection::builder()
         .await
@@ -76,7 +80,8 @@ pub async fn get(req: Request, _params: Params) -> Result<Response> {
             &[SV::Integer(userid)],
         )
         .await;
-    let followings_count = following_qr.rows().next().unwrap().get::<i32>("A").unwrap();
+    let followings_count =
+        following_qr.rows().next().unwrap().get::<i32>("A").unwrap();
 
     let a = format!(
         r#"{{

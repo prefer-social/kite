@@ -11,19 +11,22 @@ use url::Url;
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
         Method::Post => post(req, params).await,
-        _ => crate::http_responses::notfound().await,
+        _ => sparrow::http_response::HttpResponse::not_found().await,
     }
 }
 
 pub async fn post(req: Request, params: Params) -> Result<Response> {
-    let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap() {
+    let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap()
+    {
         sparrow::auth::TokenAuth::InValid => {
-            return crate::http_responses::unauthorized().await;
+            return sparrow::http_response::HttpResponse::unauthorized().await;
         }
         sparrow::auth::TokenAuth::TokenNotProvided => {
-            return crate::http_responses::unauthorized().await;
+            return sparrow::http_response::HttpResponse::unauthorized().await;
         }
-        sparrow::auth::TokenAuth::Valid(userid) => Some(userid).unwrap() as i64,
+        sparrow::auth::TokenAuth::Valid(userid) => {
+            Some(userid).unwrap() as i64
+        }
     };
 
     debug!(userid);
@@ -51,7 +54,8 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
     }}"#
     );
 
-    let json_val: serde_json::Value = serde_json::from_str(foo.as_str()).unwrap();
+    let json_val: serde_json::Value =
+        serde_json::from_str(foo.as_str()).unwrap();
     Ok(Response::builder()
         .status(200)
         .header("Context-Type", "application/activity+json")

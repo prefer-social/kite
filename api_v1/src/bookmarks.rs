@@ -9,7 +9,7 @@ use url::Url;
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
         Method::Get => get(req, params).await,
-        _ => crate::http_responses::notfound().await,
+        _ => sparrow::http_response::HttpResponse::not_found().await,
     }
 }
 

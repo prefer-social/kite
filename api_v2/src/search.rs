@@ -13,7 +13,7 @@ use url::Url;
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
         Method::Get => get(req, params).await,
-        _ => return crate::http_responses::notfound().await,
+        _ => return sparrow::http_response::HttpResponse::not_found().await,
     }
 }
 
@@ -23,14 +23,17 @@ pub async fn request(req: Request, params: Params) -> Result<Response> {
 pub async fn get(req: Request, params: Params) -> Result<Response> {
     debug!("Requeted -> GET /api/v2/search");
 
-    let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap() {
+    let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap()
+    {
         sparrow::auth::TokenAuth::InValid => {
-            return crate::http_responses::unauthorized().await;
+            return sparrow::http_response::HttpResponse::unauthorized().await;
         }
         sparrow::auth::TokenAuth::TokenNotProvided => {
-            return crate::http_responses::unauthorized().await;
+            return sparrow::http_response::HttpResponse::unauthorized().await;
         }
-        sparrow::auth::TokenAuth::Valid(userid) => Some(userid).unwrap() as i64,
+        sparrow::auth::TokenAuth::Valid(userid) => {
+            Some(userid).unwrap() as i64
+        }
     };
 
     // https://docs.joinmastodon.org/methods/search/#query-parameters
@@ -56,7 +59,8 @@ pub async fn get(req: Request, params: Params) -> Result<Response> {
         "statuses": [],
         "hashtags": []
       }"#;
-        let json_val: serde_json::Value = serde_json::from_str(no_search_results).unwrap();
+        let json_val: serde_json::Value =
+            serde_json::from_str(no_search_results).unwrap();
 
         let aq = json_val.to_string();
         debug!(aq);
@@ -82,7 +86,8 @@ pub async fn get(req: Request, params: Params) -> Result<Response> {
           "statuses": [],
           "hashtags": []
         }"#;
-            let json_val: serde_json::Value = serde_json::from_str(no_search_results).unwrap();
+            let json_val: serde_json::Value =
+                serde_json::from_str(no_search_results).unwrap();
 
             let aq = json_val.to_string();
             debug!(aq);
@@ -140,11 +145,13 @@ pub async fn get_account_info(mut term: String) -> Result<Option<String>> {
     let published = acct.get::<&str>("published").unwrap().as_str().unwrap();
     let icon_url = match acct.get("icon") {
         Some(a) => a.get::<&str>("url").unwrap().as_str().unwrap().to_string(),
-        None => "https://mstd.seungjin.net/avatars/original/missing.png".to_string(),
+        None => "https://mstd.seungjin.net/avatars/original/missing.png"
+            .to_string(),
     };
     let header_url = match acct.get("image") {
         Some(a) => a.get::<&str>("url").unwrap().as_str().unwrap().to_string(),
-        None => "https://mstd.seungjin.net/avatars/original/missing.png".to_string(),
+        None => "https://mstd.seungjin.net/avatars/original/missing.png"
+            .to_string(),
     };
 
     let host = Url::parse(url).unwrap();

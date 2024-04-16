@@ -11,7 +11,7 @@ use url::Url;
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
         Method::Get => get(req, params).await,
-        _ => crate::http_responses::notfound().await,
+        _ => sparrow::http_response::HttpResponse::not_found().await,
     }
 }
 
@@ -48,7 +48,8 @@ pub async fn get(req: Request, params: Params) -> Result<Response> {
           }}]"#
             );
 
-            let json_val: serde_json::Value = serde_json::from_str(foo.as_str()).unwrap();
+            let json_val: serde_json::Value =
+                serde_json::from_str(foo.as_str()).unwrap();
             Ok(Response::builder()
                 .status(200)
                 .header("Context-Type", "application/activity+json")
@@ -57,7 +58,8 @@ pub async fn get(req: Request, params: Params) -> Result<Response> {
         }
         None => {
             let foo = r#"[]"#;
-            let json_val: serde_json::Value = serde_json::from_str(foo).unwrap();
+            let json_val: serde_json::Value =
+                serde_json::from_str(foo).unwrap();
             Ok(Response::builder()
                 .status(200)
                 .header("Context-Type", "application/activity+json")

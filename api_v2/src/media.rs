@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::{anyhow, Result};
 use mime::Mime;
 use spin_sdk::http::{Method, Params, Request, Response};
 use std::collections::HashMap;
@@ -16,7 +16,7 @@ pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
         Method::Post => post(req, params).await,
         Method::Get => get(req, params).await,
-        _ => return crate::http_responses::notfound().await,
+        _ => return sparrow::http_response::HttpResponse::not_found().await,
     }
 }
 
@@ -28,7 +28,7 @@ pub fn get_multipart_boundary(req: &Request) -> Result<String> {
         let a = split[1];
         return Ok(a.to_string());
     }
-    bail!("Can't find boundary from header")
+    Err(anyhow!("Can't find boundary from header"))
 }
 
 pub fn allowed_mime_type(mime: &Mime) -> Result<Option<&str>> {

@@ -1,9 +1,5 @@
 use anyhow::Result;
-use spin_sdk::{
-    http::{IntoResponse, Method, Params, Request, Response},
-    sqlite::{Connection, QueryResult, Value},
-};
-use tracing::debug;
+use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
 
 pub async fn request(
     req: Request,
@@ -131,9 +127,11 @@ pub async fn get(_req: Request, _params: Params) -> Result<Response> {
 
     let json_val: serde_json::Value = serde_json::from_str(foo).unwrap();
 
+    //let instance = sparrow::mastodon::instance::V1Instance {};
+
     Ok(Response::builder()
         .status(200)
-        .header("Context-Type", "application/activity+json")
+        .header("Content-Type", "application/activity+json")
         .body(json_val.to_string())
         .build())
 }
