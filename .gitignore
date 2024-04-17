@@ -1,6 +1,7 @@
 *~
 .idea/
 .vscode/
+Project.ede
 target/
 .spin/
 .env
