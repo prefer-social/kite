@@ -12,7 +12,6 @@ crate-type = ["cdylib"]
 anyhow = "1"
 serde_json = { version = "1.0.108", features = ["preserve_order"] }
 spin-sdk = { git = "https://github.com/fermyon/spin-rust-sdk", branch = "main" }
-#spin-sdk = { path = "../../../rust/spin-rust-sdk" }
 serde = { version = "1.0.193", features = ["derive"] }
 chrono = { version = "0.4.31", features = ["serde"] }
 url = { version = "2.5.0", features = ["serde"] }
@@ -22,7 +21,7 @@ rand = "0.8.5"
 serde_derive = "1"
 rsa = { version = "0.9.6", features = ["serde", "sha2"] }
 headers = "0.4"
-derive_builder = "0.12.0"
+derive_builder = "0.20.0"
 epoch = "0.0.2"
 pem = "3.0.3"
 pickledb = "0.5.1"

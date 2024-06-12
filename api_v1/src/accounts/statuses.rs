@@ -2,6 +2,7 @@
 // https://docs.joinmastodon.org/methods/accounts/#statuses
 
 use anyhow::Result;
+use sparrow::http_response::HttpResponse;
 use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
 use spin_sdk::sqlite::Value as SV;
 use std::collections::HashMap;
@@ -11,7 +12,7 @@ use url::Url;
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
         Method::Get => get(req, params).await,
-        _ => sparrow::http_response::HttpResponse::not_found().await,
+        _ => HttpResponse::not_found().await,
     }
 }
 

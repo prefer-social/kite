@@ -2,9 +2,8 @@ use anyhow::Result;
 use itertools::Itertools;
 use serde::Serialize;
 use spin_sdk::{
-    http::{IntoResponse, Request, Response, Router, Params},
+    http::{IntoResponse, Params, Request, Response, Router},
     http_component,
-    sqlite::{QueryResult, Value},
 };
 use std::collections::HashMap;
 use tracing_subscriber::filter::EnvFilter;
@@ -34,9 +33,10 @@ async fn handle_route(req: Request) -> Response {
     router.handle_async(req).await
 }
 
-
-async fn webfinger(req: Request, _params: Params) -> anyhow::Result<impl IntoResponse> {
-    
+async fn webfinger(
+    req: Request,
+    _params: Params,
+) -> anyhow::Result<impl IntoResponse> {
     let from = req.header("spin-client-addr").unwrap().as_str().unwrap();
     tracing::debug!("-> Webfinger requested from: {from}");
 
@@ -69,18 +69,23 @@ async fn webfinger(req: Request, _params: Params) -> anyhow::Result<impl IntoRes
         .build())
 }
 
-async fn hostmeta(req: Request, _params: Params) -> anyhow::Result<impl IntoResponse> {
-    
+async fn hostmeta(
+    req: Request,
+    _params: Params,
+) -> anyhow::Result<impl IntoResponse> {
     let from = req.header("spin-client-addr").unwrap().as_str().unwrap();
     tracing::debug!("-> host-meta requested from: {from}");
 
     let host: Url = req.uri().parse().unwrap();
-        
-    let a = format!(r#"<?xml version="1.0" encoding="UTF-8"?>
+
+    let a = format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
     <XRD xmlns="http://docs.oasis-open.org/ns/xri/xrd-1.0">
     <Link rel="lrdd" template="https://{}/.well-known/webfinger?resource={{uri}}"/>
-    </XRD>"#,host.host().unwrap());
-        
+    </XRD>"#,
+        host.host().unwrap()
+    );
+
     Ok(Response::builder()
         .status(200)
         .header("content-type", "application/xrd+xml")

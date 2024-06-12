@@ -7,7 +7,10 @@ use std::{collections::HashMap, thread::spawn};
 use tracing::debug;
 use url::Url;
 
-pub async fn request(req: Request, params: Params) -> Result<impl IntoResponse> {
+pub async fn request(
+    req: Request,
+    params: Params,
+) -> Result<impl IntoResponse> {
     match req.method() {
         Method::Post => post(req, params).await,
         _ => not_found(req, params).await,
@@ -26,7 +29,7 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
     // Add above value to app_temp table
     // before that delete any row older than 1 hour.
 
-    let _qr = sparrow::db::Connection::builder()
+    let _qr = crates::sparrow::db::Connection::builder()
         .await
         .execute(
             "DELETE FROM app_temp WHERE app_temp.createdAt <= date('now', '-1 hour')",

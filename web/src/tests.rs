@@ -3,6 +3,7 @@ use std::thread::spawn;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use spin_sdk::http::{IntoResponse, Params, Request, Response};
+
 use tracing::debug;
 
 pub async fn db(_req: Request, _params: Params) -> Result<impl IntoResponse> {

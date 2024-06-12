@@ -11,6 +11,7 @@ crate-type = ["cdylib"]
 [dependencies]
 anyhow = "1"
 spin-sdk = { git = "https://github.com/fermyon/spin-rust-sdk", branch = "main" }
+spin-sqlx = { path = "../../../../rust/spin-sqlx" }
 serde = { version = "1.0.193", features = ["derive"] }
 serde_json = { version = "1.0.108", features = ["preserve_order"] }
 serde_derive = "1"
@@ -25,6 +26,5 @@ tracing-subscriber = { version = "0.3.18", features = [
 rand = "0.8"
 uuid = { version = "1", features = ["v4", "fast-rng"] }
 maplit = "1.0.2"
-comrak = "0.22"
-#sparrow = { git = "https://github.com/prefer-social/sparrow", branch = "main" }
+comrak = "0.23"
 sparrow = { path = "../../sparrow" }

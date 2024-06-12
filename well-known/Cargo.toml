@@ -8,8 +8,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 anyhow = "1"
-spin-sdk = { git = "https://github.com/fermyon/spin-rust-sdk", branch = "main" }
-#spin-sdk = { path = "../../../rust/spin-rust-sdk" }
+spin-sdk = { git = "https://github.com/fermyon/spin-rust-sdk.git", branch = "main" }
 serde = { version = "1.0.193", features = ["derive"] }
 serde_json = { version = "1.0.108", features = ["preserve_order"] }
 url = "2"

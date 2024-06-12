@@ -1,6 +1,7 @@
 // https://docs.joinmastodon.org/methods/accounts/#verify_credentials
 // GET /api/v1/accounts/verify_credentials HTTP/1.1
 use anyhow::Result;
+use sparrow::http_response::HttpResponse;
 use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
 use spin_sdk::sqlite::Value as SV;
 use std::collections::HashMap;
@@ -10,8 +11,7 @@ use url::Url;
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
         Method::Get => get(req, params).await,
-        _ => sparrow::http_response::HttpResponse::not_found().await,
-        //_ => get(req, params).await,
+        _ => HttpResponse::not_found().await,
     }
 }
 
@@ -21,10 +21,10 @@ pub async fn get(req: Request, _params: Params) -> Result<Response> {
     let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap()
     {
         sparrow::auth::TokenAuth::InValid => {
-            return sparrow::http_response::HttpResponse::unauthorized().await;
+            return HttpResponse::unauthorized().await;
         }
         sparrow::auth::TokenAuth::TokenNotProvided => {
-            return sparrow::http_response::HttpResponse::unauthorized().await;
+            return HttpResponse::unauthorized().await;
         }
         sparrow::auth::TokenAuth::Valid(userid) => {
             Some(userid).unwrap() as i64

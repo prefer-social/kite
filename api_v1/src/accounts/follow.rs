@@ -8,15 +8,17 @@ use spin_sdk::sqlite::Value as SV;
 use spin_sdk::variables;
 use url::Url;
 use uuid::Uuid;
+use Option;
 
 use sparrow::activitypub::apo::Follow;
+use sparrow::http_response::HttpResponse;
 use sparrow::postbox::Envelop;
 use sparrow::utils::{get_current_time_in_iso_8601, get_inbox_from_actor};
 
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
         Method::Post => post(req, params).await,
-        _ => sparrow::http_response::HttpResponse::not_found().await,
+        _ => HttpResponse::not_found().await,
     }
 }
 
@@ -24,10 +26,10 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
     let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap()
     {
         sparrow::auth::TokenAuth::InValid => {
-            return sparrow::http_response::HttpResponse::unauthorized().await;
+            return HttpResponse::unauthorized().await;
         }
         sparrow::auth::TokenAuth::TokenNotProvided => {
-            return sparrow::http_response::HttpResponse::unauthorized().await;
+            return HttpResponse::unauthorized().await;
         }
         sparrow::auth::TokenAuth::Valid(userid) => {
             Some(userid).unwrap() as i64

@@ -1,11 +1,8 @@
 use anyhow::Result;
-use spin_sdk::{
-    http::{IntoResponse, Method, Params, Request, Response},
-    sqlite::{Connection, QueryResult, Value},
-};
-use std::collections::HashMap;
+use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
 use tracing::debug;
-use url::Url;
+
+use sparrow::http_response::HttpResponse;
 
 pub async fn request(
     req: Request,
@@ -22,10 +19,10 @@ pub async fn get(req: Request, _params: Params) -> Result<Response> {
     let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap()
     {
         sparrow::auth::TokenAuth::InValid => {
-            return sparrow::http_response::HttpResponse::unauthorized().await;
+            return HttpResponse::unauthorized().await;
         }
         sparrow::auth::TokenAuth::TokenNotProvided => {
-            return sparrow::http_response::HttpResponse::unauthorized().await;
+            return HttpResponse::unauthorized().await;
         }
         sparrow::auth::TokenAuth::Valid(userid) => {
             Some(userid).unwrap() as i64

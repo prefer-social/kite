@@ -1,4 +1,5 @@
 use anyhow::Result;
+use sparrow::http_response::HttpResponse;
 use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
 
 pub async fn request(
@@ -7,7 +8,7 @@ pub async fn request(
 ) -> Result<impl IntoResponse> {
     match req.method() {
         Method::Get => get(req, params).await,
-        _ => not_found(req, params).await,
+        _ => return HttpResponse::not_found().await,
     }
 }
 
@@ -132,24 +133,6 @@ pub async fn get(_req: Request, _params: Params) -> Result<Response> {
     Ok(Response::builder()
         .status(200)
         .header("Content-Type", "application/activity+json")
-        .body(json_val.to_string())
-        .build())
-}
-
-pub async fn not_found(_req: Request, _params: Params) -> Result<Response> {
-    Ok(Response::builder().status(404).build())
-}
-
-pub async fn unauthorized() -> Result<Response> {
-    let json_str = r#"{
-      "error": "invalid_signature",
-      "error_description": "The signature in the request is not valid."
-  }"#;
-    let json_val: serde_json::Value = serde_json::from_str(json_str).unwrap();
-
-    Ok(Response::builder()
-        .status(401)
-        .header("Content-Type", "application/json")
         .body(json_val.to_string())
         .build())
 }

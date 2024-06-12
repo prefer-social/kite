@@ -9,13 +9,14 @@ pub mod verify_credentials;
 
 use anyhow::Result;
 use serde_json;
+use sparrow::http_response::HttpResponse;
 use spin_sdk::http::{Method, Params, Request, Response};
 
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     tracing::debug!("????????????????");
     match req.method() {
         Method::Get => get(req, params).await,
-        _ => sparrow::http_response::HttpResponse::not_found().await,
+        _ => HttpResponse::not_found().await,
     }
 }
 
@@ -39,9 +40,7 @@ pub async fn get(_req: Request, params: Params) -> Result<Response> {
 
     let query_id = match params.get("id") {
         Some(x) => x,
-        None => {
-            return sparrow::http_response::HttpResponse::not_found().await
-        }
+        None => return HttpResponse::not_found().await,
     };
 
     let account =

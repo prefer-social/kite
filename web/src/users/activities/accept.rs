@@ -60,13 +60,13 @@ pub async fn accept_action(activity: serde_json::Value) {
         let now = Utc::now();
         let formated_now = now.format("%F %T").to_string();
 
-        sparrow::db::Connection::builder()
-            .await
-            .execute(
-                "UPDATE following SET accepted_at = ? WHERE json_extract(object, '$.id') = ?",
-                &[SV::Text(formated_now), SV::Text(object_id.clone())],
-            )
-            .await;
+        // sparrow::db::Connection::builder()
+        //     .await
+        //     .execute(
+        //         "UPDATE following SET accepted_at = ? WHERE json_extract(object, '$.id') = ?",
+        //         &[SV::Text(formated_now), SV::Text(object_id.clone())],
+        //     )
+        //     .await;
     }
 
     /*
