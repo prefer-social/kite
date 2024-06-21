@@ -1,0 +1,63 @@
+[package]
+name = "sparrow"
+authors = ["Seungjin Kim <seungjin@duck.com>"]
+description = "Activitypub for wasm/wasi"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1"
+serde = { version = "1.0.193", features = ["derive"] }
+serde_derive = "1"
+serde_json = { version = "1.0.108", features = ["preserve_order"] }
+digest = "0.11.0-pre.8"
+ed25519-dalek = { version = "2.1.0", features = [
+    "alloc",
+    "rand_core",
+    "pkcs8",
+    "pem",
+] }
+base64 = "0.22"
+rand = "0.8"
+thiserror = "1.0"
+bech32 = "0.9.1"
+pkcs1 = "0.7"
+pem = "3.0"
+config = "0.14"
+bytes = "1.5"
+once_cell = "1.19"
+sha2 = "0.10.8"
+time = "0.3.30"
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = [
+    "env-filter",
+    "fmt",
+    "std",
+] }
+url = { version = "2.5.0", features = ["serde"] }
+headers = { version = "0.4.0", features = [] }
+regex = "1.10.2"
+dyn-clone = "1.0.16"
+chrono = { version = "0.4.31", features = ["serde"] }
+enum_delegate = "0.2.0"
+futures-core = "0.3.29"
+pin-project-lite = "0.2.13"
+pin-project = { version = "1.1.3", features = [] }
+activitystreams-kinds = "0.3.0"
+itertools = "0.13"
+derive_builder = "0.20.0"
+async-trait = "0.1.74"
+#sha256 = { version = "1.5", default-features = false, features = [] }
+rsa = { version = "0.9", features = ["pem", "serde", "sha2"] }
+spin-sdk = { git = "https://github.com/fermyon/spin-rust-sdk.git", branch = "main" }
+spin-sqlx = { git = "https://github.com/seungjin/spin-sqlx.git", branch = "spin-sdk-main-branch" }
+sqlx = "0.7"
+passwords = "3.1"
+uuid = { version = "1", features = ["v4", "v7", "fast-rng", "js"] }
+validator = { version = "0.18", features = ["derive"] }
+hex = "0.4.3"
+hmac = "0.12.1"
+urlencoding = "2"
+hex-literal = "0.4"
+ipaddress = "0.1"
+argon2 = "0.5.2"

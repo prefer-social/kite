@@ -1,16 +1,14 @@
-use std::ops::Deref;
-
 use spin_sdk::{
     http::{HeaderValue, Params, Request, Response, Router},
-    http_component,
+    http_component, variables,
 };
 use tracing_subscriber::{filter::EnvFilter, FmtSubscriber};
 use url::Url;
 
 pub mod featured;
 //pub mod foo;
-pub mod http_responses;
-pub mod outbox;
+
+pub mod endpoint;
 pub mod tests;
 pub mod users;
 pub mod utils;
@@ -21,7 +19,8 @@ async fn handle_route(req: Request) -> Response {
     let subscriber = FmtSubscriber::builder()
         .with_env_filter(EnvFilter::from_env("APP_LOG_LEVEL"))
         .finish();
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    tracing::subscriber::set_global_default(subscriber)
+        .expect("setting default subscriber failed");
 
     let request_path_and_query = req.path_and_query().unwrap();
     let request_method = req.method().to_string();
@@ -53,69 +52,45 @@ async fn handle_route(req: Request) -> Response {
 
     // End of modifying headers
 
-    let mut router = Router::new();
+    // Get Admin / Main /
 
-    let _domain = req.header("host").unwrap().as_str().unwrap();
 
-    //if let Some(a) = req.header("accept") {
-    //    if let Some("application/activity+json") = a.as_str() {
-    let original_uri_str = req.uri();
-    let original_uri = Url::parse(original_uri_str).unwrap();
+    //let _domain = req.header("host").unwrap().as_str().unwrap();
+    //let _domain_from_env = variables::get("DOMAIN").unwrap();
 
-    let path = &req.path_and_query().unwrap();
+    let path = req.path_and_query().unwrap().to_string();
 
-    match *path {
-        "/" => {
-            router.get_async("/", users::request);
-            return router.handle_async(req).await;
-        }
-        _ => {
-            let a = &req.path_and_query().unwrap();
-            let b = *a;
-            let c = b.to_string();
-            if c.starts_with("/@") {
-                let user = &req.path_and_query().unwrap()[2..];
-                let uri = format!(
-                    "{}://{}/users/{}",
-                    original_uri.scheme(),
-                    original_uri.host_str().unwrap(),
-                    user,
-                );
-                let req = Request::builder()
-                    .uri(uri)
-                    .method(req.method().clone())
-                    .headers(headers)
-                    .body(req.into_body())
-                    .build();
-                router.get_async("/users/:user", users::request);
-                return router.handle_async(req).await;
-            }
+    match path.starts_with("/@") {
+        true => endpoint::actor::request(req, Params::new()).await.unwrap(),
+        false => {
+            let mut router = Router::new();
+
+            router.any_async("/", endpoint::actor::request);
+            router.get_async("/u/:user", endpoint::actor::request);
+            router.get_async("/users/:user", endpoint::actor::request);
+            router.get_async("/actor", endpoint::actor::request);
+            router.get_async("/self", endpoint::actor::request);
+
+            router.any_async("/inbox", endpoint::inbox::request);
+
+            router.any_async("/outbox", endpoint::outbox::request);
+
+            router.any_async("/following", endpoint::following::request);
+            router.any_async("/followers", endpoint::followers::request);
+            // router.any_async("/users/:user/following", users::following::request);
+
+            // router.any_async("/users/:user/followers", users::followers::request);
+            // router.any_async("/users/:user/collections/featured", featured::request);
+            //router.get_async("/users/:user/collections/tags", tags::request);
+
+            // tests
+            //router.any_async("/tests/db", tests::db);
+
+            //
+            //router.any_async("/foo/following_request", foo::following_request);
+            //router.any_async("/foo", foo::modified_header_test);
+            //router.any_async("/", foo::root);
+            router.handle_async(req).await
         }
     }
-    //    }
-    //}
-
-    router.get_async("/", users::request);
-    router.any_async("/inbox", users::inbox::request);
-
-    router.get_async("/users/:user", users::request);
-
-    router.any_async("/users/:user/inbox", users::inbox::request);
-    router.any_async("/users/:user/outbox", users::outbox::request);
-
-    router.any_async("/following", users::following::request);
-    router.any_async("/users/:user/following", users::following::request);
-    router.any_async("/followers", users::followers::request);
-    router.any_async("/users/:user/followers", users::followers::request);
-    router.any_async("/users/:user/collections/featured", featured::request);
-    //router.get_async("/users/:user/collections/tags", tags::request);
-
-    // tests
-    router.any_async("/tests/db", tests::db);
-
-    //
-    //router.any_async("/foo/following_request", foo::following_request);
-    //router.any_async("/foo", foo::modified_header_test);
-    //router.any_async("/", foo::root);
-    router.handle_async(req).await
 }

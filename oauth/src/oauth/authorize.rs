@@ -1,5 +1,4 @@
 use anyhow::Result;
-use argon2::Argon2;
 use jwt_simple::prelude::*;
 use password_hash::{PasswordHash, PasswordVerifier};
 use passwords::PasswordGenerator;
@@ -10,10 +9,12 @@ use spin_sdk::{
 };
 use std::str;
 use std::{collections::HashMap, thread::spawn};
-use tracing::debug;
 use url::Url;
 
-pub async fn request(req: Request, params: Params) -> Result<impl IntoResponse> {
+pub async fn request(
+    req: Request,
+    params: Params,
+) -> Result<impl IntoResponse> {
     match req.method() {
         Method::Get => get(req, params).await,
         Method::Post => post(req, params).await,
@@ -36,8 +37,9 @@ pub async fn get(req: Request, _params: Params) -> Result<Response> {
     }
 
     let body = str::from_utf8(req.body()).unwrap();
-    let a: HashMap<&str, &str> = querystring::querify(body).into_iter().collect();
-    debug!("??????? {a:?}");
+    let a: HashMap<&str, &str> =
+        querystring::querify(body).into_iter().collect();
+    tracing::debug!("??????? {a:?}");
 
     // response_type, client_id and redirect_uri are mandatory fileds.
     // it there is missing,
@@ -154,7 +156,8 @@ pub fn auth_client_errer() -> Result<Response> {
 // POST /oauth/authorize
 pub async fn post(req: Request, params: Params) -> Result<Response> {
     let body = str::from_utf8(req.body()).unwrap();
-    let a: HashMap<&str, &str> = querystring::querify(body).into_iter().collect();
+    let a: HashMap<&str, &str> =
+        querystring::querify(body).into_iter().collect();
     let username = a.get("Username").unwrap().to_string();
     let password = a.get("Password").unwrap().to_string();
 
@@ -162,10 +165,12 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
     let r = Url::parse(referer).unwrap();
     let hash_query: HashMap<_, _> = r.query_pairs().into_owned().collect();
     // {"client_id": "S8G2w1R95d5TDt5Psw80FNx5U4FWr2JHIV490VE61K8b", "redirect_uri": "icecubesapp://", "scope": "read write follow push", "response_type": "code"}
-    debug!("---> ??? {referer}");
-    debug!("{hash_query:?}");
+    tracing::debug!("---> ??? {referer}");
+    tracing::debug!("{hash_query:?}");
 
     let redirect_uri = hash_query.get("redirect_uri").unwrap();
+
+    tracing::debug!("--> redirect_uri: {}", redirect_uri);
 
     // client_id should match with one in app_temp
 
@@ -184,11 +189,13 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
 
             // Insert Code into database
 
-            debug!("check_password_true");
-            debug!(code);
-            debug!(username);
+            tracing::debug!("check_password_true");
+            tracing::debug!(code);
+            tracing::debug!(username);
 
-            let _qr = sparrow::db::Connection::builder().await.execute("INSERT INTO user_authorization_code(userId, code, token_issued) VALUES((SELECT id FROM user WHERE user.name == ?), ?, ?)", &[Value::Text(username), Value::Text(code.clone()), Value::Integer(0)]).await;
+            //let _qr = sparrow::db::Connection::builder().await.execute("INSERT INTO user_authorization_code(userId, code, token_issued) VALUES((SELECT id FROM user WHERE user.name == ?), ?, ?)", &[Value::Text(username), Value::Text(code.clone()), Value::Integer(0)]).await;
+
+            //let a = sparrow::table::oauth_access_token::OauthAccessToken::set().await;
 
             let body = format!(
                 r#"<html><head>
@@ -205,21 +212,18 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
                 Some(x) => x,
                 None => {
                     return auth_client_errer();
-                    ""
                 }
             };
             let redirect_uri = match hash_query.get("redirect_uri") {
                 Some(x) => x,
                 None => {
                     return auth_client_errer();
-                    ""
                 }
             };
             let response_type = match hash_query.get("response_type") {
                 Some(x) => x,
                 None => {
                     return auth_client_errer();
-                    ""
                 }
             };
             let empty = &"".to_string();
@@ -234,33 +238,7 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
     }
 }
 
-// For testing, use this to generate password: https://argon2.online/
-//
-// $argon2i$v=19$m=65536,t=1,p=1$bzJCSGFEbklYV1AzVWNVQg$dXW11B8EzOFqrI3WfCH6uw
-// 7575b5d41f04cce16aac8dd67c21fabb
-// plain text: 'test'
-async fn check_password(user_name: String, input_password: String) -> bool {
-    debug!("Checking password");
-    debug!(user_name);
-    debug!(input_password);
-    let result = sparrow::db::Connection::builder().await.execute(
-      "SELECT userId, hash_string FROM user_password JOIN user where user.id = user_password.userId AND user.name = ?",
-      &[Value::Text(user_name)]
-    ).await;
-    debug!("----> foo!!! {result:?}");
-
-    match result.rows.len() {
-        0 => return false,
-        _ => {
-            let hash_string = result
-                .rows()
-                .next()
-                .unwrap()
-                .get::<&str>("hash_string")
-                .unwrap();
-            let password_hash = PasswordHash::new(&hash_string).expect("invalid password hash");
-            let algs: &[&dyn PasswordVerifier] = &[&Argon2::default()];
-            return password_hash.verify_password(algs, input_password).is_ok();
-        }
-    }
+async fn check_password(username: String, password: String) -> bool {
+    tracing::debug!("Checking password");
+    sparrow::table::user::User::validate(username, password).await.unwrap()
 }

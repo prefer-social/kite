@@ -56,32 +56,32 @@ pub async fn get(req: Request, params: Params) -> Result<Response> {
         name
     });
 
-    let user_rowset = sparrow::db::Connection::builder()
-        .await
-        .execute(
-            "SELECT * FROM user WHERE name = ?",
-            &[SV::Text(name.to_string())],
-        )
-        .await;
+    // let user_rowset = sparrow::db::Connection::builder()
+    //     .await
+    //     .execute(
+    //         "SELECT * FROM user WHERE name = ?",
+    //         &[SV::Text(name.to_string())],
+    //     )
+    //     .await;
 
-    if user_rowset.rows().count() == 0 {
-        return Ok(Response::builder().status(404).build());
-    }
+    // if user_rowset.rows().count() == 0 {
+    //     return Ok(Response::builder().status(404).build());
+    // }
 
-    //let users = Users::build(user_rowset);
-    let user = User::get(name.as_str()).await.unwrap();
-    //let user: User = users.get(0).unwrap().clone();
+    // //let users = Users::build(user_rowset);
+    // let user = User::get(name.as_str()).await.unwrap();
+    // //let user: User = users.get(0).unwrap().clone();
 
-    //let actor: PersonActor = user.to_actor().await;
-    let actor = PersonActor::create(user).await.unwrap();
-    let s = serde_json::to_string(&actor)?;
+    // //let actor: PersonActor = user.to_actor().await;
+    // let actor = PersonActor::create(user).await.unwrap();
+    // let s = serde_json::to_string(&actor)?;
 
-    tracing::debug!(s);
+    // tracing::debug!(s);
 
     Ok(Response::builder()
         .status(200)
         .header("Content-Type", "application/activity+json")
-        .body(s.to_owned())
+        .body("s".to_owned())
         .build())
 }
 

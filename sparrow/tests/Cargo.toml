@@ -1,0 +1,11 @@
+[package]
+name = "wasm-test"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+#spin-test-sdk = { path = "../../../../rust/spin-test/crates/spin-test-sdk" }
+spin-test-sdk = { git = "https://github.com/fermyon/spin-test.git" }

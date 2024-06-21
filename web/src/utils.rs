@@ -1,7 +1,9 @@
+
 use anyhow::Result;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
-use spin_sdk::http::{Params, Request, Response};
+use spin_sdk::http::{Params, Request, Response, Method};
 use std::collections::HashMap;
+use spin_sdk::http;
 use url::{ParseError, Url};
 
 /// Just generate random url as object id. In a real project, you probably want to use
@@ -50,4 +52,36 @@ pub async fn get_current_time_in_RFC_1123() -> String {
     use chrono::{DateTime, Utc};
     let current_time: DateTime<Utc> = Utc::now();
     current_time.format("%a, %d %b %Y %H:%M:%S GMT").to_string()
+}
+
+pub async fn json_requested(req: Request) -> bool {
+    let accept_type = req.header("Accept").unwrap().as_str().unwrap()
+        .split(";")
+        .next()
+        .unwrap()
+        .split(",")
+        .collect::<Vec<&str>>();
+    //accept_type.contains(&"application/activity+json")
+    for i in accept_type {
+        return i.to_string().contains("json")
+    }
+    false
+}
+
+#[derive(Debug)]
+pub enum RenderType { Html, Json, Xml }
+pub async fn check_request(req: &Request) -> (Method, RenderType) {
+    let method = req.method().clone();
+    let accept_type = req.header("Accept").unwrap().as_str().unwrap()
+        .split(";")
+        .next()
+        .unwrap()
+        .split(",")
+        .collect::<Vec<&str>>();
+    let a = accept_type.iter().filter(|e| e.to_string().contains("json")).count();
+    if a > 0 {
+        (method, RenderType::Json)
+    } else {
+        (method, RenderType::Html)
+    }
 }

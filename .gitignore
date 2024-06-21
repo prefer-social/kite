@@ -17,5 +17,8 @@ Compose.yaml
 TODOs.md
 runtime-config.toml
 
+kite.db*
 
 my_*
+
+spin

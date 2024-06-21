@@ -17,7 +17,7 @@ pub async fn request(req: Request, params: Params) -> Result<Response> {
 }
 
 pub async fn get(_req: Request, _params: Params) -> Result<Response> {
-    Ok(Response::builder().status(404).build())
+    sparrow::http_response::HttpResponse::not_found().await
 }
 
 // Obtain a token
