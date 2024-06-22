@@ -64,14 +64,20 @@ impl User {
             .expect("domain is not propery set in SPIN_VARIABLE");
 
         let sqlx_conn = spin_sqlx::Connection::open_default()?;
-        let encryted_password: (String, )  = sqlx::query_as(r#"SELECT user.encrypted_password FROM user 
+        let encryted_password: Vec<(String, )>  = sqlx::query_as(r#"SELECT user.encrypted_password FROM user 
         LEFT JOIN account ON user.account_id = account.uuid WHERE account.username = ? AND account.domain = ?"#)
         .bind(username)
         .bind(domain)
-        .fetch_one(&sqlx_conn)
+        .fetch_all(&sqlx_conn)
         .await?;
 
-        let parsed_hash = PasswordHash::new(&encryted_password.0).unwrap();
+        if encryted_password.is_empty() {
+            return Ok(false);
+        }
+
+        println!("---->>>>> {:?}", encryted_password);
+
+        let parsed_hash = PasswordHash::new(&encryted_password[0].0).unwrap();
 
         Ok(Argon2::default()
             .verify_password(password.as_bytes(), &parsed_hash)

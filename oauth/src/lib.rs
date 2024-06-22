@@ -24,7 +24,7 @@ async fn handle_route(req: Request) -> Response {
 
     let mut router = Router::new();
     router.any_async("/oauth/authorize", oauth::authorize::request);
-    router.any_async("/oauth/token", oauth::token::request);
+    //router.any_async("/oauth/token", oauth::token::request);
     //router.any_async("/oauth/revoke", oauth::revoke::request);
     router.handle(req)
 }
