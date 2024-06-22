@@ -7,7 +7,7 @@ use tracing_subscriber::{filter::EnvFilter, FmtSubscriber};
 
 pub mod oauth;
 
-// TODO: request by 'http://ap.dev.seungjin.net/oauth/authorize?response_type=code&client_id=client_id&redirect_uri=icecubesapp://&scope=read%20write%20follow%20push'
+// TODO: request by 'http://dev.prefer.social/oauth/authorize?response_type=code&client_id=client_id&redirect_uri=icecubesapp://&scope=read%20write%20follow%20push'
 #[http_component]
 async fn handle_route(req: Request) -> Response {
     let subscriber = FmtSubscriber::builder()
@@ -28,3 +28,4 @@ async fn handle_route(req: Request) -> Response {
     //router.any_async("/oauth/revoke", oauth::revoke::request);
     router.handle(req)
 }
+
