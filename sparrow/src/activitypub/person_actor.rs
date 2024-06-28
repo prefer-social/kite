@@ -76,7 +76,7 @@ impl PersonActor {
             url: a.header_remote_url.unwrap(),
         };
 
-        let username = a.username.unwrap().clone();
+        let username = a.username;
 
         let pa = PersonActor {
             context: vec![

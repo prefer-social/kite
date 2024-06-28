@@ -8,13 +8,26 @@ use rsa::signature::Verifier;
 use rsa::RsaPublicKey;
 use spin_sdk::http::Request;
 use std::collections::HashMap;
-use tracing::{debug, info};
 
 pub mod account;
 pub mod application;
+pub mod credential_account;
+pub mod custom_emoji;
+pub mod filter;
+pub mod filter_keyword;
+pub mod filter_result;
+pub mod filter_status;
 pub mod instance;
+pub mod list;
 pub mod media;
+pub mod media_attachement;
+pub mod poll;
+pub mod preview_card;
 pub mod status;
+pub mod tag;
+pub mod token;
+pub mod uid;
+pub mod username;
 
 // https://github.com/RustCrypto/RSA/issues/341
 
@@ -33,13 +46,13 @@ pub async fn validate_mastodon_request(
     let request_path = req.header("spin-path-info").unwrap().as_str().unwrap();
     let request_method = req.method().to_string();
 
-    debug!("hostname: {hostname}");
-    debug!("date: {date}");
-    debug!("sig_header: {sig_header}");
-    debug!("digest: {digest}");
-    debug!("content-type: {content_type}");
-    debug!("request_path: {request_path}");
-    debug!("request_method: {request_method}");
+    tracing::debug!("hostname: {hostname}");
+    tracing::debug!("date: {date}");
+    tracing::debug!("sig_header: {sig_header}");
+    tracing::debug!("digest: {digest}");
+    tracing::debug!("content-type: {content_type}");
+    tracing::debug!("request_path: {request_path}");
+    tracing::debug!("request_method: {request_method}");
 
     fn parse_sig_header(query: &str) -> HashMap<String, String> {
         fn rem_first_and_last(value: &str) -> &str {
@@ -80,7 +93,7 @@ pub async fn validate_mastodon_request(
         content_type,
     );
 
-    debug!("--> {signature_string}");
+    tracing::debug!("--> {signature_string}");
 
     let public_key = RsaPublicKey::from_public_key_pem(public_key_string)
         .expect("RsaPublicKey creation failed");

@@ -1,7 +1,5 @@
 // https://docs.joinmastodon.org/methods/apps/
 
-mod verify_credentials;
-
 use anyhow::Result;
 use spin_sdk::{
     http::{IntoResponse, Method, Params, Request, Response},
@@ -9,8 +7,11 @@ use spin_sdk::{
     key_value::Store,
 };
 use std::{collections::HashMap};
-
+use std::ops::Add;
+use uuid::Uuid;
 use url::Url;
+use std::time::Duration;
+use sparrow::utils::random_string;
 
 pub async fn request(
     req: Request,
@@ -25,7 +26,11 @@ pub async fn request(
 // TODO: create application https://docs.joinmastodon.org/methods/apps/#create
 //
 pub async fn post(req: Request, _params: Params) -> Result<Response> {
-    tracing::debug!("requested --> /api/v1/apps");
+    tracing::debug!("<---------- ({}) {} ({}) --------->",
+        req.method().to_string(),
+        req.path_and_query().unwrap(),
+        req.header("x-real-ip").unwrap().as_str().unwrap()
+    );
 
     let client_id = uuid::Uuid::now_v7().to_string();
     let client_secret = random_string(44).await;
@@ -52,19 +57,23 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
         .to_string();
 
     let application = sparrow::mastodon::application::Application {
-        id: None,
+        uid: Some(Uuid::now_v7().to_string()),
         name: client_name,
         website: Some(website),
         redirect_uri: Some(redirect_uris),
         client_id: Some(client_id),
         client_secret: Some(client_secret),
         vapid_key: Some(vapid_key),
+        owner_id: None,
     };
 
-    let app = sparrow::mastodon::application::new(application).await.unwrap();
+    let app_json_string: String = serde_json::to_string(&application).unwrap();
+    let hour_from_now = chrono::offset::Utc::now().add(Duration::from_secs(60*60));
+    sparrow::cache::set_with_exp(
+        application.client_id.clone().unwrap().as_str(),
+        app_json_string.as_bytes(),
+        hour_from_now).await?;
 
-    let app_json_string: String = serde_json::to_string(&app).unwrap();
-    tracing::debug!("{}", app_json_string);
 
     Ok(Response::builder()
         .status(200)
@@ -73,17 +82,3 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
         .build())
 }
 
-
-pub async fn random_string(length: u8) -> String {
-    use rand::rngs::StdRng;
-    use rand::{Rng, SeedableRng};
-    let mut rng = StdRng::from_entropy();
-    let random_string: String = (0..length)
-        .map(|_| match rng.gen_range(0..=2) {
-            0 => char::from(rng.gen_range(b'0'..=b'9') as char),
-            1 => char::from(rng.gen_range(b'A'..=b'Z') as char),
-            _ => char::from(rng.gen_range(b'a'..=b'z') as char),
-        })
-        .collect();
-    random_string
-}

@@ -10,7 +10,7 @@ pub mod featured;
 
 pub mod endpoint;
 pub mod tests;
-pub mod users;
+//pub mod users;
 pub mod utils;
 
 /// A Spin HTTP component that internally routes requests.

@@ -8,7 +8,7 @@
 
 
 INSERT INTO user (
-    uuid, 
+    uid, 
     account_id,
     email, 
     admin,

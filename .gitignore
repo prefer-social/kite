@@ -22,3 +22,4 @@ kite.db*
 my_*
 
 spin
+sparrow/migrations/20240508061350_insert_sample_account_row.sql

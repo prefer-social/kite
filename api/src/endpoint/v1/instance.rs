@@ -1,27 +1,30 @@
 use anyhow::Result;
-use sparrow::http_response::HttpResponse;
-use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
+use spin_sdk::http::{Method, Params, Request, Response};
+
+pub mod peer;
 
 pub async fn request(
     req: Request,
     params: Params,
-) -> Result<impl IntoResponse> {
+) -> Result<Response> {
     match req.method() {
         Method::Get => get(req, params).await,
-        _ => return HttpResponse::not_found().await,
+        _ => return sparrow::http_response::HttpResponse::not_found().await,
     }
 }
 
 // TODO: GET /api/v1/instance
 // https://docs.joinmastodon.org/methods/instance/#v1
-pub async fn get(_req: Request, _params: Params) -> Result<Response> {
+pub async fn get(req: Request, _params: Params) -> Result<Response> {
+
+    tracing::debug!("<---------- ({}) {} ({}) --------->",
+        req.method().to_string(),
+        req.path_and_query().unwrap(),
+        req.header("x-real-ip").unwrap().as_str().unwrap()
+    );
 
     let a = sparrow::mastodon::instance::Instance::build().await;
-    //.await.to_json_string().await.unwrap();
-    let b = a.to_json_string().await.unwrap();
-
-
-
+    let b: String = a.into();
 
     Ok(Response::builder()
         .status(200)

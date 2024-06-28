@@ -10,11 +10,11 @@ pub mod table;
 pub mod utils;
 pub mod postbox;
 pub mod http_response;
+pub mod cache;
 
 use anyhow::Result;
 use regex::Regex;
 use spin_sdk::http::{Request, IntoResponse, Response};
-use spin_sdk::http_component;
 use tracing_subscriber::filter::EnvFilter;
 use tracing_subscriber::FmtSubscriber;
 
@@ -80,32 +80,5 @@ impl Identification {
     pub async fn is_valid_username(a: Identification) {
         todo!()
     }
-}
-
-
-/// For testing purpose
-#[http_component]
-async fn test(req: Request) -> Result<impl IntoResponse> {
-    let subscriber = FmtSubscriber::builder()
-        .with_env_filter(EnvFilter::from_env("APP_LOG_LEVEL"))
-        .finish();
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("setting default subscriber failed");
-
-    tracing::debug!("test");
-    
-    //blackbox_test::table_account_create().await;
-    //blackbox_test::table_account().await;
-    //blackbox_test::create_account().await;
-    //blackbox_test::select_account().await;
-
-
-    let account = table::account::Account::all().await.unwrap();
-    tracing::debug!("{:?}",account);
-    
-
-
-    
-    Ok(Response::new(200, "TEST"))
 }
 

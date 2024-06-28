@@ -10,6 +10,6 @@ CREATE TABLE oauth_application (
     superapp BOOLEAN DEFAULT false NOT NULL,
     website TEXT,
     owner_type TEXT,
-    owner_id INTEGER,
+    owner_id TEXT,
     confidential boolean DEFAULT true NOT NULL
 );

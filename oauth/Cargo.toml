@@ -11,17 +11,16 @@ crate-type = ["cdylib"]
 [dependencies]
 anyhow = "1"
 spin-sdk = { git = "https://github.com/fermyon/spin-rust-sdk.git", branch = "main" }
-tracing = "0.1.40"
+tracing = "0.1"
 tracing-subscriber = { version = "0.3.18", features = [
     "env-filter",
     "fmt",
     "std",
 ] }
-serde = { version = "1.0.193", features = ["derive"] }
-serde_json = { version = "1.0.108", features = ["preserve_order"] }
-password-hash = "0.5.0"
-querystring = "1.1.0"
-url = "2.5.0"
-jwt-simple = "0.12.7"
-passwords = "3.1.16"
+serde = { version = "1.0.203", features = ["derive"] }
+serde_json = { version = "1.0.117", features = ["preserve_order"] }
+querystring = "1.1"
+url = "2.5"
+jwt-simple = "0.12"
+passwords = "3.1"
 sparrow = { path = "../sparrow" }

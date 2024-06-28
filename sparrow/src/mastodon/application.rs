@@ -3,41 +3,112 @@
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use spin_sdk::key_value::Store;
+use serde_json;
+use serde_json::Value;
 
 #[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone)]
-#[serde(rename_all = "camelCase")]
 pub struct Application {
-    pub id: Option<String>,
+    #[serde(rename(serialize = "id", deserialize = "id"))]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uid: Option<String>,
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub website: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub redirect_uri: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub client_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub client_secret: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub vapid_key: Option<String>,
+    #[serde(skip_serializing)]
+    pub owner_id: Option<String>,
 }
 
-pub async fn new(app: Application) -> Result<Application> {
-    // Store the client_id and client_secret in your cache, as these will be used to obtain OAuth tokens.
-    let client_id = app.client_id.clone().unwrap();
-    let client_secret = app.client_secret.clone().unwrap();
+impl From<crate::table::oauth_application::OauthApplication> for Application {
+    fn from(oa: crate::table::oauth_application::OauthApplication) -> Self {
+        Application {
+            uid: Some(oa.uid.clone()),
+            name: oa.name.clone(),
+            website: Some(oa.website.clone()),
+            redirect_uri: Some(oa.redirect_uri.clone()),
+            client_id: None,
+            client_secret: Some(oa.secret.clone()),
+            vapid_key: None,
+            owner_id: oa.owner_id.clone(),
+        }
+    }
+}
 
-    let store = Store::open("mem").unwrap();
-    store.set(client_id.as_str(), client_secret.as_bytes())?;
+impl Into<String> for Application {
+    fn into(self) -> String {
+        serde_json::to_string(&self).unwrap()
+    }
+}
 
-    let r =
-        crate::table::oauth_apllication::OauthApplication::create(app)
+impl Into<Value> for Application {
+    fn into(self) -> Value {
+        serde_json::to_value(&self).unwrap()
+    }
+}
+
+impl Application {
+    pub async fn add(app: String, user_id: Option<String>) -> Result<()> {
+        let application: Application =
+            serde_json::from_str(app.as_str()).unwrap();
+        crate::table::oauth_application::OauthApplication::add(
+            application,
+            user_id,
+        )
+        .await?;
+        tracing::debug!("App created");
+        Ok(())
+    }
+
+    pub async fn all() -> Result<Vec<Application>> {
+        let oauth_applications =
+            crate::table::oauth_application::OauthApplication::all().await?;
+
+        let mut r: Vec<Application> = Vec::new();
+
+        for oap in oauth_applications.into_iter() {
+            r.push(Application {
+                uid: Some(oap.uid.clone()),
+                name: oap.name.clone(),
+                website: Some(oap.website.clone()),
+                redirect_uri: Some(oap.redirect_uri.clone()),
+                client_id: None,
+                client_secret: Some(oap.secret.clone()),
+                vapid_key: None,
+                owner_id: oap.owner_id.clone(),
+            })
+        }
+        Ok(r)
+    }
+
+    pub async fn get_by_app_id(app_id: String) -> Result<Application> {
+        let oa =
+            crate::table::oauth_application::OauthApplication::get_by_app_id(
+                app_id,
+            )
             .await?;
 
-    let ret = Application {
-        id: Some(r.uid),
-        name: r.name,
-        website: Some(r.website),
-        redirect_uri: Some("urn:ietf:wg:oauth:2.0:oob".to_string()),
-        client_id: Some(client_id),
-        client_secret: Some(client_secret),
-        vapid_key: None,
-    };
+        let a = Application {
+            uid: Some(oa.uid.clone()),
+            name: oa.name.clone(),
+            website: Some(oa.website.clone()),
+            redirect_uri: Some(oa.redirect_uri.clone()),
+            client_id: None,
+            client_secret: Some(oa.secret.clone()),
+            vapid_key: None,
+            owner_id: oa.owner_id.clone(),
+        };
 
-    Ok(ret)
+        Ok(a)
+    }
+
+    pub async fn cancel_reserve(uid: String) -> Result<()> {
+        Ok(())
+    }
 }

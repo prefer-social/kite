@@ -1,6 +1,6 @@
 -- Add migration script here
 CREATE TABLE oauth_access_grant (
-    id INTEGER NOT NULL,
+    uid INTEGER NOT NULL,
     token TEXT NOT NULL,
     expires_in INTEGER NOT NULL,
     redirect_uri TEXT NOT NULL,

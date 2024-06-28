@@ -1,6 +1,6 @@
 -- Add migration script here
 CREATE TABLE domain_block (
-    uuid TEXT NOT NULL,
+    uid TEXT NOT NULL,
     domain TEXT DEFAULT "" NOT NULL,
     created_at INTEGER DEFAULT (unixepoch()) NOT NULL,
     updated_at INTEGER DEFAULT (unixepoch()) NOT NULL,

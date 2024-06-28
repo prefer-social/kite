@@ -27,4 +27,5 @@ rand = "0.8"
 uuid = { version = "1", features = ["v4", "fast-rng"] }
 maplit = "1.0.2"
 comrak = "0.24"
+regex = "1.10"
 sparrow = { path = "../sparrow" }

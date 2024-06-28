@@ -80,26 +80,6 @@ pub async fn get_actor_url_from_acct(acc: String) -> Result<String> {
     Ok("".to_string())
 }
 
-pub async fn get_local_user(id: i64) -> Result<(String, String)> {
-    let qr = crate::db::Connection::builder().await.execute(
-        "SELECT user.*, signing_key.privateKey FROM user INNER JOIN signing_key ON user.id = signing_key.userId WHERE user.id = ?",
-        &[SV::Integer(id)],
-    ).await;
-
-    let private_key =
-        qr.rows().next().unwrap().get::<&str>("privateKey").unwrap();
-
-    let federation_id = qr
-        .rows()
-        .next()
-        .unwrap()
-        .get::<&str>("federationId")
-        .unwrap()
-        .to_string();
-
-    Ok((federation_id, private_key.to_string()))
-}
-
 pub async fn get_privatekey_with_user_name(name: &str) -> Result<String> {
     let qr = db::Connection::builder().await.execute(
     "SELECT privateKey FROM signing_key JOIN user ON user.id = signing_key.userId WHERE user.name = ?", 
@@ -200,10 +180,6 @@ pub async fn get_inbox_from_actor(actor: String) -> Result<String> {
     Ok(a.to_string())
 }
 
-pub async fn generate_uuid_v7() -> String {
-    "ars".to_string()
-}
-
 // debug tool
 pub async fn see_headers(headers: impl Iterator<Item = (&str, &HeaderValue)>) {
     for header in headers {
@@ -220,4 +196,18 @@ pub async fn clean_last_slash_from_url(c: Url) -> String {
     };
     println!("{}", a);
     a
+}
+
+pub async fn random_string(length: u8) -> String {
+    use rand::rngs::StdRng;
+    use rand::{Rng, SeedableRng};
+    let mut rng = StdRng::from_entropy();
+    let random_string: String = (0..length)
+        .map(|_| match rng.gen_range(0..=2) {
+            0 => char::from(rng.gen_range(b'0'..=b'9') as char),
+            1 => char::from(rng.gen_range(b'A'..=b'Z') as char),
+            _ => char::from(rng.gen_range(b'a'..=b'z') as char),
+        })
+        .collect();
+    random_string
 }

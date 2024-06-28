@@ -1,15 +1,13 @@
 use anyhow::Result;
-use jwt_simple::prelude::*;
-use password_hash::{PasswordHash, PasswordVerifier};
-use passwords::PasswordGenerator;
-use serde_json;
 use spin_sdk::{
     http::{IntoResponse, Method, Params, Request, Response},
-    sqlite::{Connection, QueryResult, Value},
 };
 use std::str;
-use std::{collections::HashMap, thread::spawn};
+use std::collections::HashMap;
 use url::Url;
+
+use sparrow::mastodon::username::Username;
+use sparrow::mastodon::application::Application;
 
 pub async fn request(
     req: Request,
@@ -39,7 +37,7 @@ pub async fn get(req: Request, _params: Params) -> Result<Response> {
     let body = str::from_utf8(req.body()).unwrap();
     let a: HashMap<&str, &str> =
         querystring::querify(body).into_iter().collect();
-    tracing::debug!("??????? {a:?}");
+    tracing::debug!("hashmap --> {a:?}");
 
     // response_type, client_id and redirect_uri are mandatory fileds.
     // it there is missing,
@@ -47,22 +45,19 @@ pub async fn get(req: Request, _params: Params) -> Result<Response> {
     let client_id = match hash_query.get("client_id") {
         Some(x) => x,
         None => {
-            return auth_client_errer();
-            ""
+            return auth_client_error();
         }
     };
     let redirect_uri = match hash_query.get("redirect_uri") {
         Some(x) => x,
         None => {
-            return auth_client_errer();
-            ""
+            return auth_client_error();
         }
     };
     let response_type = match hash_query.get("response_type") {
         Some(x) => x,
         None => {
-            return auth_client_errer();
-            ""
+            return auth_client_error();
         }
     };
     let empty = &"".to_string();
@@ -122,6 +117,7 @@ pub async fn get(req: Request, _params: Params) -> Result<Response> {
             <input type="password" name="Password" required>
             <br>
             <button type="submit">Login</button>
+            <input type="hidden" id="response_type" value="{response_type}">
             <input type="hidden" id="client_id" value="{client_id}">
             <input type="hidden" id="redirect_uri" value="{redirect_uri}">
             <input type="hidden" id="scope" value="{scope}">
@@ -140,7 +136,7 @@ pub async fn get(req: Request, _params: Params) -> Result<Response> {
         .build())
 }
 
-pub fn auth_client_errer() -> Result<Response> {
+pub fn auth_client_error() -> Result<Response> {
     let error_json = r#"{
     "error": "invalid_grant",
     "error_description": "The provided authorization grant is invalid, expired, revoked, does not match the redirection URI used in the authorization request, or was issued to another client."
@@ -155,6 +151,13 @@ pub fn auth_client_errer() -> Result<Response> {
 
 // POST /oauth/authorize
 pub async fn post(req: Request, params: Params) -> Result<Response> {
+
+    tracing::debug!("<---------- ({}) {} ({}) --------->",
+        req.method().to_string(),
+        req.path_and_query().unwrap(),
+        req.header("x-real-ip").unwrap().as_str().unwrap()
+    );
+
     let body = str::from_utf8(req.body()).unwrap();
     let a: HashMap<&str, &str> =
         querystring::querify(body).into_iter().collect();
@@ -165,18 +168,19 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
     let r = Url::parse(referer).unwrap();
     let hash_query: HashMap<_, _> = r.query_pairs().into_owned().collect();
     // {"client_id": "S8G2w1R95d5TDt5Psw80FNx5U4FWr2JHIV490VE61K8b", "redirect_uri": "icecubesapp://", "scope": "read write follow push", "response_type": "code"}
-    tracing::debug!("---> ??? {referer}");
-    tracing::debug!("{hash_query:?}");
+    tracing::debug!("referer ---> {referer}");
+    tracing::debug!("hash_query ---> {hash_query:?}");
 
     let redirect_uri = hash_query.get("redirect_uri").unwrap();
 
-    tracing::debug!("--> redirect_uri: {}", redirect_uri);
+    tracing::debug!("redirect_uri ---> {}", redirect_uri);
 
     // client_id should match with one in app_temp
 
     match check_password(username.clone(), password).await {
         true => {
-            // TODO: App this app info to 'app' table
+            // Passed
+            // update sparrow::mastodon::application
 
             // If password / auth is valid, the authorization code will be returned as a query parameter named code
             // This code is used to get a Token.
@@ -184,24 +188,27 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
             // After this call 'POST /oauth/token HTTP/1.1' to get token
             // https://docs.joinmastodon.org/methods/oauth/#token
 
-            // Genereate Code
-            let code = sparrow::utils::create_token().await;
+            let client_id = hash_query.get("client_id").unwrap().as_str();
+            let application_json_string = String::from_utf8(sparrow::cache::get(client_id).await?.unwrap()).unwrap();
 
-            // Insert Code into database
+            // Generate Code
+            let code = sparrow::utils::create_token().await;
 
             tracing::debug!("check_password_true");
             tracing::debug!(code);
             tracing::debug!(username);
 
-            //let _qr = sparrow::db::Connection::builder().await.execute("INSERT INTO user_authorization_code(userId, code, token_issued) VALUES((SELECT id FROM user WHERE user.name == ?), ?, ?)", &[Value::Text(username), Value::Text(code.clone()), Value::Integer(0)]).await;
+            let user = sparrow::mastodon::account::Account::get_user(Username(username)).await?;
+            let user_id = user.uid;
 
-            //let a = sparrow::table::oauth_access_token::OauthAccessToken::set().await;
+            let _ = sparrow::mastodon::application::Application::add(application_json_string, user_id).await?;
 
             let body = format!(
                 r#"<html><head>
                  <meta http-equiv="Refresh" content="0; URL={redirect_uri}redirect_uri?code={code}" />
                 </head></html>"#
             );
+
             return Ok(Response::builder().status(200).body(body).build());
         }
         false => {
@@ -211,25 +218,25 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
             let client_id = match hash_query.get("client_id") {
                 Some(x) => x,
                 None => {
-                    return auth_client_errer();
+                    return auth_client_error();
                 }
             };
             let redirect_uri = match hash_query.get("redirect_uri") {
                 Some(x) => x,
                 None => {
-                    return auth_client_errer();
+                    return auth_client_error();
                 }
             };
             let response_type = match hash_query.get("response_type") {
                 Some(x) => x,
                 None => {
-                    return auth_client_errer();
+                    return auth_client_error();
                 }
             };
             let empty = &"".to_string();
             let scope = hash_query.get("scope").unwrap_or(empty);
-
             let redirect_location = format!("/oauth/authorize?auth_failed&client_id={client_id}&redirect_uri={redirect_uri}&response_type={response_type}&scope={scope}");
+
             return Ok(Response::builder()
                 .status(303)
                 .header("Location", redirect_location)

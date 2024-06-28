@@ -1,14 +1,13 @@
-pub mod follow;
-pub mod relationships;
-pub mod statuses;
-pub mod unfollow;
+//pub mod follow;
+//pub mod relationships;
+//pub mod statuses;
+//pub mod unfollow;
 pub mod verify_credentials;
 
 // https://docs.joinmastodon.org/methods/accounts/
 // https://docs.joinmastodon.org/methods/accounts/#get
 
 use anyhow::Result;
-use serde_json;
 use sparrow::http_response::HttpResponse;
 use spin_sdk::http::{Method, Params, Request, Response};
 
@@ -35,23 +34,23 @@ pub async fn get(_req: Request, params: Params) -> Result<Response> {
     //     }
     // };
 
-    let aaa = params.get("id").unwrap();
-    tracing::debug!(aaa);
-
-    let query_id = match params.get("id") {
-        Some(x) => x,
-        None => return HttpResponse::not_found().await,
-    };
-
-    let account =
-        sparrow::mastodon::account::Account::get(query_id.to_string()).await;
-
-    let b = serde_json::to_string(&account).unwrap();
-    tracing::debug!(b);
+    // let aaa = params.get("id").unwrap();
+    // tracing::debug!(aaa);
+    //
+    // let query_id = match params.get("id") {
+    //     Some(x) => x,
+    //     None => return HttpResponse::not_found().await,
+    // };
+    //
+    // let account =
+    //     sparrow::mastodon::account::Account::get(query_id.to_string()).await;
+    //
+    // let b = serde_json::to_string(&account).unwrap();
+    // tracing::debug!(b);
 
     Ok(Response::builder()
         .status(200)
         .header("Content-Type", "application/activity+json")
-        .body(b.to_owned())
+        .body("arsars".to_owned())
         .build())
 }

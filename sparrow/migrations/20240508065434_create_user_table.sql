@@ -1,6 +1,6 @@
 -- Add migration script here
 CREATE TABLE user (
-    uuid TEXT NOT NULL,
+    uid TEXT NOT NULL,
     email TEXT DEFAULT "" NOT NULL,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,

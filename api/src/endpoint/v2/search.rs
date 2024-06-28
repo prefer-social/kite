@@ -23,28 +23,28 @@ pub async fn request(req: Request, params: Params) -> Result<Response> {
 pub async fn get(req: Request, params: Params) -> Result<Response> {
     debug!("Requeted -> GET /api/v2/search");
 
-    let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap()
-    {
-        sparrow::auth::TokenAuth::InValid => {
-            return sparrow::http_response::HttpResponse::unauthorized().await;
-        }
-        sparrow::auth::TokenAuth::TokenNotProvided => {
-            return sparrow::http_response::HttpResponse::unauthorized().await;
-        }
-        sparrow::auth::TokenAuth::Valid(userid) => {
-            Some(userid).unwrap() as i64
-        }
-    };
+    // let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap()
+    // {
+    //     sparrow::auth::TokenAuth::InValid => {
+    //         return sparrow::http_response::HttpResponse::unauthorized().await;
+    //     }
+    //     sparrow::auth::TokenAuth::TokenNotProvided => {
+    //         return sparrow::http_response::HttpResponse::unauthorized().await;
+    //     }
+    //     sparrow::auth::TokenAuth::Valid(userid) => {
+    //         Some(userid).unwrap() as i64
+    //     }
+    // };
 
     // https://docs.joinmastodon.org/methods/search/#query-parameters
-    let query = req.path_and_query().unwrap();
-    let q1: HashMap<_, _> = Url::parse(format!("data://text{query}").as_str())
+    let path_and_query = req.path_and_query().unwrap();
+    let quary: HashMap<_, _> = Url::parse(format!("data://text{path_and_query}").as_str())
         .unwrap()
         .query_pairs()
         .into_owned()
         .collect();
     // query="/api/v2/search?q=apple&resolve=true"
-    let search_term = q1.get("q").unwrap();
+    let search_term = quary.get("q").unwrap();
 
     // TODO: !!
 

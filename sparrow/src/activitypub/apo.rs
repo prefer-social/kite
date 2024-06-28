@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::mastodon::media::MediaAttachment;
-use crate::mastodon::media::MediaType;
+//use crate::mastodon::media::MediaAttachment;
+//use crate::mastodon::media::MediaType;
 
 pub enum ObjectTypes {
     Note,

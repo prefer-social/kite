@@ -81,6 +81,9 @@ pub async fn set_with_exp(
     val: &[u8],
     exp: DateTime<Utc>,
 ) -> Result<()> {
+
+    tracing::debug!("<----- Cache set: {} : {} ---->", key, std::str::from_utf8(val).unwrap());
+
     let store = Store::open("mem").unwrap();
     store.set(key, val)?;
     let exp_key = format!("_exp_{}", key);

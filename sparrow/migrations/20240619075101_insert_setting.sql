@@ -7,7 +7,8 @@ INSERT INTO setting (
 ('site_contact_username', 'seungjin'),
 ('site_contact_email', 'seungjin@duck.com'),
 ('site_title', 'dev.prefer.social - dev site'),
-('site_short_description', 'short desc here');
+('site_short_description', 'short desc here'),
+('site_version', '0.0.1');
 
 
 

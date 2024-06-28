@@ -2,20 +2,20 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-use sparrow::activitypub::apo::{Accept, Follow};
+//use sparrow::activitypub::apo::{Accept, Follow};
 use spin_sdk::sqlite::Value as SV;
 
 pub async fn follow_action(activity: serde_json::Value) {
     tracing::debug!("follow_action ##############");
 
-    println!("{activity:?}");
-
-    let follow_object: Follow = serde_json::from_value(activity).unwrap();
-    let them = &follow_object.actor;
-    let me = &follow_object.object;
-    let follow_object_string = serde_json::to_string(&follow_object).unwrap();
-
-    tracing::debug!("follow_action ##############");
+    // println!("{activity:?}");
+    // 
+    // let follow_object: Follow = serde_json::from_value(activity).unwrap();
+    // let them = &follow_object.actor;
+    // let me = &follow_object.object;
+    // let follow_object_string = serde_json::to_string(&follow_object).unwrap();
+    // 
+    // tracing::debug!("follow_action ##############");
 
     /*
 

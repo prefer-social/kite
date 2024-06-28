@@ -1,28 +1,34 @@
-/*
-CREATE TABLE public.statuses (
-    id bigint DEFAULT public.timestamp_id('statuses'::text) NOT NULL,
-    uri character varying,
-    text text DEFAULT ''::text NOT NULL,
-    created_at timestamp without time zone NOT NULL,
-    updated_at timestamp without time zone NOT NULL,
-    in_reply_to_id bigint,
-    reblog_of_id bigint,
-    url character varying,
-    sensitive boolean DEFAULT false NOT NULL,
-    visibility integer DEFAULT 0 NOT NULL,
-    spoiler_text text DEFAULT ''::text NOT NULL,
-    reply boolean DEFAULT false NOT NULL,
-    language character varying,
-    conversation_id bigint,
-    local boolean,
-    account_id bigint NOT NULL,
-    application_id bigint,
-    in_reply_to_account_id bigint,
-    poll_id bigint,
-    deleted_at timestamp without time zone,
-    edited_at timestamp without time zone,
-    trendable boolean,
-    ordered_media_attachment_ids bigint[]
-);
+use crate::table::account::Account;
+use anyhow::Result;
+use serde_derive::{Deserialize, Serialize};
+use std::collections::HashMap;
 
-*/
+#[derive(
+    Clone, Debug, Deserialize, Serialize, PartialEq, Default, sqlx::FromRow,
+)]
+pub struct Status {
+    pub rowid: String,
+    pub uid: String,
+    pub uri: Option<String>,
+    pub text: String,
+    pub created_at: i64,
+    pub updated_at: Option<i64>,
+    pub in_reply_to_id: String,
+    pub reblog_of_id: String,
+    pub url: String,
+    pub sensitive: bool,
+    pub visibility: i64,
+    pub spoiler_text: String,
+    pub reply: bool,
+    pub language: String,
+    pub conversation_id: String,
+    pub local: bool,
+    pub account_id: String,
+    pub application_id: String,
+    pub in_reply_to_account_id: String,
+    pub poll_id: String,
+    pub deleted_at: i64,
+    pub edited_at: i64,
+    pub trendable: bool,
+    pub ordered_media_attachment_ids: String,
+}

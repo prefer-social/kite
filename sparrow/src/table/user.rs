@@ -13,8 +13,8 @@ use spin_sdk::variables;
 #[serde(rename_all = "camelCase")]
 pub struct User {
     pub rowid: Option<i64>,
-    pub uuid: Option<String>,  // not null, primary key
-    pub email: Option<String>, // default(""), not null
+    pub uid: Option<String>,     // not null, primary key
+    pub email: Option<String>,   // default(""), not null
     pub created_at: Option<i64>, // not null
     pub updated_at: Option<i64>, // not null
     pub encrypted_password: Option<String>, // default(""), not null
@@ -65,7 +65,7 @@ impl User {
 
         let sqlx_conn = spin_sqlx::Connection::open_default()?;
         let encryted_password: Vec<(String, )>  = sqlx::query_as(r#"SELECT user.encrypted_password FROM user 
-        LEFT JOIN account ON user.account_id = account.uuid WHERE account.username = ? AND account.domain = ?"#)
+        LEFT JOIN account ON user.account_id = account.uid WHERE account.username = ? AND account.domain = ?"#)
         .bind(username)
         .bind(domain)
         .fetch_all(&sqlx_conn)
@@ -99,13 +99,27 @@ impl User {
         Ok((main_user, account))
     }
 
-    pub async fn get(uuid: &str) -> Result<Vec<Self>> {
+    pub async fn get(uuid: String) -> Result<Option<Self>> {
         let sqlx_conn = spin_sqlx::Connection::open_default()?;
         let users: Vec<User> =
-            sqlx::query_as("SELECT rowid, * FROM user WHERE uresr.uuid = ?")
+            sqlx::query_as("SELECT rowid, * FROM user WHERE user.uuid = ?")
                 .bind(uuid)
                 .fetch_all(&sqlx_conn)
                 .await?;
+        if users.is_empty() {
+            return Ok(None);
+        };
+        Ok(Some(users.first().unwrap().to_owned()))
+    }
+
+    pub async fn get_by_account_id(account_id: String) -> Result<Vec<Self>> {
+        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let users: Vec<User> = sqlx::query_as(
+            "SELECT rowid, * FROM user WHERE user.account_id = ?",
+        )
+        .bind(account_id)
+        .fetch_all(&sqlx_conn)
+        .await?;
         Ok(users)
     }
 

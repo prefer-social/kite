@@ -1,6 +1,6 @@
 -- Add migration script here
 CREATE TABLE account (
-    uuid TEXT NOT NULL,
+    uid TEXT NOT NULL,
     username TEXT DEFAULT "" NOT NULL,
     domain TEXT,
     private_key TEXT,
