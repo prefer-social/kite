@@ -11,6 +11,7 @@ pub mod utils;
 pub mod postbox;
 pub mod http_response;
 pub mod cache;
+pub mod webfinger;
 
 use anyhow::Result;
 use regex::Regex;

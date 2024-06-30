@@ -42,5 +42,3 @@ INSERT INTO account (
     'https://dev.prefer.social/following',
     "Person"
 );
-
-
