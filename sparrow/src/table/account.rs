@@ -114,3 +114,44 @@ impl Get<(String, String)> for Account {
         Ok(accounts)
     }
 }
+
+
+impl From<crate::activitypub::person_actor::PersonActor> for Account {
+    fn from(actor: crate::activitypub::person_actor::PersonActor) -> Self {
+
+        let account = Account {
+            uid: actor.id,
+            username: actor.
+            domain: Option<String>,
+            public_key: actor.public_key,
+            created_at: Option<i64>,    // not null
+            updated_at: Option<i64>,    // not null
+            note: Option<String>,       // default(""), not null
+            display_name: Option<String>, // default(""), not null
+            uri: String,                // default(""), not null
+            url: Some(actor.url),
+            avatar_file_name: Option<String>,
+            avatar_content_type: Some(actor.icon.unwrap_or_default().media_type),
+            avatar_updated_at: Option<i64>,
+            header_file_name: Option<String>,
+            header_content_type: Some(actor.image.unwrap_or_default().media_type),,
+            header_updated_at: Option<i64>,
+            avatar_remote_url: Some(actor.icon.unwrap_or_default().url),
+            header_remote_url: Some(actor.image.unwrap_or_default().url), // default(""), not null
+            last_webfingered_at: Option<i64>,
+            inbox_url: Some(actor.inbox),
+            outbox_url: Some(actor.outbox),
+            shared_inbox_url: Some(actor.endpoints.shared_inbox), // default(""), not null
+            following_url: Some(actor.following),
+            followers_url: Some(actor.followers), // default(""), not null
+            memorial: actor.memorial,
+            featured_collection_url: Some(actor.featured),
+            actor_type: Some(actor.actor_type),
+            discoverable: Some(actor.discoverable),
+            devices_url: actor.devices,
+            indexable: Some(actor.indexable),
+            ..Default::default() // default(FALSE), not null
+        };
+        account
+    }
+}

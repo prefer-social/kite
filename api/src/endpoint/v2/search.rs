@@ -47,7 +47,7 @@ pub async fn get(req: Request, params: Params) -> Result<Response> {
     };
 
     let search_result = SearchResult{
-        accounts: accounts_search_result,
+        accounts: accounts_search_result.unwrap_or_default(),
         statuses: statuses_search_result,
         hashtags: hashtags_search_result,
     };

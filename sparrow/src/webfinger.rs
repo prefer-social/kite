@@ -56,15 +56,20 @@ impl From<String> for WebFinger {
 }
 
 impl WebFinger {
-    pub async fn query(acct: &str) -> Result<()> {
+    pub async fn query(acct: &str) -> Result<Option<WebFinger>> {
+        tracing::debug!("?????????????????");
+
         let mut acct_splited = acct.split("@").into_iter();
         let username = acct_splited.next().unwrap();
-        let host = acct_splited.next().unwrap();
+        let domain = acct_splited.next().unwrap();
+
+        tracing::debug!(username);
+        tracing::debug!(domain);
 
         // https://mastodon.social/.well-known/webfinger?resource=acct:gargron@mastodon.social
         let webfinger_url = format!(
-            "https://{}/.well-known/webfiger?resource=acct:{}",
-            host, acct
+            "https://{}/.well-known/webfinger?resource=acct:{}",
+            domain, acct
         );
 
         let request = Request::builder()
@@ -72,12 +77,15 @@ impl WebFinger {
             .uri(webfinger_url)
             .build();
         let response: Response = spin_sdk::http::send(request).await?;
+        if response.status().to_owned() != 200u16 {
+            return Ok(None);
+        }
+        let ct = response.header("content-type").unwrap().as_str().unwrap();
 
         let body = str::from_utf8(response.body()).unwrap();
+        let webfinger = serde_json::from_str(body).unwrap();
 
-        tracing::debug!(body);
-
-        Ok(())
+        Ok(webfinger)
     }
 }
 

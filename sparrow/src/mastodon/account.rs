@@ -11,6 +11,8 @@ use crate::mastodon::user::User;
 use crate::mastodon::username::Username;
 use crate::table::account::Get as _;
 
+pub mod search;
+
 #[derive(Default, Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct Account {
     #[serde(rename(serialize = "id", deserialize = "id"))]
@@ -42,10 +44,6 @@ pub struct Account {
 }
 
 impl Account {
-    pub async fn search(search_term: &String) -> Vec<Account> {
-        Vec::new()
-    }
-
     pub async fn default_user() -> Result<(Account, User)> {
         let du = crate::table::user::User::default_user()
             .await?

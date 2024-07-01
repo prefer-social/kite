@@ -10,10 +10,10 @@ use crate::table::user::User;
 #[serde(rename_all = "camelCase")]
 pub struct PersonActor {
     #[serde(rename = "@context")]
-    pub context: Vec<String>,
+    pub context: Value,
     pub id: String,
     #[serde(rename = "type")]
-    pub kind: String,
+    pub actor_type: String,
     pub following: String,
     pub followers: String,
     pub inbox: String,
@@ -23,7 +23,7 @@ pub struct PersonActor {
     pub preferred_username: String,
     pub name: String,
     pub summary: String,
-    pub url: Option<String>,
+    pub url: String,
     pub manually_approves_followers: bool,
     pub discoverable: bool,
     pub indexable: bool,
@@ -33,10 +33,13 @@ pub struct PersonActor {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub devices: Option<String>,
     pub public_key: PublicKey,
-    pub tags: Vec<Value>,
+    pub tag: Vec<Value>,
     pub attachment: Vec<Value>,
-    pub icon: Image,
-    pub image: Image,
+    pub endpoints: Endpoints,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icon: Option<Image>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image: Option<Image>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -51,9 +54,15 @@ pub struct PublicKey {
 #[serde(rename_all = "camelCase")]
 pub struct Image {
     #[serde(rename = "type")]
-    kind: String,
-    media_type: String,
-    url: String,
+    pub kind: String,
+    pub media_type: String,
+    pub url: String,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Endpoints {
+    pub shared_inbox: String,
 }
 
 impl PersonActor {
@@ -78,13 +87,16 @@ impl PersonActor {
 
         let username = a.username;
 
+        let ct = vec![
+            "https://www.w3.org/ns/activitystreams".to_string(),
+            "https://w3id.org/security/v1".to_string(),
+        ];
+        let ct_val = serde_json::to_value(&ct).unwrap();
+
         let pa = PersonActor {
-            context: vec![
-                "https://www.w3.org/ns/activitystreams".to_string(),
-                "https://w3id.org/security/v1".to_string(),
-            ],
+            context: ct_val,
             id: a.uri,
-            kind: "Person".to_string(),
+            actor_type: "Person".to_string(),
             following: a.following_url.unwrap().clone(),
             followers: a.followers_url.unwrap().clone(),
             inbox: a.inbox_url.unwrap().clone(),
@@ -94,7 +106,7 @@ impl PersonActor {
             preferred_username: username.clone(), //a.display_name.unwrap().clone(),
             name: username,
             summary: a.note.unwrap(),
-            url: a.url,
+            url: a.url.unwrap(),
             manually_approves_followers: false, // Todo:
             discoverable: a.discoverable.unwrap_or_default(),
             indexable: a.indexable.unwrap_or_default(),
@@ -105,10 +117,9 @@ impl PersonActor {
             memorial: Some(false),
             devices: None,
             public_key: pk,
-            tags: vec![Value::Null],
+            tag: vec![Value::Null],
             attachment: vec![Value::Null],
-            icon: icon,
-            image: image,
+            ..Default::default()
         };
         Ok(pa)
     }
