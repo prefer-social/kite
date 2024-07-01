@@ -4,6 +4,7 @@
 */
 
 use anyhow::Result;
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
@@ -38,5 +39,24 @@ impl InboxLog {
             .execute(&sqlx_conn)
             .await?;
         Ok(())
+    }
+}
+
+#[async_trait]
+pub trait Get<T> {
+    async fn get(arg: T) -> Result<Vec<InboxLog>>;
+}
+
+#[async_trait]
+impl Get<(String, String)> for InboxLog {
+    async fn get((key, val): (String, String)) -> Result<Vec<InboxLog>> {
+        let query_template =
+            format!("SELECT rowid, * FROM inbox_log WHERE {} = ?", key);
+        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let accounts = sqlx::query_as(query_template.as_str())
+            .bind(val)
+            .fetch_all(&sqlx_conn)
+            .await?;
+        Ok(accounts)
     }
 }

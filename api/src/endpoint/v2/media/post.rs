@@ -11,7 +11,7 @@ use frameshop::preview_image;
 use sparrow::mastodon::media::{MediaAttachment, MediaType};
 
 pub async fn post(req: Request, params: Params) -> Result<Response> {
-    tracing::debug!("Requeted -> POST /api/v2/media");
+    tracing::debug!("requested -> POST /api/v2/media");
 
     let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap()
     {

@@ -1,4 +1,5 @@
 use anyhow::Result;
+use async_trait::async_trait;
 use oauth2::AccessToken;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
@@ -8,7 +9,7 @@ use super::account::Account;
 
 #[derive(Default, Clone, Debug, PartialEq, sqlx::FromRow)]
 pub struct OauthAccessToken {
-    pub rowid: Option<i64>,
+    pub rowid: i64,
     pub uid: String, // not null, primary key
     pub token: Option<String>,
     pub refresh_token: Option<String>,
@@ -69,17 +70,47 @@ impl OauthAccessToken {
     }
 
     pub async fn validate(token: String) -> Result<Vec<Account>> {
+        tracing::debug!("---=====----======---");
+        tracing::debug!(token);
         let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        // let accts: Vec<crate::table::account::Account> = sqlx::query_as(
+        //     r#"SELECT D.rowid, D.* FROM oauth_access_token
+        //     AS A FULL OUTER JOIN oauth_application AS B ON A.application_id = B.uid
+        //     FULL OUTER JOIN user AS C ON B.owner_id = c.uid
+        //     FULL OUTER JOIN account as D ON D.uid = c.account_id
+        //     WHERE A.token = ?"#,
+        // )
         let accts: Vec<crate::table::account::Account> = sqlx::query_as(
-            r#"SELECT D.rowid, D.* FROM oauth_access_token 
-            AS A FULL OUTER JOIN oauth_application AS B ON A.application_id = B.uid 
-            FULL OUTER JOIN user AS C ON B.owner_id = c.uid 
-            FULL OUTER JOIN account as D ON D.uid = c.account_id 
-            WHERE A.token = ?"#,
-        )
+            r#"SELECT account.rowid, account.* FROM oauth_access_token 
+            INNER JOIN oauth_application ON oauth_access_token.application_id = oauth_application.uid 
+            INNER JOIN account ON account.uid = oauth_application.owner_id 
+            WHERE token = ?"#)
         .bind(token)
         .fetch_all(&sqlx_conn)
         .await?;
         Ok(accts)
+    }
+}
+
+#[async_trait]
+pub trait Get<T> {
+    async fn get(arg: T) -> Result<Vec<OauthAccessToken>>;
+}
+
+#[async_trait]
+impl Get<(String, String)> for OauthAccessToken {
+    async fn get(
+        (key, val): (String, String),
+    ) -> Result<Vec<OauthAccessToken>> {
+        let query_template = format!(
+            "SELECT rowid, * FROM oauth_access_token WHERE {} = ?",
+            key
+        );
+        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let accounts = sqlx::query_as(query_template.as_str())
+            .bind(val)
+            .fetch_all(&sqlx_conn)
+            .await?;
+        Ok(accounts)
     }
 }

@@ -1,4 +1,5 @@
 use anyhow::Result;
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde_derive::{Deserialize, Serialize};
 use spin_sdk::sqlite::{QueryResult, Value as SV};
@@ -77,5 +78,24 @@ impl Follow {
         todo!();
 
         Ok(())
+    }
+}
+
+#[async_trait]
+pub trait Get<T> {
+    async fn get(arg: T) -> Result<Vec<Follow>>;
+}
+
+#[async_trait]
+impl Get<(String, String)> for Follow {
+    async fn get((key, val): (String, String)) -> Result<Vec<Follow>> {
+        let query_template =
+            format!("SELECT rowid, * FROM follow WHERE {} = ?", key);
+        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let accounts = sqlx::query_as(query_template.as_str())
+            .bind(val)
+            .fetch_all(&sqlx_conn)
+            .await?;
+        Ok(accounts)
     }
 }

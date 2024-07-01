@@ -1,9 +1,9 @@
-use crate::table::account::Account;
 use anyhow::Result;
 use argon2::{
     password_hash::{PasswordHash, PasswordVerifier},
     Argon2,
 };
+use async_trait::async_trait;
 use serde_derive::{Deserialize, Serialize};
 use spin_sdk::variables;
 
@@ -84,43 +84,19 @@ impl User {
             .is_ok())
     }
 
-    pub async fn default_user() -> Result<(Self, Account)> {
+    pub async fn default_user() -> Result<Vec<Self>> {
         let sqlx_conn = spin_sqlx::Connection::open_default()?;
         let main_users: Vec<User> = sqlx::query_as(
             "SELECT rowid, * FROM user WHERE user.admin == true",
         )
         .fetch_all(&sqlx_conn)
         .await?;
-        let main_user = main_users.get(0).unwrap().clone();
-
-        let account_id = main_user.to_owned().account_id.unwrap();
-        let account = Account::get_with_account_id(account_id).await?.unwrap();
-
-        Ok((main_user, account))
+        Ok(main_users)
     }
 
-    pub async fn get(uuid: String) -> Result<Option<Self>> {
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
-        let users: Vec<User> =
-            sqlx::query_as("SELECT rowid, * FROM user WHERE user.uuid = ?")
-                .bind(uuid)
-                .fetch_all(&sqlx_conn)
-                .await?;
-        if users.is_empty() {
-            return Ok(None);
-        };
+    pub async fn get_with_uid(uid: String) -> Result<Option<Self>> {
+        let users = Self::get(("uid".to_owned(), uid)).await?;
         Ok(Some(users.first().unwrap().to_owned()))
-    }
-
-    pub async fn get_by_account_id(account_id: String) -> Result<Vec<Self>> {
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
-        let users: Vec<User> = sqlx::query_as(
-            "SELECT rowid, * FROM user WHERE user.account_id = ?",
-        )
-        .bind(account_id)
-        .fetch_all(&sqlx_conn)
-        .await?;
-        Ok(users)
     }
 
     pub async fn user_count() -> Result<i64> {
@@ -129,5 +105,24 @@ impl User {
             .fetch_one(&sqlx_conn)
             .await?;
         Ok(count.0)
+    }
+}
+
+#[async_trait]
+pub trait Get<T> {
+    async fn get(arg: T) -> Result<Vec<User>>;
+}
+
+#[async_trait]
+impl Get<(String, String)> for User {
+    async fn get((key, val): (String, String)) -> Result<Vec<User>> {
+        let query_template =
+            format!("SELECT rowid, * FROM account WHERE {} = ?", key);
+        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let accounts = sqlx::query_as(query_template.as_str())
+            .bind(val)
+            .fetch_all(&sqlx_conn)
+            .await?;
+        Ok(accounts)
     }
 }

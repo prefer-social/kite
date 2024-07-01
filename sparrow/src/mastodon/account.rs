@@ -7,13 +7,13 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::mastodon::uid::Uid;
+use crate::mastodon::user::User;
 use crate::mastodon::username::Username;
 use crate::table::account::Get as _;
 
-pub mod search;
-
 #[derive(Default, Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct Account {
+    #[serde(rename(serialize = "id", deserialize = "id"))]
     pub uid: Uid,
     pub username: Username,
     pub acct: String,
@@ -35,6 +35,29 @@ pub struct Account {
     pub last_status_at: Option<DateTime<Utc>>,
     pub emojis: Option<Vec<String>>,
     pub fields: Option<Vec<String>>,
+    #[serde(skip_serializing, skip_deserializing)]
+    pub private_key: Option<String>,
+    #[serde(skip_serializing, skip_deserializing)]
+    pub public_key: Option<String>,
+}
+
+impl Account {
+    pub async fn search(search_term: &String) -> Vec<Account> {
+        Vec::new()
+    }
+
+    pub async fn default_user() -> Result<(Account, User)> {
+        let du = crate::table::user::User::default_user()
+            .await?
+            .first()
+            .unwrap()
+            .to_owned();
+        let user = crate::mastodon::user::User::from(du);
+        let account_id =
+            crate::mastodon::uid::Uid(user.account_id.clone().unwrap());
+        let account = Self::get(account_id).await?;
+        Ok((account, user))
+    }
 }
 
 impl From<crate::table::account::Account> for Account {
@@ -88,75 +111,6 @@ impl Into<Value> for Account {
     }
 }
 
-impl Account {
-    // pub async fn get(uid: Uid) -> anyhow::Result<Account> {
-    //
-    //     let account = crate::table::account::Account::get(uid)
-    //          .await
-    //          .unwrap_or_default();
-    //     let account = account.into_iter().next().unwrap();
-    //
-    //     let bot: bool = match account.actor_type.unwrap().as_str() {
-    //         "service" => true,
-    //         _ => false,
-    //     };
-    //
-    //     let account = Account {
-    //         uid: account.uid,
-    //         username: account.username.clone(),
-    //         acct: format!(
-    //             "{}@{}",
-    //             account.username,
-    //             account.domain.unwrap()
-    //         ),
-    //         display_name: account.display_name.unwrap(),
-    //         locked: account.locked.unwrap(),
-    //         bot: bot,
-    //         discoverable: account.discoverable.unwrap(),
-    //         created_at: DateTime::from_timestamp(
-    //             account.created_at.unwrap(),
-    //             0,
-    //         )
-    //         .unwrap(),
-    //         note: account.note.unwrap(),
-    //         url: account.url,
-    //         avatar: account.avatar_remote_url.clone().unwrap(),
-    //         avatar_static: account.avatar_remote_url.unwrap(),
-    //         header: account.header_remote_url.clone().unwrap(),
-    //         header_static: account.header_remote_url.unwrap(),
-    //         followers_count: 0,
-    //         following_count: 0,
-    //         statuses_count: 0,
-    //         ..Default::default()
-    //     };
-    //     Ok(account)
-    // }
-
-    pub async fn get_user(
-        username: Username,
-    ) -> anyhow::Result<crate::table::user::User> {
-        let account = crate::table::account::Account::get(username)
-            .await
-            .unwrap_or_default();
-
-        let account_id = account.into_iter().next().unwrap().uid;
-
-        let users =
-            crate::table::user::User::get_by_account_id(account_id).await?;
-        let user = users.first().unwrap().to_owned();
-        Ok(user)
-    }
-
-    pub async fn get_user_by_userid(
-        userid: String,
-    ) -> Result<Option<crate::table::user::User>> {
-        let user = crate::table::user::User::get(userid)
-            .await
-            .unwrap_or_default();
-        Ok(user)
-    }
-}
-
 #[async_trait]
 pub trait Get<T> {
     async fn get(a: T) -> Result<Account>;
@@ -165,9 +119,12 @@ pub trait Get<T> {
 #[async_trait]
 impl Get<Uid> for Account {
     async fn get(uid: Uid) -> Result<Account> {
-        let accounts = crate::table::account::Account::get(uid)
-            .await
-            .unwrap_or_default();
+        let accounts = crate::table::account::Account::get((
+            "uid".to_string(),
+            uid.to_string(),
+        ))
+        .await
+        .unwrap_or_default();
         let acct_tbl = accounts.into_iter().next().unwrap();
         Ok(self::Account::from(acct_tbl))
     }
@@ -176,9 +133,12 @@ impl Get<Uid> for Account {
 #[async_trait]
 impl Get<Username> for Account {
     async fn get(username: Username) -> Result<Account> {
-        let accounts = crate::table::account::Account::get(username)
-            .await
-            .unwrap_or_default();
+        let accounts = crate::table::account::Account::get((
+            "username".to_string(),
+            username.to_string(),
+        ))
+        .await
+        .unwrap_or_default();
         let acct_tbl = accounts.into_iter().next().unwrap();
         Ok(self::Account::from(acct_tbl))
     }

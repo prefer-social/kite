@@ -38,6 +38,9 @@ async fn handle_api(req: Request) -> Result<impl IntoResponse> {
     router.any_async("/api/v1/timelines/home", endpoint::v1::timelines::home::request);
     router.any_async("/api/v1/push/subscription", endpoint::v1::push::subscription::request);
     router.any_async("/api/v1/streaming", endpoint::v1::streaming::request);
+    router.any_async("/api/v1/notifications", endpoint::v1::notifications::request);
+    router.any_async("/api/v1/conversations", endpoint::v1::conversations::request);
+    router.any_async("/api/v1/accounts/relationships", endpoint::v1::accounts::relationships::request);
 
     // router.any_async("/api/v1/timelines/public", timelines::public::request);
 

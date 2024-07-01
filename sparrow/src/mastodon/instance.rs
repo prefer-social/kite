@@ -75,7 +75,7 @@ struct Polls {
 }
 
 impl Instance {
-    pub async fn build() -> Instance {
+    pub async fn get() -> Instance {
         let settings = crate::table::setting::Setting::all().await.unwrap();
         let username =
             settings.get("site_contact_username").unwrap().to_owned();

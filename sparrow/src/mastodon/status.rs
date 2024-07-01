@@ -1,5 +1,6 @@
 // https://docs.joinmastodon.org/entities/Status/
 
+use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -35,7 +36,7 @@ pub struct Status {
     pub url: Option<String>,
     pub in_reply_to_id: Option<String>,
     pub in_reply_to_account_id: Option<String>,
-    pub reblog: Value,
+    pub reblog: Box<Status>,
     pub poll: Option<Poll>,
     pub card: Option<PreviewCard>,
     pub language: String,
@@ -97,4 +98,10 @@ pub struct Metion {
 pub struct Tag {
     pub name: String,
     pub url: String,
+}
+
+impl Status {
+    pub async fn search(search_term: &String) -> Result<Vec<Status>> {
+        Ok(Vec::new())
+    }
 }

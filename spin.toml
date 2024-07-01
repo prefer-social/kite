@@ -23,18 +23,18 @@ domain = { required = true }
 address = "redis://{{ redis_credential }}@{{ redis_host }}:{{ redis_port }}"
 
 
-[[trigger.http]]
-route = "/..."
-component = "web"
-
-[component.web]
-source = "target/wasm32-wasi/release/web.wasm"
-sqlite_databases = ["default"]
-allowed_outbound_hosts = ["https://*:*", "http://*:*"]
-[component.web.build]
-command = "cargo build --target wasm32-wasi --release"
-workdir = "web"
-watch = ["web/src/**/*.rs", "web/Cargo.toml"]
+#[[trigger.http]]
+#route = "/..."
+#component = "web"
+#
+#[component.web]
+#source = "target/wasm32-wasi/release/web.wasm"
+#sqlite_databases = ["default"]
+#allowed_outbound_hosts = ["https://*:*", "http://*:*"]
+#[component.web.build]
+#command = "cargo build --target wasm32-wasi --release"
+#workdir = "web"
+#watch = ["web/src/**/*.rs", "web/Cargo.toml"]
 
 [[trigger.http]]
 route = "/assets/..."

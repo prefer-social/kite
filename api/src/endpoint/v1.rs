@@ -8,3 +8,6 @@ pub mod timelines;
 pub mod push;
 pub mod preferences;
 pub mod streaming;
+pub mod notifications;
+pub mod conversations;
+

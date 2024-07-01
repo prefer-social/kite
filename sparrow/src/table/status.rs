@@ -1,5 +1,6 @@
 use crate::table::account::Account;
 use anyhow::Result;
+use async_trait::async_trait;
 use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -31,4 +32,23 @@ pub struct Status {
     pub edited_at: i64,
     pub trendable: bool,
     pub ordered_media_attachment_ids: String,
+}
+
+#[async_trait]
+pub trait Get<T> {
+    async fn get(arg: T) -> Result<Vec<Status>>;
+}
+
+#[async_trait]
+impl Get<(String, String)> for Status {
+    async fn get((key, val): (String, String)) -> Result<Vec<Status>> {
+        let query_template =
+            format!("SELECT rowid, * FROM status WHERE {} = ?", key);
+        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let accounts = sqlx::query_as(query_template.as_str())
+            .bind(val)
+            .fetch_all(&sqlx_conn)
+            .await?;
+        Ok(accounts)
+    }
 }

@@ -77,7 +77,7 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
 
     tracing::debug!(actor_from_key_id);
 
-    let (user, account) = sparrow::table::user::User::default_user().await?;
+    let (account, user) = sparrow::mastodon::account::Account::default_user().await?;
 
     let pubkey_str = account.public_key.unwrap();
 

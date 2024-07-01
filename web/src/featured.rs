@@ -36,7 +36,7 @@ pub async fn get(_req: Request, _params: Params) -> Result<Response> {
           "sensitive": false,
           "atomUri": "https://mastodon.jgarr.net/1",
           "inReplyToAtomUri": null,
-          "conversation": "tag:mastodon.jgarr.net,2022-04-26:objectId=288755344:objectType=Conversation",
+          "conversation.rs": "tag:mastodon.jgarr.net,2022-04-26:objectId=288755344:objectType=Conversation",
           "content": "<p>THIS IS PINNED</p>",
           "contentMap": {
             "en": "<p>THIS IS PINNED</p>"

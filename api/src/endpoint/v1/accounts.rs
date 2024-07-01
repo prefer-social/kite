@@ -3,7 +3,8 @@
 //pub mod statuses;
 //pub mod unfollow;
 pub mod verify_credentials;
-mod lookup;
+pub mod lookup;
+pub mod relationships;
 // https://docs.joinmastodon.org/methods/accounts/
 // https://docs.joinmastodon.org/methods/accounts/#get
 
@@ -20,7 +21,7 @@ pub async fn request(req: Request, params: Params) -> Result<Response> {
 }
 
 pub async fn get(_req: Request, params: Params) -> Result<Response> {
-    tracing::debug!("------------?");
+    tracing::debug!("requested -> GET /api/v1/accounts");
     // let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap()
     // {
     //     sparrow::auth::TokenAuth::InValid => {

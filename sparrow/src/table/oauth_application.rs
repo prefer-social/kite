@@ -1,4 +1,5 @@
 use anyhow::Result;
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde_derive::{Deserialize, Serialize};
 use spin_sdk::key_value::Store;
@@ -64,13 +65,14 @@ impl OauthApplication {
         Ok(())
     }
 
-    pub async fn get_by_app_id(
-        app_id: String,
-    ) -> Result<OauthApplication> {
+    pub async fn get_by_app_id(app_id: String) -> Result<OauthApplication> {
         let sqlx_conn = spin_sqlx::Connection::open_default()?;
         let oa: OauthApplication = sqlx::query_as(
-            "SELECT rowid, * FROM oauth_application WHERE uid = ?"
-        ).bind(app_id).fetch_one(&sqlx_conn).await?;
+            "SELECT rowid, * FROM oauth_application WHERE uid = ?",
+        )
+        .bind(app_id)
+        .fetch_one(&sqlx_conn)
+        .await?;
         Ok(oa)
     }
 
@@ -81,5 +83,28 @@ impl OauthApplication {
             .execute(&sqlx_conn)
             .await?;
         Ok(())
+    }
+}
+
+#[async_trait]
+pub trait Get<T> {
+    async fn get(arg: T) -> Result<Vec<OauthApplication>>;
+}
+
+#[async_trait]
+impl Get<(String, String)> for OauthApplication {
+    async fn get(
+        (key, val): (String, String),
+    ) -> Result<Vec<OauthApplication>> {
+        let query_template = format!(
+            "SELECT rowid, * FROM oauth_application WHERE {} = ?",
+            key
+        );
+        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let accounts = sqlx::query_as(query_template.as_str())
+            .bind(val)
+            .fetch_all(&sqlx_conn)
+            .await?;
+        Ok(accounts)
     }
 }

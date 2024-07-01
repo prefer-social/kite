@@ -1,5 +1,6 @@
 // https://docs.joinmastodon.org/methods/accounts/#relationships
 // Returns: Array of Relationship
+// https://docs.joinmastodon.org/entities/Relationship/
 
 use anyhow::Result;
 use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
@@ -16,9 +17,11 @@ pub async fn request(req: Request, params: Params) -> Result<Response> {
 }
 
 pub async fn get(req: Request, params: Params) -> Result<Response> {
+    tracing::debug!("Requested -> {} {}", req.method().to_string(), req.path_and_query().unwrap());
+
     let url = req.uri();
-    let u = Url::parse(url).unwrap();
-    let query: HashMap<_, _> = u.query_pairs().into_owned().collect();
+    let parsed_url = Url::parse(url).unwrap();
+    let query: HashMap<_, _> = parsed_url.query_pairs().into_owned().collect();
 
     debug!("{query:?}");
 
@@ -30,40 +33,37 @@ pub async fn get(req: Request, params: Params) -> Result<Response> {
             let b = serde_json::to_string(a).unwrap();
             debug!(b);
 
-            let foo = format!(
-                r#"[
-          {{
-            "id": "{id}",
-            "following": false,
-            "showing_reblogs": true,
-            "notifying": false,
-            "followed_by": false,
-            "blocking": false,
-            "blocked_by": false,
-            "muting": false,
-            "muting_notifications": false,
-            "requested": false,
-            "domain_blocking": false,
-            "endorsed": false
-          }}]"#
-            );
+            let foo = sparrow::mastodon::relationship::Relationship {
+                uid: id.into(),
+                following: Some(false),
+                showing_reblogs: Some(true),
+                notifying: Some(false),
+                followed_by: Some(false),
+                blocking: Some(false),
+                blocked_by: Some(false),
+                muting: Some(false),
+                muting_notifications: Some(false),
+                requested: Some(false),
+                domain_blocking: Some(false),
+                endorsed: Some(false),
+                ..Default::default()
+            };
 
-            let json_val: serde_json::Value =
-                serde_json::from_str(foo.as_str()).unwrap();
+            let json_val = serde_json::to_string(&foo).unwrap();
+
+            tracing::debug!(json_val);
+
             Ok(Response::builder()
                 .status(200)
                 .header("Context-Type", "application/activity+json")
-                .body(json_val.to_string())
+                .body(json_val)
                 .build())
         }
         None => {
-            let foo = r#"[]"#;
-            let json_val: serde_json::Value =
-                serde_json::from_str(foo).unwrap();
             Ok(Response::builder()
                 .status(200)
                 .header("Context-Type", "application/activity+json")
-                .body(json_val.to_string())
+                .body("[]")
                 .build())
         }
     }

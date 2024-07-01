@@ -74,84 +74,25 @@ impl Account {
         Ok(accounts)
     }
 
-    // pub async fn get(uid: Uid) -> Result<Vec<Account>> {
-    //     let sqlx_conn = spin_sqlx::Connection::open_default()?;
-    //     let account: Vec<Account> =
-    //         sqlx::query_as("SELECT rowid, * FROM account WHERE uid = ?")
-    //             .bind(uid).fetch_all(&sqlx_conn).await?;
-    //     Ok(account)
-    // }
-
-    pub async fn select() -> Result<()> {
-        let table_hashmaps =
-            crate::table::utils::hashmap_from_table("account".to_string())
-                .await
-                .unwrap()
-                .unwrap();
-
-        for table_hashmap in table_hashmaps {
-            let foo = serde_json::to_string(&table_hashmap).unwrap();
-            let account: Value = serde_json::from_str(foo.as_str()).unwrap();
-
-            tracing::debug!("{:?}", account);
-        }
-
-        Ok(())
-    }
-
-    // pub async fn get_with_username(username: String) -> Result<Self> {
-    //     let sqlx_conn = spin_sqlx::Connection::open_default()?;
-    //     let account: Account =
-    //         sqlx::query_as("SELECT rowid, * FROM account WHERE username = ?")
-    //             .bind(username)
-    //             .fetch_one(&sqlx_conn)
-    //             .await?;
-    //     Ok(account)
-    // }
-
-    pub async fn get_with_account_id(
-        account_id: String,
-    ) -> anyhow::Result<Option<Self>> {
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
-        let accounts = sqlx::query_as::<_, Account>(
-            "SELECT rowid, * FROM account WHERE uid = ?",
-        )
-        .bind(account_id)
-        .fetch_all(&sqlx_conn)
-        .await?;
-        let account = accounts.into_iter().next();
-        Ok(account)
+    pub async fn federation_id(self: &Self) -> Result<String> {
+        let username = self.username.clone();
+        let domain = self.domain.clone();
+        Ok(format!("{}@{}", username, domain.unwrap()))
     }
 
     pub async fn get_with_account(
-        account: String,
-    ) -> Result<Option<Vec<Self>>> {
-        let u = account.split("@").collect::<Vec<&str>>();
-
-        println!("{:?}", u);
-
-        let username = u[0];
-        let domain = u[1];
-
+        username: String,
+        domain: String,
+    ) -> Result<Option<Account>> {
         let sqlx_conn = spin_sqlx::Connection::open_default()?;
-        let accounts = match sqlx::query_as(
+        let accounts: Vec<Account> = sqlx::query_as(
             "SELECT rowid, * FROM account WHERE username = ? AND domain = ?",
         )
         .bind(username)
         .bind(domain)
         .fetch_all(&sqlx_conn)
-        .await
-        {
-            Ok(s) => s,
-            _ => return Ok(None),
-        };
-        Ok(Some(accounts))
-    }
-
-    pub async fn federation_id(self: &Self) -> Result<String> {
-        let username = self.username.clone();
-        let domain = self.domain.clone();
-        Ok(format!("{}@{}", username, domain.unwrap()))
+        .await?;
+        Ok(Some(accounts.first().unwrap().to_owned()))
     }
 }
 
@@ -161,27 +102,15 @@ pub trait Get<T> {
 }
 
 #[async_trait]
-impl Get<Uid> for Account {
-    async fn get(uid: Uid) -> Result<Vec<Account>> {
+impl Get<(String, String)> for Account {
+    async fn get((key, val): (String, String)) -> Result<Vec<Account>> {
+        let query_template =
+            format!("SELECT rowid, * FROM account WHERE {} = ?", key);
         let sqlx_conn = spin_sqlx::Connection::open_default()?;
-        let accounts =
-            sqlx::query_as("SELECT rowid, * FROM account WHERE uid = ?")
-                .bind(uid.to_string())
-                .fetch_all(&sqlx_conn)
-                .await?;
-        Ok(accounts)
-    }
-}
-
-#[async_trait]
-impl Get<Username> for Account {
-    async fn get(username: Username) -> Result<Vec<Account>> {
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
-        let accounts =
-            sqlx::query_as("SELECT rowid, * FROM account WHERE username = ?")
-                .bind(username.to_string())
-                .fetch_all(&sqlx_conn)
-                .await?;
+        let accounts = sqlx::query_as(query_template.as_str())
+            .bind(val)
+            .fetch_all(&sqlx_conn)
+            .await?;
         Ok(accounts)
     }
 }

@@ -20,11 +20,7 @@ pub async fn request(req: Request, params: Params) -> Result<Response> {
 // TODO: After basic OAUTH, app is calling here with "/app/v1/accounts/verify_credentials"
 // https://docs.joinmastodon.org/methods/accounts/#verify_credentials
 pub async fn get(req: Request, _params: Params) -> Result<Response> {
-    tracing::debug!("<---------- ({}) {} ({}) --------->",
-        req.method().to_string(),
-        req.path_and_query().unwrap(),
-        req.header("x-forwarded-for").unwrap().as_str().unwrap()
-    );
+    tracing::debug!("requested -> {} {}", req.method().to_string(), req.path_and_query().unwrap());
 
     let account = match req.header("authorization") {
         Some(a) => {

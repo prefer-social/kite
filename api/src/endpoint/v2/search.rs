@@ -9,6 +9,8 @@ use std::str;
 use std::{collections::HashMap, sync::Arc};
 use tracing::debug;
 use url::Url;
+use serde::{Deserialize, Serialize};
+
 
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
@@ -21,20 +23,7 @@ pub async fn request(req: Request, params: Params) -> Result<Response> {
 // FOR NOW, only account search is avaiable
 // Returns Search https://docs.joinmastodon.org/entities/Search/
 pub async fn get(req: Request, params: Params) -> Result<Response> {
-    debug!("Requeted -> GET /api/v2/search");
-
-    // let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap()
-    // {
-    //     sparrow::auth::TokenAuth::InValid => {
-    //         return sparrow::http_response::HttpResponse::unauthorized().await;
-    //     }
-    //     sparrow::auth::TokenAuth::TokenNotProvided => {
-    //         return sparrow::http_response::HttpResponse::unauthorized().await;
-    //     }
-    //     sparrow::auth::TokenAuth::Valid(userid) => {
-    //         Some(userid).unwrap() as i64
-    //     }
-    // };
+    tracing::debug!("requested -> {} {}", req.method().to_string(), req.path_and_query().unwrap());
 
     // https://docs.joinmastodon.org/methods/search/#query-parameters
     let path_and_query = req.path_and_query().unwrap();
@@ -46,59 +35,85 @@ pub async fn get(req: Request, params: Params) -> Result<Response> {
     // query="/api/v2/search?q=apple&resolve=true"
     let search_term = quary.get("q").unwrap();
 
-    // TODO: !!
+    let accounts_search_result = sparrow::mastodon::account::Account::search(search_term).await;
+    let statuses_search_result = sparrow::mastodon::status::Status::search(search_term).await?;
+    let hashtags_search_result = sparrow::mastodon::tag::Tag::search(search_term).await?;
+
+    #[derive(Default, Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+    struct SearchResult {
+        accounts: Vec<sparrow::mastodon::account::Account>,
+        statuses: Vec<sparrow::mastodon::status::Status>,
+        hashtags: Vec<sparrow::mastodon::tag::Tag>
+    };
+
+    let search_result = SearchResult{
+        accounts: accounts_search_result,
+        statuses: statuses_search_result,
+        hashtags: hashtags_search_result,
+    };
+
+
+    let a = serde_json::to_string(&search_result).unwrap();
+    tracing::debug!(a);
+
+    return Ok(Response::builder()
+        .status(200)
+        .header("Context-Type", "application/activity+json")
+        .body(a)
+        .build());
+
 
     //let rr = get_account_info(search_term.clone()).await;
     //debug!("{rr:?}");
 
-    let ai = get_account_info(search_term.clone()).await;
+    // let ai = get_account_info(search_term.clone()).await;
+    //
+    // if ai.is_err() {
+    //     let no_search_results = r#"{
+    //     "accounts": [],
+    //     "statuses": [],
+    //     "hashtags": []
+    //   }"#;
+    //     let json_val: serde_json::Value =
+    //         serde_json::from_str(no_search_results).unwrap();
+    //
+    //     let aq = json_val.to_string();
+    //     debug!(aq);
+    //
+    //     return Ok(Response::builder()
+    //         .status(200)
+    //         .header("Context-Type", "application/activity+json")
+    //         .body(json_val.to_string())
+    //         .build());
+    //}
 
-    if ai.is_err() {
-        let no_search_results = r#"{
-        "accounts": [],
-        "statuses": [],
-        "hashtags": []
-      }"#;
-        let json_val: serde_json::Value =
-            serde_json::from_str(no_search_results).unwrap();
-
-        let aq = json_val.to_string();
-        debug!(aq);
-
-        return Ok(Response::builder()
-            .status(200)
-            .header("Context-Type", "application/activity+json")
-            .body(json_val.to_string())
-            .build());
-    }
-
-    match ai.unwrap() {
-        Some(a) => {
-            return Ok(Response::builder()
-                .status(200)
-                .header("Context-Type", "application/activity+json")
-                .body(a)
-                .build());
-        }
-        None => {
-            let no_search_results = r#"{
-          "accounts": [],
-          "statuses": [],
-          "hashtags": []
-        }"#;
-            let json_val: serde_json::Value =
-                serde_json::from_str(no_search_results).unwrap();
-
-            let aq = json_val.to_string();
-            debug!(aq);
-
-            return Ok(Response::builder()
-                .status(200)
-                .header("Context-Type", "application/activity+json")
-                .body(json_val.to_string())
-                .build());
-        }
-    };
+    // match ai.unwrap() {
+    //     Some(a) => {
+    //         return Ok(Response::builder()
+    //             .status(200)
+    //             .header("Context-Type", "application/activity+json")
+    //             .body(a)
+    //             .build());
+    //     }
+    //     None => {
+    //         let no_search_results = r#"{
+    //       "accounts": [],
+    //       "statuses": [],
+    //       "hashtags": []
+    //     }"#;
+    //         let json_val: serde_json::Value =
+    //             serde_json::from_str(no_search_results).unwrap();
+    //
+    //         let aq = json_val.to_string();
+    //         debug!(aq);
+    //
+    //         return Ok(Response::builder()
+    //             .status(200)
+    //             .header("Context-Type", "application/activity+json")
+    //             .body(json_val.to_string())
+    //             .build());
+    //     }
+    // };
 }
 
 pub async fn get_account_info(mut term: String) -> Result<Option<String>> {

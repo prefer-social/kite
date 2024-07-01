@@ -8,7 +8,7 @@ use sparrow::mastodon::media::{MediaAttachment, MediaType};
 
 // https://docs.joinmastodon.org/methods/media/#get
 pub async fn get(req: Request, params: Params) -> Result<Response> {
-    tracing::debug!("Requeted -> GET /api/v2/media");
+    tracing::debug!("requested -> GET /api/v2/media");
 
     let media_id = params.get("id").unwrap();
 

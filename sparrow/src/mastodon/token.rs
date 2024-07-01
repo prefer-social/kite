@@ -52,10 +52,11 @@ impl Token {
     ) -> Result<Option<MAccount>> {
         if token_type == "Bearer" {
             let accounts: Vec<TAccount> =
-                crate::table::oauth_access_token::OauthAccessToken::validate(
-                    token,
-                )
-                .await?;
+                 crate::table::oauth_access_token::OauthAccessToken::validate(
+                     token,
+                 )
+                 .await?;
+
             if accounts.is_empty() {
                 return Ok(None);
             };

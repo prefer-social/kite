@@ -17,7 +17,7 @@ pub async fn request(req: Request, params: Params) -> Result<Response> {
 
 // https://docs.joinmastodon.org/methods/media/#get
 pub async fn get(req: Request, params: Params) -> Result<Response> {
-    tracing::debug!("Requeted -> GET /api/v1/media");
+    tracing::debug!("requested -> GET /api/v1/media");
 
     let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap()
     {

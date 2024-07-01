@@ -23,10 +23,12 @@ pub mod media;
 pub mod media_attachement;
 pub mod poll;
 pub mod preview_card;
+pub mod relationship;
 pub mod status;
 pub mod tag;
 pub mod token;
 pub mod uid;
+pub mod user;
 pub mod username;
 
 // https://github.com/RustCrypto/RSA/issues/341

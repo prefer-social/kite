@@ -127,14 +127,12 @@ pub async fn get_webfinger(acct: &str) -> Result<Option<String>> {
         username = at[1].split(".").collect::<Vec<&str>>()[0];
     };
 
-    let account_string = format!("{}@{}", username, hostname);
-
     let account_result =
-        sparrow::table::account::Account::get_with_account(account_string)
+        sparrow::table::account::Account::get_with_account(username.to_string(), hostname.to_string())
             .await;
 
     // let account = match account_result.unwrap().unwrap().last().unwrap().clone();
-    let account = match account_result.unwrap().unwrap().last() {
+    let account = match account_result.unwrap() {
         Some(a) => a.clone(),
         None => return Ok(None),
     };

@@ -8,6 +8,7 @@ use url::Url;
 
 use sparrow::mastodon::username::Username;
 use sparrow::mastodon::application::Application;
+use sparrow::mastodon::account::Get;
 
 pub async fn request(
     req: Request,
@@ -198,10 +199,10 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
             tracing::debug!(code);
             tracing::debug!(username);
 
-            let user = sparrow::mastodon::account::Account::get_user(Username(username)).await?;
-            let user_id = user.uid;
+            let user = sparrow::mastodon::account::Account::get(Username(username)).await?;
+            let user_id = user.uid.to_string();
 
-            let _ = sparrow::mastodon::application::Application::add(application_json_string, user_id).await?;
+            let _ = sparrow::mastodon::application::Application::add(application_json_string, Some(user_id)).await?;
 
             let body = format!(
                 r#"<html><head>

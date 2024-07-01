@@ -68,12 +68,12 @@ async fn handle_route(req: Request) -> Response {
             router.any_async("/", endpoint::actor::request);
             router.get_async("/u/:user", endpoint::actor::request);
             router.get_async("/users/:user", endpoint::actor::request);
-            router.get_async("/actor", endpoint::actor::request);
+            //router.get_async("/actor", endpoint::actor::request);
             router.get_async("/self", endpoint::actor::request);
 
-            router.any_async("/inbox", endpoint::inbox::request);
+            //router.any_async("/inbox", endpoint::inbox::request);
 
-            router.any_async("/outbox", endpoint::outbox::request);
+            //router.any_async("/outbox", endpoint::outbox::request);
 
             router.any_async("/following", endpoint::following::request);
             router.any_async("/followers", endpoint::followers::request);

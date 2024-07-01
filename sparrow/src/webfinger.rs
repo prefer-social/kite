@@ -4,6 +4,12 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use serde_json::Value;
+use std::str;
+
+use spin_sdk::{
+    http::{IntoResponse, Method, Request, Response},
+    http_component,
+};
 
 #[derive(Default, Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct WebFinger {
@@ -41,15 +47,44 @@ impl From<String> for WebFinger {
         let aliases: Vec<String> = Vec::new();
         let links: Vec<Link> = Vec::new();
 
-        WebFinger{
-            subject: format!("acct:{}",acct),
+        WebFinger {
+            subject: format!("acct:{}", acct),
             aliases: aliases,
             links: links,
         }
-
     }
 }
 
+impl WebFinger {
+    pub async fn query(acct: &str) -> Result<()> {
+        let mut acct_splited = acct.split("@").into_iter();
+        let username = acct_splited.next().unwrap();
+        let host = acct_splited.next().unwrap();
 
+        // https://mastodon.social/.well-known/webfinger?resource=acct:gargron@mastodon.social
+        let webfinger_url = format!(
+            "https://{}/.well-known/webfiger?resource=acct:{}",
+            host, acct
+        );
 
+        let request = Request::builder()
+            .method(Method::Get)
+            .uri(webfinger_url)
+            .build();
+        let response: Response = spin_sdk::http::send(request).await?;
 
+        let body = str::from_utf8(response.body()).unwrap();
+
+        tracing::debug!(body);
+
+        Ok(())
+    }
+}
+
+pub async fn ac(account: &str) -> Result<(&str, &str)> {
+    let mut acct = account.split("@").into_iter();
+    let username = acct.next().unwrap();
+    let host = acct.next().unwrap();
+
+    Ok((username, host))
+}

@@ -23,18 +23,7 @@ pub async fn request(req: Request, params: Params) -> Result<Response> {
 }
 
 pub async fn post(req: Request, params: Params) -> Result<Response> {
-    let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap()
-    {
-        sparrow::auth::TokenAuth::InValid => {
-            return HttpResponse::unauthorized().await;
-        }
-        sparrow::auth::TokenAuth::TokenNotProvided => {
-            return HttpResponse::unauthorized().await;
-        }
-        sparrow::auth::TokenAuth::Valid(userid) => {
-            Some(userid).unwrap() as i64
-        }
-    };
+    tracing::debug!("requested -> {} {}", req.method().to_string(), req.path_and_query().unwrap());
 
     let follow_user = params.get("id").unwrap().to_string();
     let recipient = sparrow::utils::get_actor_url_from_id(follow_user)

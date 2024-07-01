@@ -49,6 +49,7 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
     let b: Value = serde_json::from_str(application.as_str())?;
 
     if a["client_secret"] != b["client_secret"] {
+        tracing::debug!("client_secret not matched");
         let a = r#"{
         "error": "invalid_client",
         "error_description": "Client authentication failed due to unknown client, no client authentication included, or unsupported authentication method."

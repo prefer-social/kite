@@ -16,19 +16,12 @@ pub async fn request(
 // TODO: GET /api/v1/instance
 // https://docs.joinmastodon.org/methods/instance/#v1
 pub async fn get(req: Request, _params: Params) -> Result<Response> {
+    tracing::debug!("requested -> {} {}", req.method().to_string(), req.path_and_query().unwrap());
 
-    tracing::debug!("<---------- ({}) {} ({}) --------->",
-        req.method().to_string(),
-        req.path_and_query().unwrap(),
-        req.header("x-real-ip").unwrap().as_str().unwrap()
-    );
-
-    let a = sparrow::mastodon::instance::Instance::build().await;
-    let b: String = a.into();
-
+    let instance = sparrow::mastodon::instance::Instance::get().await;
     Ok(Response::builder()
         .status(200)
         .header("Content-Type", "application/activity+json")
-        .body(b)
+        .body(Into::<String>::into(instance))
         .build())
 }

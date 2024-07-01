@@ -26,11 +26,7 @@ pub async fn request(
 // TODO: create application https://docs.joinmastodon.org/methods/apps/#create
 //
 pub async fn post(req: Request, _params: Params) -> Result<Response> {
-    tracing::debug!("<---------- ({}) {} ({}) --------->",
-        req.method().to_string(),
-        req.path_and_query().unwrap(),
-        req.header("x-real-ip").unwrap().as_str().unwrap()
-    );
+    tracing::debug!("requested -> {} {}", req.method().to_string(), req.path_and_query().unwrap());
 
     let client_id = uuid::Uuid::now_v7().to_string();
     let client_secret = random_string(44).await;

@@ -12,7 +12,7 @@ use sparrow::mastodon::account::Get;
 
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
-        Method::Get => get(req, params).await,
+        //Method::Get => get(req, params).await,
         _ => HttpResponse::not_found().await,
     }
 }
