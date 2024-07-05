@@ -1,29 +1,40 @@
+//! Database table account
+
 use anyhow::Result;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use serde_json;
-use serde_json::Value;
+use std::time::{SystemTime, UNIX_EPOCH};
+use url::Url;
 
-use crate::mastodon::uid::Uid;
-use crate::mastodon::username::Username;
-
+/// DB Account table struct
 #[derive(
     Serialize, Deserialize, Default, Clone, Debug, PartialEq, sqlx::FromRow,
 )]
 pub struct Account {
+    /// rowid from sqlite
     pub rowid: i64,
+    /// uid, uuid v7 format. Also when transformed to json, this filed becomes `id`
     #[serde(rename(serialize = "id", deserialize = "id"))]
     pub uid: String, // not null, primary key
-    pub username: String, // default(""), not null
+    /// username, default value is "" and not null
+    pub username: String,
+    /// domain. Local user when None
     pub domain: Option<String>,
+    /// private pem key
     #[serde(skip_serializing_if = "Option::is_none")]
     pub private_key: Option<String>,
-    pub public_key: Option<String>, // default(""), not null
-    pub created_at: Option<i64>,    // not null
-    pub updated_at: Option<i64>,    // not null
-    pub note: Option<String>,       // default(""), not null
-    pub display_name: Option<String>, // default(""), not null
-    pub uri: String,                // default(""), not null
+    /// public pem key, not null, default is ""
+    pub public_key: String,
+    /// when field was crated not null, Unix time
+    pub created_at: i64,
+    /// when field was updated, not null, Unix time
+    pub updated_at: i64,
+    /// Note filed, default "", not null
+    pub note: String,
+    /// display name, default "", not null
+    pub display_name: String,
+    /// uri, default "", not null
+    pub uri: String,
     pub url: Option<String>,
     pub avatar_file_name: Option<String>,
     pub avatar_content_type: Option<String>,
@@ -34,22 +45,32 @@ pub struct Account {
     pub header_file_size: Option<i64>,
     pub header_updated_at: Option<i64>,
     pub avatar_remote_url: Option<String>,
-    pub locked: Option<bool>, // default(FALSE), not null
-    pub header_remote_url: Option<String>, // default(""), not null
+    /// default(FALSE), not null
+    pub locked: Option<bool>,
+    /// default(""), not null
+    pub header_remote_url: Option<String>,
     pub last_webfingered_at: Option<i64>,
-    pub inbox_url: Option<String>, // default(""), not null
-    pub outbox_url: Option<String>, // default(""), not null
-    pub shared_inbox_url: Option<String>, // default(""), not null
-    pub following_url: Option<String>, // default(""), not null
-    pub followers_url: Option<String>, // default(""), not null
-    pub protocol: Option<i64>,     // default("ostatus"), not null
-    pub memorial: Option<bool>,    // default(FALSE), not null
+    /// default(""), not null
+    pub inbox_url: Option<String>,
+    /// default(""), not null
+    pub outbox_url: Option<String>,
+    /// default(""), not null
+    pub shared_inbox_url: Option<String>,
+    /// default(""), not null
+    pub following_url: Option<String>,
+    /// default(""), not null
+    pub followers_url: Option<String>,
+    /// default("ostatus"), not null
+    pub protocol: Option<i64>,
+    /// default(FALSE), not null
+    pub memorial: Option<bool>,
     pub moved_to_account_id: Option<i64>,
     pub featured_collection_url: Option<String>,
     pub fields: Option<String>,
     pub actor_type: Option<String>,
     pub discoverable: Option<bool>,
-    pub also_known_as: Option<String>, // is an Array
+    /// is an Array
+    pub also_known_as: Option<String>,
     pub silenced_at: Option<i64>,
     pub suspended_at: Option<i64>,
     pub hide_collections: Option<bool>,
@@ -61,10 +82,12 @@ pub struct Account {
     pub trendable: Option<bool>,
     pub reviewed_at: Option<i64>,
     pub requested_review_at: Option<i64>,
-    pub indexable: Option<bool>, // default(FALSE), not null
+    /// default(FALSE), not null
+    pub indexable: Option<bool>,
 }
 
 impl Account {
+    /// returns all Account rows
     pub async fn all() -> Result<Vec<Account>> {
         let sqlx_conn = spin_sqlx::Connection::open_default()?;
         let accounts: Vec<Account> =
@@ -74,12 +97,14 @@ impl Account {
         Ok(accounts)
     }
 
+    /// To get federation_id
     pub async fn federation_id(self: &Self) -> Result<String> {
         let username = self.username.clone();
         let domain = self.domain.clone();
         Ok(format!("{}@{}", username, domain.unwrap()))
     }
 
+    /// Get Account struct by account(username and domain)
     pub async fn get_with_account(
         username: String,
         domain: String,
@@ -96,11 +121,13 @@ impl Account {
     }
 }
 
+/// I am a trait Get<T>
 #[async_trait]
 pub trait Get<T> {
     async fn get(arg: T) -> Result<Vec<Account>>;
 }
 
+/// FOOFOOOFOO
 #[async_trait]
 impl Get<(String, String)> for Account {
     async fn get((key, val): (String, String)) -> Result<Vec<Account>> {
@@ -115,30 +142,65 @@ impl Get<(String, String)> for Account {
     }
 }
 
+#[async_trait]
+pub trait Put<T> {
+    async fn put(arg: T) -> Result<Vec<Account>>;
+}
 
-impl From<crate::activitypub::person_actor::PersonActor> for Account {
-    fn from(actor: crate::activitypub::person_actor::PersonActor) -> Self {
+impl TryFrom<crate::activitypub::person_actor::PersonActor> for Account {
+    type Error = &'static str;
+
+    fn try_from(
+        actor: crate::activitypub::person_actor::PersonActor,
+    ) -> Result<Self, Self::Error> {
+        let current_epoch = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
+
+        tracing::debug!("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-");
+        tracing::debug!("{:?}", actor);
+
+        let avatar_remote_url = match &actor.icon {
+            Some(i) => Some(i.to_owned().url),
+            None => None,
+        };
+
+        let avatar_content_type = match &actor.icon {
+            Some(i) => Some(i.to_owned().media_type),
+            None => None,
+        };
+        let header_remote_url = match &actor.image {
+            Some(i) => Some(i.to_owned().url),
+            None => None,
+        };
+        let header_content_type = match &actor.image {
+            Some(i) => Some(i.to_owned().media_type),
+            None => None,
+        };
 
         let account = Account {
-            uid: actor.id,
-            username: actor.
-            domain: Option<String>,
-            public_key: actor.public_key,
-            created_at: Option<i64>,    // not null
-            updated_at: Option<i64>,    // not null
-            note: Option<String>,       // default(""), not null
-            display_name: Option<String>, // default(""), not null
-            uri: String,                // default(""), not null
+            uid: uuid::Uuid::now_v7().to_string(),
+            username: actor.preferred_username,
+            domain: Some(
+                Url::parse(actor.id.as_str())
+                    .unwrap()
+                    .domain()
+                    .unwrap()
+                    .to_string(),
+            ),
+            public_key: actor.public_key.public_key_pem,
+            created_at: current_epoch, // not null
+            updated_at: current_epoch, // not null
+            note: actor.summary,       // default(""), not null
+            display_name: actor.name,  // default(""), not null
+            uri: actor.id,             // default(""), not null
             url: Some(actor.url),
-            avatar_file_name: Option<String>,
-            avatar_content_type: Some(actor.icon.unwrap_or_default().media_type),
-            avatar_updated_at: Option<i64>,
-            header_file_name: Option<String>,
-            header_content_type: Some(actor.image.unwrap_or_default().media_type),,
-            header_updated_at: Option<i64>,
-            avatar_remote_url: Some(actor.icon.unwrap_or_default().url),
-            header_remote_url: Some(actor.image.unwrap_or_default().url), // default(""), not null
-            last_webfingered_at: Option<i64>,
+            avatar_content_type: avatar_content_type,
+            header_content_type: header_content_type,
+            avatar_remote_url: avatar_remote_url,
+            header_remote_url: header_remote_url,
+            last_webfingered_at: Some(current_epoch),
             inbox_url: Some(actor.inbox),
             outbox_url: Some(actor.outbox),
             shared_inbox_url: Some(actor.endpoints.shared_inbox), // default(""), not null
@@ -152,6 +214,6 @@ impl From<crate::activitypub::person_actor::PersonActor> for Account {
             indexable: Some(actor.indexable),
             ..Default::default() // default(FALSE), not null
         };
-        account
+        Ok(account)
     }
 }

@@ -119,6 +119,8 @@ impl PersonActor {
             public_key: pk,
             tag: vec![Value::Null],
             attachment: vec![Value::Null],
+            icon: Some(icon),
+            image: Some(image),
             ..Default::default()
         };
         Ok(pa)
@@ -200,4 +202,23 @@ impl PersonActor {
 
     //     Ok(pa)
     // }
+}
+
+impl TryFrom<serde_json::Value> for PersonActor {
+    type Error = ();
+    fn try_from(actor_value: serde_json::Value) -> Result<Self, Self::Error> {
+        let actor =
+            serde_json::from_value::<PersonActor>(actor_value).unwrap();
+
+        tracing::debug!("--=-=-=-=-=-=-=-=-=-=");
+        tracing::debug!("--=-=-=-=-=-=-=-=-=-=");
+        tracing::debug!("--=-=-=-=-=-=-=-=-=-=");
+        tracing::debug!("{:?}", actor);
+
+        let b = PersonActor {
+            ..Default::default()
+        };
+
+        Ok(b)
+    }
 }

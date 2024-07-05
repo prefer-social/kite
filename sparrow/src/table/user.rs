@@ -35,7 +35,7 @@ pub struct User {
     pub otp_required_for_login: Option<bool>, // default(FALSE), not null
     pub last_emailed_at: Option<i64>,
     pub otp_backup_codes: Option<String>, // is an Array
-    pub account_id: Option<String>,       // account.uuid
+    pub account_id: Option<String>,       // account.uid
     pub disabled: Option<bool>,
     pub invite_id: Option<i64>,
     pub chosen_languages: Option<String>, // is an Array
@@ -45,7 +45,7 @@ pub struct User {
     pub sign_in_token_sent_at: Option<i64>,
     pub webauthn_id: Option<String>,
     pub sign_up_ip: Option<String>,
-    pub role_id: Option<i64>,
+    pub role_id: Option<String>,
     pub settings: Option<String>,
     pub time_zone: Option<String>,
 }

@@ -1,14 +1,7 @@
-/*
-    inbox log is temporary data store
-    (moving to redis??)
-*/
+//! inbox log is temporary data store
 
 use anyhow::Result;
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
-use serde_derive::{Deserialize, Serialize};
-use serde_json::Value;
-use spin_sdk::sqlite::Value as SV;
 use uuid::Uuid;
 
 #[derive(Default, Clone, Debug, PartialEq, sqlx::FromRow)]

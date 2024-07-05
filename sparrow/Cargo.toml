@@ -1,7 +1,7 @@
 [package]
 name = "sparrow"
 authors = ["Seungjin Kim <seungjin@duck.com>"]
-description = "Activitypub for wasm/wasi"
+description = "Engine for Prefer.social/kite, Mastodon implementation for Spin framework"
 version = "0.1.0"
 edition = "2021"
 
@@ -20,7 +20,7 @@ ed25519-dalek = { version = "2.1.0", features = [
 base64 = "0.22"
 rand = "0.8"
 thiserror = "1.0"
-bech32 = "0.9.1"
+bech32 = "0.11"
 pkcs1 = "0.7"
 pem = "3.0"
 config = "0.14"

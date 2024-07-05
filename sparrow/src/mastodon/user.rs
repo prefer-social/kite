@@ -43,7 +43,7 @@ pub struct User {
     pub sign_in_token_sent_at: Option<i64>,
     pub webauthn_id: Option<String>,
     pub sign_up_ip: Option<String>,
-    pub role_id: Option<i64>,
+    pub role_id: Option<String>,
     pub settings: Option<String>,
     pub time_zone: Option<String>,
 }

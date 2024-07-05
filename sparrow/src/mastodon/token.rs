@@ -46,22 +46,24 @@ impl Token {
         })
     }
 
+    // This validate method returns CredentialAccount - https://docs.joinmastodon.org/entities/Account/#CredentialAccount
     pub async fn validate(
         token_type: String,
         token: String,
     ) -> Result<Option<MAccount>> {
         if token_type == "Bearer" {
             let accounts: Vec<TAccount> =
-                 crate::table::oauth_access_token::OauthAccessToken::validate(
-                     token,
-                 )
-                 .await?;
+                crate::table::oauth_access_token::OauthAccessToken::validate(
+                    token,
+                )
+                .await?;
 
             if accounts.is_empty() {
                 return Ok(None);
             };
             let tacct: TAccount = accounts.first().unwrap().to_owned();
-            let macct = crate::mastodon::account::Account::from(tacct);
+            let macct =
+                crate::mastodon::account::Account::try_from(tacct).unwrap();
 
             return Ok(Some(macct));
         }

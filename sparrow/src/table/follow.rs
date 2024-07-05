@@ -1,8 +1,5 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
-use serde_derive::{Deserialize, Serialize};
-use spin_sdk::sqlite::{QueryResult, Value as SV};
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct Follow {
@@ -72,12 +69,9 @@ impl Follow {
         Ok(followings)
     }
 
-    pub async fn new(f: Follow) -> Result<()> {
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
-
+    pub async fn new(_f: Follow) -> Result<()> {
+        let _sqlx_conn = spin_sqlx::Connection::open_default()?;
         todo!();
-
-        Ok(())
     }
 }
 

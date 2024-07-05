@@ -1,4 +1,3 @@
-use crate::db::Connection as DbCon;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 

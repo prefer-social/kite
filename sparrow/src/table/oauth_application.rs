@@ -1,6 +1,6 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
+
 use serde_derive::{Deserialize, Serialize};
 use spin_sdk::key_value::Store;
 use sqlx::Connection;

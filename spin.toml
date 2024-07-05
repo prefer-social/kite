@@ -22,7 +22,6 @@ domain = { required = true }
 [application.trigger.redis]
 address = "redis://{{ redis_credential }}@{{ redis_host }}:{{ redis_port }}"
 
-
 #[[trigger.http]]
 #route = "/..."
 #component = "web"

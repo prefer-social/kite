@@ -1,3 +1,7 @@
+//! Mastodon library  
+//!
+//! Libraries used for Mastodon API and etc  
+
 use anyhow::Result;
 use base64::{engine::general_purpose, Engine as _};
 use rsa::pkcs1v15::Signature;
@@ -11,7 +15,6 @@ use std::collections::HashMap;
 
 pub mod account;
 pub mod application;
-pub mod credential_account;
 pub mod custom_emoji;
 pub mod filter;
 pub mod filter_keyword;
@@ -29,6 +32,7 @@ pub mod tag;
 pub mod token;
 pub mod uid;
 pub mod user;
+pub mod user_role;
 pub mod username;
 
 // https://github.com/RustCrypto/RSA/issues/341
@@ -112,15 +116,16 @@ pub async fn validate_mastodon_request(
     Ok(valid_key && valid_date)
 }
 
-// Creating HTTP signature
-// Signing POST requests and the Digest header
-// https://docs.joinmastodon.org/spec/security/#http-sign
-pub async fn signing_request(req: &Request, priv_key_string: &str) {
-    let hostname = req.header("Host").unwrap().as_str().unwrap();
-    let date = req.header("Date").unwrap().as_str().unwrap();
+/// Creating HTTP signature  
+/// Signing POST requests and the Digest header  
+/// Reference this doc: <https://docs.joinmastodon.org/spec/security/#http-sign>  
+pub async fn signing_request(req: &Request, _priv_key_string: &str) {
+    let _hostname = req.header("Host").unwrap().as_str().unwrap();
+    let _date = req.header("Date").unwrap().as_str().unwrap();
     //let sig_header = req.header("Signature").unwrap().as_str().unwrap();
     //let digest = req.header("Digest").unwrap().as_str().unwrap();
-    let content_type = req.header("content-type").unwrap().as_str().unwrap();
-    let request_path = req.header("spin-path-info").unwrap().as_str().unwrap();
-    let request_method = req.method().to_string();
+    let _content_type = req.header("content-type").unwrap().as_str().unwrap();
+    let _request_path =
+        req.header("spin-path-info").unwrap().as_str().unwrap();
+    let _request_method = req.method().to_string();
 }

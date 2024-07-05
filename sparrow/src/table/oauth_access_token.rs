@@ -1,9 +1,5 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use oauth2::AccessToken;
-use serde_derive::{Deserialize, Serialize};
-use serde_json::Value;
-use spin_sdk::sqlite::Value as SV;
 
 use super::account::Account;
 
@@ -32,21 +28,13 @@ impl OauthAccessToken {
         Ok(oat)
     }
 
-    // INSERT INTO user_authorization_code(userId, code, token_issued) VALUES((SELECT id FROM user WHERE user.name == ?), ?, ?)
-    //let token = sparrow::mastodon::token::Token::new(
-    //code, client_id, client_secret, redirect_uri, scope, grant_type
-    //);
-
     pub async fn new(
         scope: String,
         application_id: String,
         resource_owner_id: String,
         last_used_ip: String,
     ) -> Result<Self> {
-        //
-        // TODO: https://www.rfc-editor.org/rfc/rfc6750
-        //
-
+        //! TODO: Implement <https://www.rfc-editor.org/rfc/rfc6750>
         let token_id = uuid::Uuid::now_v7().to_string();
         let sqlx_conn = spin_sqlx::Connection::open_default()?;
         sqlx::query(r#"INSERT INTO oauth_access_token 

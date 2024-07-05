@@ -1,9 +1,8 @@
+//! oauth_access_grant table  
+//!
+
 use anyhow::Result;
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
-use serde_derive::{Deserialize, Serialize};
-use serde_json::Value;
-use spin_sdk::sqlite::Value as SV;
 
 #[derive(Default, Clone, Debug, PartialEq, sqlx::FromRow)]
 pub struct OauthAccessGrant {
@@ -29,7 +28,7 @@ impl OauthAccessGrant {
         Ok(oag)
     }
 
-    pub async fn get(w_claus: String) -> Result<Vec<OauthAccessGrant>> {
+    pub async fn get(_w_claus: String) -> Result<Vec<OauthAccessGrant>> {
         let sqlx_conn = spin_sqlx::Connection::open_default()?;
         let oag: Vec<OauthAccessGrant> =
             sqlx::query_as("SELECT rowid, * FROM oauth_access_grant WHERE ")

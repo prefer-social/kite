@@ -53,8 +53,12 @@ pub async fn get(req: Request, _params: Params) -> Result<Response> {
     };
 
     // Should return https://docs.joinmastodon.org/entities/Account/#CredentialAccount
-    let credential_account = sparrow::mastodon::credential_account::CredentialAccount::from(&account.unwrap());
+    let credential_account = sparrow::mastodon::account::Account::from(&account.unwrap());
     let ca: String = credential_account.into();
+
+    tracing::debug!("veryfy_credentials passord.");
+    tracing::debug!("account response / json returned");
+    tracing::debug!(ca);
 
     Ok(Response::builder()
         .status(200)

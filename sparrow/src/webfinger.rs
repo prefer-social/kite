@@ -1,4 +1,6 @@
-// https://docs.joinmastodon.org/spec/webfinger/#example
+//! WebFinger library.
+//!
+//! [Example from Mastodon Doc](https://docs.joinmastodon.org/spec/webfinger/#example)
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -6,10 +8,7 @@ use serde_json;
 use serde_json::Value;
 use std::str;
 
-use spin_sdk::{
-    http::{IntoResponse, Method, Request, Response},
-    http_component,
-};
+use spin_sdk::http::{Method, Request, Response};
 
 #[derive(Default, Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct WebFinger {
@@ -80,7 +79,7 @@ impl WebFinger {
         if response.status().to_owned() != 200u16 {
             return Ok(None);
         }
-        let ct = response.header("content-type").unwrap().as_str().unwrap();
+        let _ct = response.header("content-type").unwrap().as_str().unwrap();
 
         let body = str::from_utf8(response.body()).unwrap();
         let webfinger = serde_json::from_str(body).unwrap();

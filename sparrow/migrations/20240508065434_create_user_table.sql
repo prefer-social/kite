@@ -35,7 +35,7 @@ CREATE TABLE user (
     webauthn_id TEXT,
     sign_up_ip TEXT,
     skip_sign_in_token BOOLEAN,
-    role_id INTEGER,
+    role_id TEXT,
     settings TEXT,
     time_zone TEXT
 );

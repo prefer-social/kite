@@ -1,10 +1,10 @@
-use crate::db;
+//! Utilies
+
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use passwords::PasswordGenerator;
 use serde_json::Value;
 use spin_sdk::http::{HeaderValue, Method, Request, Response};
-use spin_sdk::sqlite::Value as SV;
 use std::str;
 use url::Url;
 
@@ -35,6 +35,14 @@ pub async fn get_current_time_in_iso_8601() -> String {
     use chrono::{DateTime, Utc};
     let current_time: DateTime<Utc> = Utc::now();
     current_time.format("%Y-%m-%dT%H:%M:%SZ").to_string()
+}
+
+pub async fn get_current_epoch() -> i64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64
 }
 
 pub async fn convert_epoch_to_iso_8601(epoch: i64) -> String {
@@ -76,41 +84,8 @@ pub async fn get_actor_url_from_id(id: String) -> Result<String> {
     Err(anyhow!("no url available"))
 }
 
-pub async fn get_actor_url_from_acct(acc: String) -> Result<String> {
+pub async fn get_actor_url_from_acct(_acc: String) -> Result<String> {
     Ok("".to_string())
-}
-
-pub async fn get_privatekey_with_user_name(name: &str) -> Result<String> {
-    let qr = db::Connection::builder().await.execute(
-    "SELECT privateKey FROM signing_key JOIN user ON user.id = signing_key.userId WHERE user.name = ?", 
-    &[SV::Text(name.to_string())]).await;
-    let private_key =
-        qr.rows().next().unwrap().get::<&str>("privateKey").unwrap();
-    Ok(private_key.to_string())
-}
-
-pub async fn get_privatekey_with_actor_url(
-    actor_url: String,
-) -> Result<String> {
-    let qr = db::Connection::builder().await.execute(
-    "SELECT privateKey FROM signing_key JOIN user ON user.id = signing_key.userId WHERE user.federationId = ?", 
-    &[SV::Text(actor_url)]).await;
-    let private_key =
-        qr.rows().next().unwrap().get::<&str>("privateKey").unwrap();
-    Ok(private_key.to_string())
-}
-
-pub async fn get_privatekey_with_db_user_id(id: u16) -> Result<String> {
-    let qr = db::Connection::builder()
-        .await
-        .execute(
-            "SELECT privateKey FROM signing_key WHERE usedId= ?",
-            &[SV::Text(id.to_string())],
-        )
-        .await;
-    let private_key =
-        qr.rows().next().unwrap().get::<&str>("privateKey").unwrap();
-    Ok(private_key.to_string())
 }
 
 pub async fn get_public_key(actor_url_str: &str) -> Result<String> {
