@@ -1,4 +1,6 @@
-// https://docs.joinmastodon.org/entities/Account/
+//! Mastodon Account struct  
+//! 
+//! Mastodon reference: <https://docs.joinmastodon.org/entities/Account/>  
 
 pub mod source;
 pub mod field;
@@ -96,16 +98,16 @@ impl TryFrom<TAccount> for Account {
                 acct_tbl.username.to_string(),
                 acct_tbl.domain.unwrap()
             ),
-            display_name: acct_tbl.display_name.unwrap(),
+            display_name: acct_tbl.display_name,
             locked: acct_tbl.locked.unwrap_or_default(),
             bot: bot,
             discoverable: acct_tbl.discoverable.unwrap_or_default(),
             created_at: DateTime::from_timestamp(
-                acct_tbl.created_at.unwrap(),
+                acct_tbl.created_at,
                 0,
             )
             .unwrap(),
-            note: acct_tbl.note.unwrap(),
+            note: acct_tbl.note,
             url: acct_tbl.url.unwrap_or_default(),
             avatar: acct_tbl.avatar_remote_url.clone().unwrap_or_default(),
             avatar_static: acct_tbl
@@ -126,7 +128,7 @@ impl TryFrom<TAccount> for Account {
 impl TryFrom<crate::activitypub::person_actor::PersonActor> for Account {
     type Error = anyhow::Error;
     fn try_from(
-        actor: crate::activitypub::person_actor::PersonActor,
+        _actor: crate::activitypub::person_actor::PersonActor,
     ) -> Result<Account, Self::Error> {
         todo!()
     }
@@ -181,7 +183,7 @@ impl Get<Username> for Account {
 
 impl Account {
     // https://docs.joinmastodon.org/entities/Search/#accounts
-    pub async fn search(mut st: &String) -> Result<Vec<Account>> {
+    pub async fn search(st: &String) -> Result<Vec<Account>> {
         let mut search_term: String = st.to_string();
         // Local account: Don't search local acct b/c it is a single user server
         if !search_term.contains("@") && !search_term.starts_with("@") {
