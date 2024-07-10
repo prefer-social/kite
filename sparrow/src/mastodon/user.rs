@@ -1,13 +1,19 @@
+//! User struct.
+//!
+//! Mastodon doc: N/A
+
 use anyhow::Result;
+use argon2::{
+    password_hash::{PasswordHash, PasswordVerifier},
+    Argon2,
+};
 use async_trait::async_trait;
-use chrono::offset::Utc;
-use chrono::DateTime;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use spin_sdk::variables;
 
-use crate::mastodon::uid::Uid;
-use crate::mastodon::username::Username;
-use crate::table::account::Get as _;
+use crate::mastodon::account::Account as MAccount;
+use crate::table::user::Get as _;
 
 #[derive(Default, Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct User {
@@ -101,5 +107,56 @@ impl Into<String> for User {
 impl Into<Value> for User {
     fn into(self) -> Value {
         serde_json::to_value(&self).unwrap()
+    }
+}
+
+impl User {
+    pub async fn validate(username: String, password: String) -> Result<bool> {
+        let domain = variables::get("domain")
+            .expect("domain is not propery set in SPIN_VARIABLE");
+
+        let encrypted_password =
+            crate::table::user::User::get_encrypted_password(username, domain)
+                .await?;
+
+        if encrypted_password.is_empty() {
+            return Ok(false);
+        }
+
+        let parsed_hash = PasswordHash::new(&encrypted_password[0].0).unwrap();
+
+        Ok(Argon2::default()
+            .verify_password(password.as_bytes(), &parsed_hash)
+            .is_ok())
+    }
+}
+
+#[async_trait]
+pub trait Get<T> {
+    async fn get(a: T) -> Result<Vec<crate::mastodon::user::User>>;
+}
+
+#[async_trait]
+impl Get<MAccount> for User {
+    async fn get(
+        account: MAccount,
+    ) -> Result<Vec<crate::mastodon::user::User>> {
+        let account_id = account.uid.to_string();
+
+        let user = crate::table::user::User::get((
+            "account_id".to_string(),
+            account_id,
+        ))
+        .await
+        .unwrap_or_default();
+
+        if user.is_empty() {
+            let empty_vector = Vec::new();
+            return Ok(empty_vector);
+        }
+        let user_row = user.last().unwrap().to_owned();
+        let mastodon_user = vec![Self::try_from(user_row).unwrap()];
+
+        Ok(mastodon_user)
     }
 }

@@ -1,5 +1,8 @@
+//! ActivityPub Person Actor   
+//!
+//! Resource: <https://www.w3.org/TR/activitypub/#actor-objects>  
+
 use anyhow::Result;
-use chrono::format::strftime::StrftimeItems;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -70,7 +73,7 @@ impl PersonActor {
         let pk = PublicKey {
             id: format!("{}#main-key", a.uri.clone().clone()),
             owner: a.clone().uri.clone(),
-            public_key_pem: a.public_key.unwrap(),
+            public_key_pem: a.public_key,
         };
 
         let icon = Image {
@@ -105,7 +108,7 @@ impl PersonActor {
             featured_tags: "".to_string(), // Todo:
             preferred_username: username.clone(), //a.display_name.unwrap().clone(),
             name: username,
-            summary: a.note.unwrap(),
+            summary: a.note,
             url: a.url.unwrap(),
             manually_approves_followers: false, // Todo:
             discoverable: a.discoverable.unwrap_or_default(),

@@ -3,6 +3,7 @@
 
 use anyhow::Result;
 use async_trait::async_trait;
+use spin_sqlx::Connection as dbcon;
 
 #[derive(Default, Clone, Debug, PartialEq, sqlx::FromRow)]
 pub struct OauthAccessGrant {
@@ -20,7 +21,7 @@ pub struct OauthAccessGrant {
 
 impl OauthAccessGrant {
     pub async fn all() -> Result<Vec<OauthAccessGrant>> {
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let oag: Vec<OauthAccessGrant> =
             sqlx::query_as("SELECT rowid, * FROM oauth_access_grant")
                 .fetch_all(&sqlx_conn)
@@ -29,7 +30,7 @@ impl OauthAccessGrant {
     }
 
     pub async fn get(_w_claus: String) -> Result<Vec<OauthAccessGrant>> {
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let oag: Vec<OauthAccessGrant> =
             sqlx::query_as("SELECT rowid, * FROM oauth_access_grant WHERE ")
                 .fetch_all(&sqlx_conn)
@@ -52,7 +53,7 @@ impl Get<(String, String)> for OauthAccessGrant {
             "SELECT rowid, * FROM oauth_access_token WHERE {} = ?",
             key
         );
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let accounts = sqlx::query_as(query_template.as_str())
             .bind(val)
             .fetch_all(&sqlx_conn)

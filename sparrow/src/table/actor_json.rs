@@ -1,7 +1,10 @@
+//! actor_json table  
+
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use serde_json::Value;
+use spin_sqlx::Connection as dbcon;
 
 #[derive(
     Serialize, Deserialize, Default, Clone, Debug, PartialEq, sqlx::FromRow,
@@ -15,7 +18,7 @@ pub struct ActorJson {
 impl ActorJson {
     pub async fn put(actor: Value) -> Result<()> {
         let actor_id = actor["id"].as_str().unwrap();
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let actor_json_string = serde_json::to_string(&actor).unwrap();
 
         let actor_json_rows = sqlx::query(

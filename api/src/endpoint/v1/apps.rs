@@ -1,17 +1,17 @@
 // https://docs.joinmastodon.org/methods/apps/
 
 use anyhow::Result;
+use sparrow::utils::random_string;
 use spin_sdk::{
     http::{IntoResponse, Method, Params, Request, Response},
-    sqlite::{Connection, QueryResult, Value},
     key_value::Store,
+    sqlite::{Connection, QueryResult, Value},
 };
-use std::{collections::HashMap};
+use std::collections::HashMap;
 use std::ops::Add;
-use uuid::Uuid;
-use url::Url;
 use std::time::Duration;
-use sparrow::utils::random_string;
+use url::Url;
+use uuid::Uuid;
 
 pub async fn request(
     req: Request,
@@ -26,14 +26,19 @@ pub async fn request(
 // TODO: create application https://docs.joinmastodon.org/methods/apps/#create
 //
 pub async fn post(req: Request, _params: Params) -> Result<Response> {
-    tracing::debug!("requested -> {} {}", req.method().to_string(), req.path_and_query().unwrap());
+    tracing::debug!(
+        "requested -> {} {}",
+        req.method().to_string(),
+        req.path_and_query().unwrap()
+    );
 
     let client_id = uuid::Uuid::now_v7().to_string();
     let client_secret = random_string(44).await;
     let vapid_key = random_string(44).await;
 
     let url = Url::parse(req.uri()).unwrap();
-    let query_hashmap: HashMap<_, _> = url.query_pairs().into_owned().collect();
+    let query_hashmap: HashMap<_, _> =
+        url.query_pairs().into_owned().collect();
 
     let client_name = query_hashmap
         .get("client_name")
@@ -53,7 +58,7 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
         .to_string();
 
     let application = sparrow::mastodon::application::Application {
-        uid: Some(Uuid::now_v7().to_string()),
+        uid: Uuid::now_v7().to_string(),
         name: client_name,
         website: Some(website),
         redirect_uri: Some(redirect_uris),
@@ -64,12 +69,14 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
     };
 
     let app_json_string: String = serde_json::to_string(&application).unwrap();
-    let hour_from_now = chrono::offset::Utc::now().add(Duration::from_secs(60*60));
+    let hour_from_now =
+        chrono::offset::Utc::now().add(Duration::from_secs(60 * 60));
     sparrow::cache::set_with_exp(
         application.client_id.clone().unwrap().as_str(),
         app_json_string.as_bytes(),
-        hour_from_now).await?;
-
+        hour_from_now,
+    )
+    .await?;
 
     Ok(Response::builder()
         .status(200)
@@ -77,4 +84,3 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
         .body(app_json_string)
         .build())
 }
-

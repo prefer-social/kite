@@ -1,6 +1,9 @@
+//! conversion_mute table  
+
 use anyhow::Result;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
+use spin_sqlx::Connection as dbcon;
 
 #[derive(
     Serialize, Deserialize, Default, Clone, Debug, PartialEq, sqlx::FromRow,
@@ -26,7 +29,7 @@ impl Get<(String, String)> for ConversationMute {
             "SELECT rowid, * FROM conversation_mute WHERE {} = ?",
             key
         );
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let accounts = sqlx::query_as(query_template.as_str())
             .bind(val)
             .fetch_all(&sqlx_conn)

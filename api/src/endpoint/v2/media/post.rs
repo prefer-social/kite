@@ -1,3 +1,5 @@
+//! Api method media `POST /api/v2/media HTTP/1.1`    
+
 use anyhow::Result;
 use multipart_2021::server::Multipart;
 use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
@@ -10,6 +12,11 @@ use crate::media::{allowed_mime_type, get_multipart_boundary};
 use frameshop::preview_image;
 use sparrow::mastodon::media::{MediaAttachment, MediaType};
 
+/// Post method. Post an image  
+/// Creates a media attachment to be used with a new status.  
+/// The full sized media will be processed asynchronously in the background for large uploads.
+/// Returns: MediaAttachment, but without a URL
+/// OAuth: User token + write:media
 pub async fn post(req: Request, params: Params) -> Result<Response> {
     tracing::debug!("requested -> POST /api/v2/media");
 

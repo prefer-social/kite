@@ -28,7 +28,7 @@ impl Get<(String, String)> for Notification {
     async fn get((key, val): (String, String)) -> Result<Vec<Notification>> {
         let query_template =
             format!("SELECT rowid, * FROM notification WHERE {} = ?", key);
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let accounts = sqlx::query_as(query_template.as_str())
             .bind(val)
             .fetch_all(&sqlx_conn)

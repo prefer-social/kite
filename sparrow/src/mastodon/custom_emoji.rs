@@ -1,4 +1,7 @@
-// https://docs.joinmastodon.org/entities/CustomEmoji/
+//! CustomEmoji struct  
+//!
+//! Each site can define and upload its own custom emoji to be attached to profiles or statuses.  
+//! Mastodon doc: <https://docs.joinmastodon.org/entities/CustomEmoji/>  
 
 use serde::{Deserialize, Serialize};
 

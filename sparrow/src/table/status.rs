@@ -1,6 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use serde_derive::{Deserialize, Serialize};
+use spin_sqlx::Connection as dbcon;
 
 #[derive(
     Clone, Debug, Deserialize, Serialize, PartialEq, Default, sqlx::FromRow,
@@ -42,7 +43,7 @@ impl Get<(String, String)> for Status {
     async fn get((key, val): (String, String)) -> Result<Vec<Status>> {
         let query_template =
             format!("SELECT rowid, * FROM status WHERE {} = ?", key);
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let accounts = sqlx::query_as(query_template.as_str())
             .bind(val)
             .fetch_all(&sqlx_conn)

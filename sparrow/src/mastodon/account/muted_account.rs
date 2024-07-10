@@ -1,3 +1,9 @@
+//! MutedAccount: Return account that is muted    
+//!
+//! Based on Account but extra fields are added.  
+//! Extra fileds: mute_expires_at
+//! Mastodon doc: <https://docs.joinmastodon.org/entities/Account/#MutedAccount>  
+
 use chrono::offset::Utc;
 use chrono::DateTime;
 use serde::{Deserialize, Serialize};

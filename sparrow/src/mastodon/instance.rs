@@ -1,3 +1,9 @@
+//! Represents the software instance of Mastodon running on this domain.
+//!
+//! Mastodon doc:
+//! * <https://docs.joinmastodon.org/entities/V1_Instance>
+//! * <https://docs.joinmastodon.org/methods/instance/#v1>
+
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 use spin_sdk::variables;
@@ -5,9 +11,8 @@ use spin_sdk::variables;
 use crate::mastodon::account::{Account, Get};
 use crate::mastodon::username::Username;
 
-// https://docs.joinmastodon.org/methods/instance/#v1
-// https://docs.joinmastodon.org/entities/V1_Instance
-
+/// Represents the software instance of Mastodon running on this domain.
+/// <https://docs.joinmastodon.org/entities/V1_Instance>
 #[derive(Default, Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct Instance {
     uri: String,
@@ -75,6 +80,7 @@ struct Polls {
 }
 
 impl Instance {
+    /// Get method for Instance.
     pub async fn get() -> Instance {
         let settings = crate::table::setting::Setting::all().await.unwrap();
         let username =

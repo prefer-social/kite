@@ -1,5 +1,6 @@
 use anyhow::Result;
 use async_trait::async_trait;
+use spin_sqlx::Connection as dbcon;
 
 use super::account::Account;
 
@@ -20,7 +21,7 @@ pub struct OauthAccessToken {
 
 impl OauthAccessToken {
     pub async fn all() -> Result<Vec<OauthAccessToken>> {
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let oat: Vec<OauthAccessToken> =
             sqlx::query_as("SELECT rowid, * FROM oauth_access_token")
                 .fetch_all(&sqlx_conn)
@@ -36,7 +37,7 @@ impl OauthAccessToken {
     ) -> Result<Self> {
         //! TODO: Implement <https://www.rfc-editor.org/rfc/rfc6750>
         let token_id = uuid::Uuid::now_v7().to_string();
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         sqlx::query(r#"INSERT INTO oauth_access_token 
         (uid, token, refresh_token, scopes, application_id, resource_owner_id, last_used_ip) VALUES 
         (?, ?, ?, ?, ?, ?, ?)"#)
@@ -60,7 +61,7 @@ impl OauthAccessToken {
     pub async fn validate(token: String) -> Result<Vec<Account>> {
         tracing::debug!("---=====----======---");
         tracing::debug!(token);
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         // let accts: Vec<crate::table::account::Account> = sqlx::query_as(
         //     r#"SELECT D.rowid, D.* FROM oauth_access_token
         //     AS A FULL OUTER JOIN oauth_application AS B ON A.application_id = B.uid
@@ -94,7 +95,7 @@ impl Get<(String, String)> for OauthAccessToken {
             "SELECT rowid, * FROM oauth_access_token WHERE {} = ?",
             key
         );
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let accounts = sqlx::query_as(query_template.as_str())
             .bind(val)
             .fetch_all(&sqlx_conn)

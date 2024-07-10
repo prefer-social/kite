@@ -48,6 +48,7 @@ pub async fn get_json(key: &str) -> Result<Option<Value>> {
     Ok(store.get_json(key).unwrap())
 }
 
+/// Set key/val fair's expiry time
 pub async fn set_expiry(key: &str, exp: DateTime<Utc>) -> Result<()> {
     let store = Store::open("mem").unwrap();
     let val = store.get(key)?;
@@ -58,6 +59,7 @@ pub async fn set_expiry(key: &str, exp: DateTime<Utc>) -> Result<()> {
     Ok(())
 }
 
+/// flush key-val's lifetime
 pub async fn flush() -> Result<()> {
     let store = Store::open("mem").unwrap();
     let keys = store.get_keys().unwrap();
@@ -88,6 +90,7 @@ pub async fn flush() -> Result<()> {
     Ok(())
 }
 
+/// Set key-val with exp time
 pub async fn set_with_exp(
     key: &str,
     val: &[u8],

@@ -1,5 +1,4 @@
-//! Engine for Prefer.social/kite, Mastodon implementation (somewhat minimum) for Spin framework  
-//!
+//! Engine for Prefer.social/kite, Mastodon implementation(somewhat minimum) for Spin framework  
 
 #![warn(missing_docs)]
 
@@ -13,7 +12,7 @@ pub mod activitypub;
 pub mod cache;
 
 // pub mod follow_request;
-// pub mod http_response;
+pub mod http_response;
 
 pub mod mastodon;
 

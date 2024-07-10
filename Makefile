@@ -1,4 +1,5 @@
 build:
+	cargo doc --no-deps
 	cargo build
 
 spin.build:
@@ -22,4 +23,3 @@ clean:
 
 all:
 	build 
-

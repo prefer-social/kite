@@ -1,10 +1,19 @@
-//! Database Table library
-//!  An example of ~~strikethrough text~~. You can also use ~single tildes~.
-//! Go to [this link](../../)!
+//! Database Tables  
+//!
+//! Each database(sqlite) table has one corresponding struct.
+//!
+//! Rules:  
+//! Allowed crates. If you need to use other than follow crates, do it in Mastodon section.  
+//! use anyhow::Result;  
+//! use async_trait::async_trait;  
+//! use serde::{Deserialize, Serialize};  
+//! use serde_json;  
+//! use serde_json::Value;  
+//! use std::time::{SystemTime, UNIX_EPOCH};  
+//! use url::Url;  
+//!
 
-/// account table
 pub mod account;
-/// actor_json table
 pub mod actor_json;
 pub mod conversation;
 pub mod conversation_mute;

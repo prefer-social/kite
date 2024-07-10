@@ -17,7 +17,8 @@ async fn handle_api(req: Request) -> Result<impl IntoResponse> {
     tracing::subscriber::set_global_default(subscriber)
         .expect("setting default subscriber failed");
 
-    tracing::debug!("<---------- ({}) {} ({}) --------->",
+    tracing::debug!(
+        "<---------- ({}) {} ({}) --------->",
         req.method().to_string(),
         req.path_and_query().unwrap(),
         req.header("x-real-ip").unwrap().as_str().unwrap()
@@ -28,19 +29,43 @@ async fn handle_api(req: Request) -> Result<impl IntoResponse> {
     router.any_async("/api/v1/instance", endpoint::v1::instance::request);
     router.any_async("/api/v1/apps", endpoint::v1::apps::request);
     router.any_async(
-         "/api/v1/accounts/verify_credentials",
-         endpoint::v1::accounts::verify_credentials::request,
+        "/api/v1/accounts/verify_credentials",
+        endpoint::v1::accounts::verify_credentials::request,
     );
-    router.any_async("/api/v1/followed_tags", endpoint::v1::followed_tags::request);
+    router.any_async(
+        "/api/v1/followed_tags",
+        endpoint::v1::followed_tags::request,
+    );
     router.any_async("/api/v1/lists", endpoint::v1::lists::request);
-    router.any_async("/api/v1/follow_requests", endpoint::v1::follow_requests::request);
-    router.any_async("/api/v1/instance/peer", endpoint::v1::instance::peer::request);
-    router.any_async("/api/v1/timelines/home", endpoint::v1::timelines::home::request);
-    router.any_async("/api/v1/push/subscription", endpoint::v1::push::subscription::request);
+    router.any_async(
+        "/api/v1/follow_requests",
+        endpoint::v1::follow_requests::request,
+    );
+    router.any_async(
+        "/api/v1/instance/peer",
+        endpoint::v1::instance::peer::request,
+    );
+    router.any_async(
+        "/api/v1/timelines/home",
+        endpoint::v1::timelines::home::request,
+    );
+    router.any_async(
+        "/api/v1/push/subscription",
+        endpoint::v1::push::subscription::request,
+    );
     router.any_async("/api/v1/streaming", endpoint::v1::streaming::request);
-    router.any_async("/api/v1/notifications", endpoint::v1::notifications::request);
-    router.any_async("/api/v1/conversations", endpoint::v1::conversations::request);
-    router.any_async("/api/v1/accounts/relationships", endpoint::v1::accounts::relationships::request);
+    router.any_async(
+        "/api/v1/notifications",
+        endpoint::v1::notifications::request,
+    );
+    router.any_async(
+        "/api/v1/conversations",
+        endpoint::v1::conversations::request,
+    );
+    router.any_async(
+        "/api/v1/accounts/relationships",
+        endpoint::v1::accounts::relationships::request,
+    );
 
     // router.any_async("/api/v1/timelines/public", timelines::public::request);
 
@@ -71,7 +96,7 @@ async fn handle_api(req: Request) -> Result<impl IntoResponse> {
     // router.any_async("/api/v1/list", list::request);
 
     router.any_async("/api/v2/search", endpoint::v2::search::request);
-    router.any_async("/api/v2/media", endpoint::v2::media::request);
+    //router.any_async("/api/v2/media", endpoint::v2::media::request);
     router.any_async("/api/v2/instance", endpoint::v2::instance::request);
 
     Ok(router.handle_async(req).await)

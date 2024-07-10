@@ -3,6 +3,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
+use spin_sqlx::Connection as dbcon;
 
 #[derive(
     Clone, Debug, Deserialize, Serialize, PartialEq, Default, sqlx::FromRow,
@@ -28,7 +29,7 @@ impl Get<(String, String)> for UserRole {
     async fn get((key, val): (String, String)) -> Result<Option<UserRole>> {
         let query_template =
             format!("SELECT * FROM user_role WHERE {} = ?", key);
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let accounts: Vec<UserRole> = sqlx::query_as(query_template.as_str())
             .bind(val)
             .fetch_all(&sqlx_conn)

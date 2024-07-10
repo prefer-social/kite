@@ -1,11 +1,7 @@
 use anyhow::Result;
-use argon2::{
-    password_hash::{PasswordHash, PasswordVerifier},
-    Argon2,
-};
 use async_trait::async_trait;
 use serde_derive::{Deserialize, Serialize};
-use spin_sdk::variables;
+use spin_sqlx::Connection as dbcon;
 
 #[derive(
     Clone, Debug, Deserialize, Serialize, PartialEq, Default, sqlx::FromRow,
@@ -52,40 +48,29 @@ pub struct User {
 
 impl User {
     pub async fn all() -> Result<Vec<Self>> {
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let users: Vec<User> = sqlx::query_as("SELECT rowid, * FROM user")
             .fetch_all(&sqlx_conn)
             .await?;
         Ok(users)
     }
 
-    pub async fn validate(username: String, password: String) -> Result<bool> {
-        let domain = variables::get("domain")
-            .expect("domain is not propery set in SPIN_VARIABLE");
-
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+    pub async fn get_encrypted_password(
+        username: String,
+        domain: String,
+    ) -> Result<Vec<(String,)>> {
+        let sqlx_conn = dbcon::open_default()?;
         let encryted_password: Vec<(String, )>  = sqlx::query_as(r#"SELECT user.encrypted_password FROM user 
         LEFT JOIN account ON user.account_id = account.uid WHERE account.username = ? AND account.domain = ?"#)
         .bind(username)
         .bind(domain)
         .fetch_all(&sqlx_conn)
         .await?;
-
-        if encryted_password.is_empty() {
-            return Ok(false);
-        }
-
-        println!("---->>>>> {:?}", encryted_password);
-
-        let parsed_hash = PasswordHash::new(&encryted_password[0].0).unwrap();
-
-        Ok(Argon2::default()
-            .verify_password(password.as_bytes(), &parsed_hash)
-            .is_ok())
+        Ok(encryted_password)
     }
 
     pub async fn default_user() -> Result<Vec<Self>> {
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let main_users: Vec<User> = sqlx::query_as(
             "SELECT rowid, * FROM user WHERE user.admin == true",
         )
@@ -100,7 +85,7 @@ impl User {
     }
 
     pub async fn user_count() -> Result<i64> {
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let count: (i64,) = sqlx::query_as("SELECT COUNT(*) AS C FROM user")
             .fetch_one(&sqlx_conn)
             .await?;
@@ -116,9 +101,10 @@ pub trait Get<T> {
 #[async_trait]
 impl Get<(String, String)> for User {
     async fn get((key, val): (String, String)) -> Result<Vec<User>> {
+        let aaa = key.to_owned();
         let query_template =
-            format!("SELECT rowid, * FROM account WHERE {} = ?", key);
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+            format!("SELECT rowid, * FROM account WHERE {} = ?", aaa);
+        let sqlx_conn = dbcon::open_default()?;
         let accounts = sqlx::query_as(query_template.as_str())
             .bind(val)
             .fetch_all(&sqlx_conn)

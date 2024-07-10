@@ -1,15 +1,13 @@
+//! oauth_application table
+
 use anyhow::Result;
 use async_trait::async_trait;
-
 use serde_derive::{Deserialize, Serialize};
-use spin_sdk::key_value::Store;
-use sqlx::Connection;
-use uuid::Uuid;
+use spin_sqlx::Connection as dbcon;
 
-use crate::mastodon::application::Application;
-use crate::table::account::Account;
-
-#[derive(Default, Clone, Debug, PartialEq, sqlx::FromRow)]
+#[derive(
+    Default, Clone, Debug, PartialEq, sqlx::FromRow, Serialize, Deserialize,
+)]
 pub struct OauthApplication {
     pub rowid: i64,
     pub uid: String,
@@ -28,7 +26,7 @@ pub struct OauthApplication {
 
 impl OauthApplication {
     pub async fn all() -> Result<Vec<OauthApplication>> {
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let oat: Vec<OauthApplication> =
             sqlx::query_as("SELECT rowid, * FROM oauth_application")
                 .fetch_all(&sqlx_conn)
@@ -40,7 +38,7 @@ impl OauthApplication {
         app: crate::mastodon::application::Application,
         user_id: Option<String>,
     ) -> Result<()> {
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         sqlx::query(
             "INSERT INTO oauth_application ( 
             uid,
@@ -51,7 +49,7 @@ impl OauthApplication {
             owner_id
             ) VALUES ($1, $2, $3, $4, $5, $6)",
         )
-        .bind(app.uid.clone().unwrap())
+        .bind(app.uid.clone())
         .bind(app.name)
         .bind(app.client_secret.unwrap())
         .bind(app.redirect_uri.unwrap())
@@ -60,13 +58,13 @@ impl OauthApplication {
         .execute(&sqlx_conn)
         .await?;
 
-        tracing::debug!("-----> ADDED, application ---> {}", app.uid.unwrap());
+        tracing::debug!("-----> ADDED, application ---> {}", app.uid);
 
         Ok(())
     }
 
     pub async fn get_by_app_id(app_id: String) -> Result<OauthApplication> {
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let oa: OauthApplication = sqlx::query_as(
             "SELECT rowid, * FROM oauth_application WHERE uid = ?",
         )
@@ -77,7 +75,7 @@ impl OauthApplication {
     }
 
     pub async fn remove(uid: String) -> Result<()> {
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let _res = sqlx::query("DELETE FROM oauth_application WHERE uid = ?")
             .bind(uid)
             .execute(&sqlx_conn)
@@ -100,7 +98,7 @@ impl Get<(String, String)> for OauthApplication {
             "SELECT rowid, * FROM oauth_application WHERE {} = ?",
             key
         );
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let accounts = sqlx::query_as(query_template.as_str())
             .bind(val)
             .fetch_all(&sqlx_conn)

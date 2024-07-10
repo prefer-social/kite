@@ -1,8 +1,9 @@
-//! Database table account
+//! account table
 
 use anyhow::Result;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
+use spin_sqlx::Connection as dbcon;
 use std::time::{SystemTime, UNIX_EPOCH};
 use url::Url;
 
@@ -89,7 +90,7 @@ pub struct Account {
 impl Account {
     /// returns all Account rows
     pub async fn all() -> Result<Vec<Account>> {
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let accounts: Vec<Account> =
             sqlx::query_as("SELECT rowid, * FROM account")
                 .fetch_all(&sqlx_conn)
@@ -109,7 +110,7 @@ impl Account {
         username: String,
         domain: String,
     ) -> Result<Option<Account>> {
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let accounts: Vec<Account> = sqlx::query_as(
             "SELECT rowid, * FROM account WHERE username = ? AND domain = ?",
         )
@@ -127,13 +128,15 @@ pub trait Get<T> {
     async fn get(arg: T) -> Result<Vec<Account>>;
 }
 
-/// FOOFOOOFOO
+/// Very generic table Get function
+/// Geting (key: String, val: String).
+/// This goes `SELECT * FROM some_table WHERER key = val`
 #[async_trait]
 impl Get<(String, String)> for Account {
     async fn get((key, val): (String, String)) -> Result<Vec<Account>> {
         let query_template =
             format!("SELECT rowid, * FROM account WHERE {} = ?", key);
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let accounts = sqlx::query_as(query_template.as_str())
             .bind(val)
             .fetch_all(&sqlx_conn)

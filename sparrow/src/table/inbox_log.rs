@@ -1,7 +1,10 @@
-//! inbox log is temporary data store
+//! inbox_log table  
+//!
+//! Log inbox received messages
 
 use anyhow::Result;
 use async_trait::async_trait;
+use spin_sqlx::Connection as dbcon;
 use uuid::Uuid;
 
 #[derive(Default, Clone, Debug, PartialEq, sqlx::FromRow)]
@@ -22,7 +25,7 @@ impl InboxLog {
         hostname: String,
         body: String,
     ) -> Result<()> {
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         sqlx::query("INSERT INTO inbox_log (uuid, valid_sig, sig_header, hostname, body) VALUES ($1, $2, $3, $4, $5)")
             .bind(Uuid::now_v7().to_string())
             .bind(valid_sig)
@@ -45,7 +48,7 @@ impl Get<(String, String)> for InboxLog {
     async fn get((key, val): (String, String)) -> Result<Vec<InboxLog>> {
         let query_template =
             format!("SELECT rowid, * FROM inbox_log WHERE {} = ?", key);
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let accounts = sqlx::query_as(query_template.as_str())
             .bind(val)
             .fetch_all(&sqlx_conn)

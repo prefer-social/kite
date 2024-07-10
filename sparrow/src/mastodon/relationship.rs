@@ -1,9 +1,6 @@
 // https://docs.joinmastodon.org/entities/Relationship/
 
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-
-use crate::mastodon::custom_emoji::CustomEmoji;
 
 #[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone)]
 pub struct Relationship {
@@ -22,5 +19,5 @@ pub struct Relationship {
     pub requested_by: bool,
     pub domain_blocking: bool,
     pub endorsed: bool,
-    pub note:String,
+    pub note: String,
 }

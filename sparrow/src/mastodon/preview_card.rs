@@ -1,9 +1,6 @@
 // https://docs.joinmastodon.org/entities/PreviewCard/
 
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-
-use crate::mastodon::custom_emoji::CustomEmoji;
 
 #[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone)]
 pub struct PreviewCard {

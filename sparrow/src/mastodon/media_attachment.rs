@@ -1,30 +1,41 @@
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+//! Represents a file or media attachment that can be added to a status.  
+//!
+//! <https://docs.joinmastodon.org/entities/MediaAttachment/>  
 
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
+/// MediaAttachement: Represents a file or media attachment that can be added to a status.
+/// <https://docs.joinmastodon.org/entities/MediaAttachment/>
 #[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone)]
-#[serde(rename_all = "camelCase")]
 pub struct MediaAttachment {
-    pub id: String,
-    #[serde(rename = "type")]
-    pub kind: MediaType,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub url: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub preview_url: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub remote_url: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub text_url: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub meta: Option<Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub blurhash: Option<String>,
-    #[serde(skip_serializing)]
-    pub created_at: Option<String>,
-    #[serde(skip_serializing)]
-    pub updated_at: Option<String>,
+    /// rowid from sqlite
+    pub rowid: i64,
+    /// uid: uuid v7
+    #[serde(rename(serialize = "type", deserialize = "type"))]
+    pub uid: String,
+    /// The type of the attachment.
+    /// String (Enumerable, oneOf)
+    /// unknown = unsupported or unrecognized file type
+    /// image = Static image
+    /// gifv = Looping, soundless animation
+    /// video = Video clip
+    /// audio = Audio track
+    pub media_type: String,
+    /// he location of the original full-size attachment.
+    pub url: String,
+    /// The location of a scaled-down preview of the attachment.
+    pub preview_url: String,
+    /// The location of the full-size original attachment on the remote website.
+    pub remote_url: String,
+    /// Metadata returned by Paperclip.
+    pub meta: HashMap<String, String>,
+    /// Alternate text that describes what is in the media attachment, to be used for the visually impaired or when media attachments do not load.
+    pub description: String,
+    /// A hash computed by the BlurHash algorithm, for generating colorful preview thumbnails when media has not been downloaded yet.
+    pub blurhash: String,
+    /// A shorter URL for the attachment.
+    pub text_url: String,
 }
 
 impl MediaAttachment {
@@ -70,17 +81,24 @@ impl MediaAttachment {
     // }
 }
 
+/// MediaType used at MediaAttachment.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum MediaType {
+    /// unsupported or unrecognized file type
     Unknown,
+    /// Static image
     Image,
+    /// Looping, soundless animation
     Gifv,
+    /// Video clip
     Video,
+    /// Audio track
     Audio,
 }
 
 impl MediaType {
+    /// Set MediaType from table's string value
     pub fn set(a: &str) -> Self {
         match a.to_lowercase().as_str() {
             "image" => return MediaType::Image,

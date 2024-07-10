@@ -18,7 +18,7 @@ pub struct OnetimeKey {
 
 impl OnetimeKey {
     pub async fn all() -> Result<Vec<OneTimeKey>> {
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let otk: Vec<OneTimeKey> =
             sqlx::query_as("SELECT rowid, * FROM one_time_key")
                 .fetch_all(&sqlx_conn)
@@ -37,7 +37,7 @@ impl Get<(String, String)> for OnetimeKey {
     async fn get((key, val): (String, String)) -> Result<Vec<Setting>> {
         let query_template =
             format!("SELECT rowid, * FROM onetime_key WHERE {} = ?", key);
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let accounts = sqlx::query_as(query_template.as_str())
             .bind(val)
             .fetch_all(&sqlx_conn)

@@ -1,4 +1,3 @@
--- Add migration script here
 CREATE TABLE account (
     uid TEXT NOT NULL,
     username TEXT DEFAULT "" NOT NULL,
