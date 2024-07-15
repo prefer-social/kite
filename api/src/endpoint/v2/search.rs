@@ -1,17 +1,20 @@
-// https://docs.joinmastodon.org/methods/search/
-//
+//! Search for content in accounts, statuses and hashtags.  
+//!
+//! `GET /api/v2/search HTTP/1.1`  
+//! Returns: Search
+//! OAuth: Public (without resolve or offset), or User token + read:search  
+//! Mastodon doc: <https://docs.joinmastodon.org/methods/search/>
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
+use sparrow::mastodon::account::Account as MAccount;
+use spin_sdk::http::{Method, Params, Request, Response};
+use std::collections::HashMap;
 use std::str;
-use std::{collections::HashMap, sync::Arc};
 use tracing::debug;
 use url::Url;
-use serde::{Deserialize, Serialize};
-use sparrow::mastodon::account::Account as MAccount;
-use sparrow::table::account::Account as TAccount;
 
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
@@ -20,85 +23,61 @@ pub async fn request(req: Request, params: Params) -> Result<Response> {
     }
 }
 
-// GET /api/v2/search HTTP/1.1
-// FOR NOW, only account search is avaiable
-// Returns Search https://docs.joinmastodon.org/entities/Search/
-pub async fn get(req: Request, params: Params) -> Result<Response> {
-    tracing::debug!("requested -> {} {}", req.method().to_string(), req.path_and_query().unwrap());
+/// Search for content in accounts, statuses and hashtags.  
+///
+/// `GET /api/v2/search HTTP/1.1`  
+/// Returns: Search
+/// OAuth: Public (without resolve or offset), or User token + read:search  
+/// Mastodon doc: <https://docs.joinmastodon.org/methods/search/>
+pub async fn get(req: Request, _params: Params) -> Result<Response> {
+    tracing::debug!(
+        "requested -> {} {}",
+        req.method().to_string(),
+        req.path_and_query().unwrap()
+    );
 
     //let auth = req.header("Authorization").unwrap().as_str().unwrap();
     //tracing::debug!(auth);
 
     // https://docs.joinmastodon.org/methods/search/#query-parameters
     let path_and_query = req.path_and_query().unwrap();
-    let quary: HashMap<_, _> = Url::parse(format!("data://text{path_and_query}").as_str())
-        .unwrap()
-        .query_pairs()
-        .into_owned()
-        .collect();
+    let quary: HashMap<_, _> =
+        Url::parse(format!("data://text{path_and_query}").as_str())
+            .unwrap()
+            .query_pairs()
+            .into_owned()
+            .collect();
     // query="/api/v2/search?q=apple&resolve=true"
     let search_term = quary.get("q").unwrap();
 
     let accounts_search_result = MAccount::search(search_term).await;
-    let statuses_search_result = sparrow::mastodon::status::Status::search(search_term).await;
-    let hashtags_search_result = sparrow::mastodon::tag::Tag::search(search_term).await;
+    let statuses_search_result =
+        sparrow::mastodon::status::Status::search(search_term).await;
+    let hashtags_search_result =
+        sparrow::mastodon::tag::Tag::search(search_term).await;
 
     #[derive(Default, Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
     struct SearchResult {
         accounts: Vec<sparrow::mastodon::account::Account>,
         statuses: Vec<sparrow::mastodon::status::Status>,
-        hashtags: Vec<sparrow::mastodon::tag::Tag>
-    };
+        hashtags: Vec<sparrow::mastodon::tag::Tag>,
+    }
 
-    let search_result = SearchResult{
+    let search_result = SearchResult {
         accounts: accounts_search_result.unwrap(),
         statuses: statuses_search_result.unwrap(),
         hashtags: hashtags_search_result.unwrap(),
     };
-    
-    let a = serde_json::to_string(&search_result).unwrap();
-    tracing::debug!(a);
-    
-    let b = r#"{
-       "accounts": [
-           {  "id": "21",
-              "username": "seungjin",
-              "acct": "seungjin@mas.to",
-              "url": "https://mas.to/@seungjin",
-              "display_name": "seungjin",
-              "note": "213123123",
-              "avatar": "https://media-mstd.seungjin.net/accounts/avatars/109/737/937/659/013/254/original/626c9187e341632b.jpg",
-              "avatar_static": "https://media-mstd.seungjin.net/accounts/avatars/109/737/937/659/013/254/original/626c9187e341632b.jpg",
-              "header": "https://media-mstd.seungjin.net/accounts/headers/109/737/937/659/013/254/original/9a714d77de20ae26.jpg",
-              "header_static": "https://media-mstd.seungjin.net/accounts/headers/109/737/937/659/013/254/original/9a714d77de20ae26.jpg",
-              "locked": false,
-              "fields": [],
-              "emojis": [],
-              "bot": false,
-              "group": false,
-              "discoverable": true,
-              "created_at": "2024-06-02T10:21:22Z",
-              "statuses_count": 123,
-              "followers_count": 123,
-              "following_count": 123,
-              "last_status_at": "2024-07-02"
-           }
-           ],
-       "statuses": [],
-       "hashtags": []}"#;
 
-    tracing::debug!("-=-=--=-=-=-=-=-=-=-=-=-=");
+    let search_result = serde_json::to_string(&search_result).unwrap();
 
-
+    tracing::debug!(search_result);
 
     return Ok(Response::builder()
         .status(200)
         .header("Context-Type", "application/activity+json")
-        .body(a)
+        .body(search_result)
         .build());
-
-
-
 }
 
 pub async fn get_account_info(mut term: String) -> Result<Option<String>> {

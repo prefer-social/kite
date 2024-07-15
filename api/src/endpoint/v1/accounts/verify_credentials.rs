@@ -4,7 +4,6 @@
 
 use anyhow::Result;
 use sparrow::http_response::HttpResponse;
-use sparrow::mastodon::account::Get;
 use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
 use spin_sdk::sqlite::Value as SV;
 use std::collections::HashMap;

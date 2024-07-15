@@ -1,14 +1,17 @@
 //! ActivityPub Person Actor   
 //!
-//! Resource: <https://www.w3.org/TR/activitypub/#actor-objects>  
+//! Mastodon doc: <https://www.w3.org/TR/activitypub/#actor-objects>  
 
 use anyhow::Result;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
+use spin_sdk::http::{Method, Request, Response};
+use std::str;
 
 use crate::table::account::Account;
 use crate::table::user::User;
 
+/// Person Actor
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PersonActor {
@@ -212,16 +215,42 @@ impl TryFrom<serde_json::Value> for PersonActor {
     fn try_from(actor_value: serde_json::Value) -> Result<Self, Self::Error> {
         let actor =
             serde_json::from_value::<PersonActor>(actor_value).unwrap();
+        Ok(actor)
+    }
+}
 
-        tracing::debug!("--=-=-=-=-=-=-=-=-=-=");
-        tracing::debug!("--=-=-=-=-=-=-=-=-=-=");
-        tracing::debug!("--=-=-=-=-=-=-=-=-=-=");
+impl PersonActor {
+    /// Getting an Actor from actor_url.  
+    pub async fn from_url(actor_url: String, ct: String) -> Result<Self> {
+        let request = Request::builder()
+            .method(Method::Get)
+            .header("Accept", ct)
+            .uri(actor_url)
+            .build();
+        let response: Response = spin_sdk::http::send(request).await.unwrap();
+        let _status = response.status();
+        let _ct = response.header("content-type").unwrap().as_str().unwrap();
+
+        let actor_str = str::from_utf8(response.body()).unwrap();
+        //tracing::debug!("actor_str: {}", actor_str);
+        let actor_value: Value = serde_json::from_str(actor_str).unwrap();
+        //tracing::debug!("actor_value: {}", actor_value);
+
+        // This saves acor to actor_json table
+        crate::table::actor_json::ActorJson::put(
+            serde_json::from_str(actor_str).unwrap(),
+        )
+        .await?;
+
+        // Convert this to ActivityPub Actor
+        let actor = crate::activitypub::person_actor::PersonActor::try_from(
+            actor_value,
+        )
+        .unwrap();
+
+        tracing::debug!("-=-=-=-=--=--=-=-=-=-=-=-");
         tracing::debug!("{:?}", actor);
 
-        let b = PersonActor {
-            ..Default::default()
-        };
-
-        Ok(b)
+        Ok(actor)
     }
 }

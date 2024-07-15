@@ -4,10 +4,7 @@ use std::collections::HashMap;
 use std::str;
 use url::Url;
 
-pub async fn request(
-    req: Request,
-    params: Params,
-) -> Result<impl IntoResponse> {
+pub async fn req(req: Request, params: Params) -> Result<impl IntoResponse> {
     tracing::debug!("rasars");
 
     match req.method() {
@@ -77,7 +74,8 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
 
     tracing::debug!(actor_from_key_id);
 
-    let (account, user) = sparrow::mastodon::account::Account::default_user().await?;
+    let (account, user) =
+        sparrow::mastodon::account::Account::default().await?;
 
     let pubkey_str = account.public_key.unwrap();
 

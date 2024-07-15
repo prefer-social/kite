@@ -1,16 +1,15 @@
 // https://kite.seungjin.net/users/seungjin/outbox
 // https://kite.seungjin.net/users/seungjin/outbox
 
-
 //use activitystreams::{collection::OrderedCollection, context, iri, object::ApObject, prelude::*};
 
+use crate::utils::not_found;
 use anyhow::Result;
+use serde_derive::{Deserialize, Serialize};
 use spin_sdk::{
     http::{responses, IntoResponse, Method, Params, Request, Response},
     sqlite::{Connection, Value},
 };
-use serde_derive::{Deserialize, Serialize};
-use crate::utils::not_found;
 
 // {
 // "@context": "https://www.w3.org/ns/activitystreams",
@@ -21,7 +20,6 @@ use crate::utils::not_found;
 // "last": "https://dev.prefer.social/outbox?min_id=0&page=true"
 // }
 
-
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OutboxActor {
@@ -30,19 +28,20 @@ pub struct OutboxActor {
     pub id: String,
     #[serde(rename = "type")]
     pub kind: String,
-    pub total_items: u32, 
-    pub first: Option<String>, 
+    pub total_items: u32,
+    pub first: Option<String>,
     pub last: Option<String>,
 }
 
-pub async fn request(req: Request, params: Params) -> Result<impl IntoResponse> {
+pub async fn req(req: Request, params: Params) -> Result<impl IntoResponse> {
     match crate::utils::check_request(&req).await {
-        (Method::Get, crate::utils::RenderType::Json) => emit_json(req, params).await,
+        (Method::Get, crate::utils::RenderType::Json) => {
+            emit_json(req, params).await
+        }
         (Method::Get, _) => emit_html(req, params).await,
         (Method::Post, _) => post(req, params).await,
         _ => sparrow::http_response::HttpResponse::not_found().await,
     }
-
 }
 
 pub async fn emit_json(_req: Request, params: Params) -> Result<Response> {
@@ -70,7 +69,6 @@ pub async fn emit_json(_req: Request, params: Params) -> Result<Response> {
     }
      */
 
-
     // let outbox = OutboxActor {
     //     context: vec!("arsars".to_string()),
     //     id: id.to_string(),
@@ -91,8 +89,6 @@ pub async fn emit_json(_req: Request, params: Params) -> Result<Response> {
     "last": "https://dev.prefer.social/outbox?min_id=0&page=true"
     }"#;
 
-
-
     Ok(Response::builder()
         .status(200)
         .header("Content-Type", "application/activity+json")
@@ -105,8 +101,7 @@ pub async fn emit_html(_req: Request, params: Params) -> Result<Response> {
         .status(200)
         .header("Content-Type", "text/html")
         .body("foofoo")
-        .build()
-    )
+        .build())
 }
 
 pub async fn post(req: Request, params: Params) -> Result<Response> {

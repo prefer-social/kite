@@ -1,15 +1,24 @@
 //! account table
+//!
 
 use anyhow::Result;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use spin_sqlx::Connection as dbcon;
 use std::time::{SystemTime, UNIX_EPOCH};
+use struct_iterable::Iterable;
 use url::Url;
 
 /// DB Account table struct
 #[derive(
-    Serialize, Deserialize, Default, Clone, Debug, PartialEq, sqlx::FromRow,
+    Serialize,
+    Deserialize,
+    Default,
+    Clone,
+    Debug,
+    PartialEq,
+    sqlx::FromRow,
+    Iterable,
 )]
 pub struct Account {
     /// rowid from sqlite
@@ -145,14 +154,94 @@ impl Get<(String, String)> for Account {
     }
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 pub trait Put<T> {
-    async fn put(arg: T) -> Result<Vec<Account>>;
+    async fn put(arg: T) -> Result<()>;
+}
+
+#[async_trait(?Send)]
+impl Put<crate::activitypub::person_actor::PersonActor> for Account {
+    async fn put(
+        actor: crate::activitypub::person_actor::PersonActor,
+    ) -> Result<()> {
+        let account = Self::try_from(actor).unwrap();
+
+        for (name, value) in account.iter() {
+            println!("{:?}", name);
+        }
+
+        let a = r#"INSERT INTO account (
+         uid ,
+        username ,
+    domain ,
+    public_key,
+    note, 
+    display_name,
+    uri,
+    url,
+    avatar_file_name,
+    avatar_content_type,
+    avatar_file_size,
+    avatar_updated_at,
+    header_file_name,
+    header_content_type,
+    header_file_size,
+    header_updated_at,
+    avatar_remote_url,
+    locked BOOLEAN,
+    header_remote_url,
+    last_webfingered_at,
+    inbox_url,
+    outbox_url,
+    shared_inbox_url,
+    followers_url,
+    following_url,
+    protocol,
+    memorial,
+    moved_to_account_id bigint,
+    featured_collection_url,
+    fields,
+    actor_type,
+    discoverable,
+    also_known_as,
+    silenced_at,
+    suspended_at,
+    hide_collections,
+    avatar_storage_schema_version,
+    header_storage_schema_version,
+    devices_url,
+    suspension_origin,
+    sensitized_at,
+    trendable,
+    reviewed_at,
+    requested_review_at,
+    indexable,        
+        ) VALUES"#;
+
+        let sqlx_conn = dbcon::open_default()?;
+
+        //sqlx::query(
+        //     r#"INSERT INTO account
+        //() VALUES
+        // (?, ?, ?, ?, ?, ?, ?)"#,
+        // )
+        // .bind(token_id.clone())
+        // .bind(crate::utils::random_string(64).await)
+        // .bind(crate::utils::random_string(64).await)
+        // .bind(scope)
+        // .bind(application_id)
+        // .bind(resource_owner_id)
+        // .bind(last_used_ip)
+        // .execute(&sqlx_conn)
+        // .await?;
+        Ok(())
+    }
 }
 
 impl TryFrom<crate::activitypub::person_actor::PersonActor> for Account {
     type Error = &'static str;
 
+    /// (Person)Actor to Account
     fn try_from(
         actor: crate::activitypub::person_actor::PersonActor,
     ) -> Result<Self, Self::Error> {
@@ -160,9 +249,6 @@ impl TryFrom<crate::activitypub::person_actor::PersonActor> for Account {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs() as i64;
-
-        tracing::debug!("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-");
-        tracing::debug!("{:?}", actor);
 
         let avatar_remote_url = match &actor.icon {
             Some(i) => Some(i.to_owned().url),

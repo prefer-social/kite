@@ -1,12 +1,11 @@
-// https://docs.joinmastodon.org/methods/accounts/#relationships
-// Returns: Array of Relationship
-//
-
+/// Mastodon doc: <https://docs.joinmastodon.org/methods/accounts/#relationships>
+/// Returns: Array of Relationship
+///
 use anyhow::Result;
+use sparrow::mastodon::relationship::Relationship;
 use spin_sdk::http::{Method, Params, Request, Response};
 use std::collections::HashMap;
 use url::Url;
-use sparrow::mastodon::relationship::Relationship;
 
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
@@ -16,25 +15,31 @@ pub async fn request(req: Request, params: Params) -> Result<Response> {
 }
 
 pub async fn get(req: Request, _params: Params) -> Result<Response> {
-    tracing::debug!("Requested -> {} {}", req.method().to_string(), req.path_and_query().unwrap());
+    tracing::debug!(
+        "Requested -> {} {}",
+        req.method().to_string(),
+        req.path_and_query().unwrap()
+    );
 
     let url = req.uri();
     let parsed_url = Url::parse(url).unwrap();
-    let query: Vec<(String, String)> = parsed_url.query_pairs().into_owned().collect();
+    let query: Vec<(String, String)> =
+        parsed_url.query_pairs().into_owned().collect();
 
     let mut id_array: Vec<String> = Vec::new();
-    for (k,v) in query {
+    for (k, v) in query {
         if k == "id[]" {
             id_array.push(v);
         }
     }
 
-    if id_array.len() == 0 { // Return empty array
+    if id_array.len() == 0 {
+        // Return empty array
         return Ok(Response::builder()
             .status(200)
             .header("Context-Type", "application/activity+json")
             .body("[]")
-            .build());;
+            .build());
     }
 
     let mut relationships: Vec<Relationship> = Vec::new();
@@ -59,10 +64,12 @@ pub async fn get(req: Request, _params: Params) -> Result<Response> {
 
     let json_val = serde_json::to_string(&relationships).unwrap();
 
+    tracing::debug!("-0--->");
+    tracing::debug!(json_val);
+
     Ok(Response::builder()
         .status(200)
         .header("Context-Type", "application/activity+json")
         .body(json_val)
         .build())
-
 }

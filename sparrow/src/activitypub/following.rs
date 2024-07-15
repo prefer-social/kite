@@ -21,7 +21,7 @@ use crate::table::user::User;
 #[serde(rename_all = "camelCase")]
 pub struct Following {
     #[serde(rename = "@context")]
-    pub context: Vec<String>,
+    pub context: String,
     pub id: String,
     #[serde(rename = "type")]
     pub kind: String,
@@ -32,7 +32,7 @@ pub struct Following {
 impl Following {
     pub async fn build() -> Following {
         Following {
-            context: vec!["https://www.w3.org/ns/activitystreams".to_string()],
+            context: "https://www.w3.org/ns/activitystreams".to_string(),
             id: "https://dev.prefer.social/followers".to_string(),
             kind: "OrderedCollection".to_string(),
             total_items: 112,

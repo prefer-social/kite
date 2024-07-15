@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use std::str;
 use url::Url;
 
-use sparrow::mastodon::account::Get;
 use sparrow::mastodon::application::Application;
 use sparrow::mastodon::username::Username;
 
@@ -200,9 +199,10 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
             tracing::debug!(code);
             tracing::debug!(username);
 
-            let user =
-                sparrow::mastodon::account::Account::get(Username(username))
-                    .await?;
+            let user = sparrow::mastodon::account::Account::fr_username(
+                Username(username),
+            )
+            .await?;
             let user_id = user.uid.to_string();
 
             let _ = sparrow::mastodon::application::Application::add(

@@ -5,11 +5,6 @@
 use anyhow::{Error, Result};
 
 use spin_sdk::http::{Method, Params, Request, Response};
-use spin_sdk::sqlite::Value as SV;
-use std::collections::HashMap;
-use std::str;
-
-use sparrow::mastodon::media::{MediaAttachment, MediaType};
 
 // https://docs.joinmastodon.org/methods/media/#get
 pub async fn request(req: Request, params: Params) -> Result<Response> {
@@ -20,55 +15,18 @@ pub async fn request(req: Request, params: Params) -> Result<Response> {
 }
 
 // https://docs.joinmastodon.org/methods/media/#get
-pub async fn get(req: Request, params: Params) -> Result<Response> {
+pub async fn get(_req: Request, params: Params) -> Result<Response> {
     tracing::debug!("requested -> GET /api/v1/media");
 
-    // /* let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap()
-    //    {
-    //        sparrow::auth::TokenAuth::InValid => {
-    //            return sparrow::http_response::HttpResponse::unauthorized().await;
-    //        }
-    //        sparrow::auth::TokenAuth::TokenNotProvided => {
-    //            return sparrow::http_response::HttpResponse::unauthorized().await;
-    //        }
-    //        sparrow::auth::TokenAuth::Valid(userid) => {
-    //            Some(userid).unwrap() as i64
-    //        }
-    //    };
-    // */
     let media_id = params.get("id").unwrap();
     tracing::debug!(media_id);
 
-    // let media = sparrow::db::Connection::builder()
-    //     .await
-    //     .execute(
-    //         "SELECT * FROM media_attachement WHERE id = ?",
-    //         &[SV::Text(media_id.to_string())],
-    //     )
-    //     .await;
+    let medias = sparrow::mastodon::media_attachment::MediaAttachment::get(
+        media_id.to_string(),
+    )
+    .await?;
 
-    let media =
-        sparrow::mastodon::media_attachment::MediaAttachment::get_by_app_id(
-            media_id_to_string(),
-        );
-
-    let row = media.rows().next().unwrap();
-
-    let media_attachement = MediaAttachment {
-        uid: row.get::<&str>("uid").unwrap().to_string(),
-        kind: MediaType::Image,
-        url: Some(row.get::<&str>("previewUrl").unwrap().to_string()),
-        preview_url: Some(row.get::<&str>("previewUrl").unwrap().to_string()),
-        remote_url: None,
-        text_url: None,
-        meta: None,
-        description: None,
-        blurhash: None,
-        created_at: None,
-        updated_at: None,
-    };
-
-    let body = serde_json::to_string(&media_attachement)?;
+    let body = serde_json::to_string(&medias)?;
 
     tracing::debug!(body);
 

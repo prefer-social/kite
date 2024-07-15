@@ -63,7 +63,7 @@ impl Token {
             };
             let tacct: TAccount = accounts.first().unwrap().to_owned();
             let macct =
-                crate::mastodon::account::Account::try_from(tacct).unwrap();
+                crate::mastodon::account::Account::fr_tbl(tacct).await?;
 
             return Ok(Some(macct));
         }

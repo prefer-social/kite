@@ -2,6 +2,7 @@
 //!
 //! <https://docs.joinmastodon.org/entities/MediaAttachment/>  
 
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -39,79 +40,9 @@ pub struct MediaAttachment {
 }
 
 impl MediaAttachment {
-    // pub async fn create<'b>(id: &str) -> Self {
-    //     let qr: QueryResult = DbCon::builder()
-    //         .await
-    //         .execute(
-    //             "SELECT * FROM media_attachement WHERE id = ?",
-    //             &[SV::Text(id.to_string())],
-    //         )
-    //         .await;
-    //     let row = &qr.rows().next().unwrap();
-
-    //     pub async fn foo(a: Option<&str>) -> Option<String> {
-    //         match a {
-    //             None => return None,
-    //             Some(a) => return Some(a.to_string()),
-    //         }
-    //     }
-
-    //     pub async fn foo2(a: Option<&str>) -> Option<Value> {
-    //         match a {
-    //             None => return None,
-    //             Some(a) => return Some(serde_json::from_str(a).unwrap()),
-    //         }
-    //     }
-
-    //     let ma = Self {
-    //         id: row.get::<&str>("id").unwrap().to_string(),
-    //         kind: MediaType::set(row.get::<&str>("type").unwrap()),
-    //         url: row.get::<&str>("url").map(|s| s.to_string()),
-    //         preview_url: row.get::<&str>("preview_url").map(|s| s.to_string()),
-    //         remote_url: row.get::<&str>("remote_url").map(|s| s.to_string()),
-    //         text_url: row.get::<&str>("text_url").map(|s| s.to_string()),
-    //         meta: foo2(row.get::<&str>("meta")).await,
-    //         description: foo(row.get::<&str>("description")).await,
-    //         blurhash: row.get::<&str>("blurhash").map(|s| s.to_string()),
-    //         created_at: row.get::<&str>("created_at").map(|s| s.to_string()),
-    //         updated_at: row.get::<&str>("updated_at").map(|s| s.to_string()),
-    //     };
-
-    //     return ma;
-    // }
-}
-
-/// MediaType used at MediaAttachment.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
-#[serde(rename_all = "camelCase")]
-pub enum MediaType {
-    /// unsupported or unrecognized file type
-    Unknown,
-    /// Static image
-    Image,
-    /// Looping, soundless animation
-    Gifv,
-    /// Video clip
-    Video,
-    /// Audio track
-    Audio,
-}
-
-impl MediaType {
-    /// Set MediaType from table's string value
-    pub fn set(a: &str) -> Self {
-        match a.to_lowercase().as_str() {
-            "image" => return MediaType::Image,
-            "gifv" => return MediaType::Gifv,
-            "video" => return MediaType::Video,
-            "audio" => return MediaType::Audio,
-            _ => return MediaType::Unknown,
-        }
-    }
-}
-
-impl Default for MediaType {
-    fn default() -> Self {
-        MediaType::Unknown
+    /// For now , it returns empty vector Result.  
+    /// TODO: Make it real.  
+    pub async fn get(media_ia: String) -> Result<Vec<MediaAttachment>> {
+        Ok(Vec::new())
     }
 }

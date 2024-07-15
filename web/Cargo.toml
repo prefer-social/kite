@@ -26,7 +26,6 @@ epoch = "0.0.2"
 pem = "3.0.3"
 pickledb = "0.5.1"
 time = "0.3"
-mime = "0.3.17"
 regex = "1.10.2"
 uuid = { version = "1", features = ["v4", "fast-rng"] }
 tracing = "0.1.40"

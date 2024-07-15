@@ -27,6 +27,8 @@ use crate::table::account::Get as _;
 use crate::table::user::Get as _;
 use crate::mastodon::account::field::Field;
 use crate::mastodon::account::source::Source;
+use crate::activitypub::person_actor::PersonActor;
+
 
 /// Account struct  
 /// 
@@ -100,9 +102,11 @@ pub struct Account {
     pub public_key: Option<String>,
 }
 
+type MAccount = Account;
+
 impl Account {
-    /// Get default_user (owner)
-    pub async fn default_user() -> Result<(Account, User)> {
+    /// Getting Mastodon Account for default user(owner).  
+    pub async fn default() -> Result<(MAccount, User)> {
         let du = crate::table::user::User::default_user()
             .await?
             .first()
@@ -111,11 +115,12 @@ impl Account {
         let user = crate::mastodon::user::User::from(du);
         let account_id =
             crate::mastodon::uid::Uid(user.account_id.clone().unwrap());
-        let account = Self::get(account_id).await?;
+        let account = Self::fr_uid(account_id).await?;
         Ok((account, user))
     }
 
-    pub async fn get_user(&self) -> Result<Option<User>> {
+    /// Geting an Mastodon Account with User.  
+    pub async fn to_user(&self) -> Result<Option<User>> {
         let account_id: String = self.uid.to_string();
         let users = crate::table::user::User::get(("account_id".to_string(), account_id)).await?;
         let user = users.last().map( |x| x.to_owned() );      
@@ -124,110 +129,10 @@ impl Account {
         let mastodon_user = crate::mastodon::user::User::from(user.unwrap());
         Ok(Some(mastodon_user))
     }
-}
 
-impl TryFrom<TAccount> for Account {
-    type Error = ();
-    fn try_from(acct_tbl: TAccount) -> Result<Self, Self::Error> {
-        let bot: bool = match acct_tbl.actor_type.unwrap().as_str() {
-            "service" => true,
-            _ => false,
-        };
-
-        let account = Account {
-            uid: acct_tbl.uid.into(),
-            username: acct_tbl.username.clone().into(),
-            acct: format!(
-                "{}@{}",
-                acct_tbl.username.to_string(),
-                acct_tbl.domain.unwrap()
-            ),
-            display_name: acct_tbl.display_name,
-            locked: acct_tbl.locked.unwrap_or_default(),
-            bot: bot,
-            discoverable: acct_tbl.discoverable.unwrap_or_default(),
-            created_at: DateTime::from_timestamp(
-                acct_tbl.created_at,
-                0,
-            )
-            .unwrap(),
-            note: acct_tbl.note,
-            url: acct_tbl.url.unwrap_or_default(),
-            avatar: acct_tbl.avatar_remote_url.clone().unwrap_or_default(),
-            avatar_static: acct_tbl
-                .avatar_remote_url
-                .clone()
-                .unwrap_or_default(),
-            header: acct_tbl.header_remote_url.clone().unwrap_or_default(),
-            header_static: acct_tbl.header_remote_url.unwrap_or_default(),
-            followers_count: 0,
-            following_count: 0,
-            statuses_count: 0,
-            ..Default::default()
-        };
-        Ok(account)
-    }
-}
-
-impl TryFrom<crate::activitypub::person_actor::PersonActor> for Account {
-    type Error = anyhow::Error;
-    fn try_from(
-        _actor: crate::activitypub::person_actor::PersonActor,
-    ) -> Result<Account, Self::Error> {
-        todo!()
-    }
-}
-
-impl TryInto<String> for Account {
-    type Error = ();
-    fn try_into(self) -> Result<String, Self::Error> {
-        Ok(serde_json::to_string(&self).unwrap())
-    }
-}
-
-impl TryInto<Value> for Account {
-    type Error = ();
-    fn try_into(self) -> Result<Value, Self::Error> {
-        Ok(serde_json::to_value(&self).unwrap())
-    }
-}
-
-#[async_trait]
-pub trait Get<T> {
-    async fn get(a: T) -> Result<Account>;
-}
-
-#[async_trait]
-impl Get<Uid> for Account {
-    async fn get(uid: Uid) -> Result<Account> {
-        let accounts = crate::table::account::Account::get((
-            "uid".to_string(),
-            uid.to_string(),
-        ))
-        .await
-        .unwrap_or_default();
-        let acct_tbl = accounts.into_iter().next().unwrap();
-        Ok(self::Account::try_from(acct_tbl).unwrap())
-    }
-}
-
-#[async_trait]
-impl Get<Username> for Account {
-    async fn get(username: Username) -> Result<Account> {
-        let accounts = crate::table::account::Account::get((
-            "username".to_string(),
-            username.to_string(),
-        ))
-        .await
-        .unwrap_or_default();
-        let acct_tbl = accounts.into_iter().next().unwrap();
-        Ok(self::Account::try_from(acct_tbl).unwrap())
-    }
-}
-
-impl Account {
-    // https://docs.joinmastodon.org/entities/Search/#accounts
-    pub async fn search(st: &String) -> Result<Vec<Account>> {
+    /// Searching account.  
+    /// Mastodon doc: <https://docs.joinmastodon.org/entities/Search/#accounts>
+    pub async fn search(st: &String) -> Result<Vec<MAccount>> {
         let mut search_term: String = st.to_string();
         // Local account: Don't search local acct b/c it is a single user server
         if !search_term.contains("@") && !search_term.starts_with("@") {
@@ -268,47 +173,231 @@ impl Account {
         }
 
         if actor_url == "" { return Ok(Vec::new()) }
-        let actor = Self::get_actor(actor_url, link_type).await?;
-
-        // Put actor into Account tbl
-
-        let acct_tbl = crate::table::account::Account::try_from(actor).unwrap();
-        tracing::debug!("{:?}", acct_tbl);
 
 
-        // Convert acct tbt to mastodon acct
+        tracing::debug!("actor_url: {}", actor_url);
+        tracing::debug!("Getting an actor...");
 
-        let acc = crate::mastodon::account::Account::try_from(acct_tbl).unwrap();
+        // Getting an (Person)Actor
+        let actor = PersonActor::from_url(actor_url, link_type).await?;
+
+        let acct_tbl: TAccount = TAccount::try_from(actor).unwrap();
+        // INSERT tacct into Table
+       
         
-        let a = vec![acc];
+        //let acct_tbl = crate::table::account::Account::try_from(actor).unwrap();
+        //tracing::debug!("acct_tbl -> {:?}", acct_tbl);
+        let acc = MAccount::fr_tbl(acct_tbl).await.unwrap();
+                
+        Ok(vec![acc])
 
-        Ok(a)
 
     }
 
-    pub async fn get_actor(actor_url: String, ct: String) -> Result<crate::activitypub::person_actor::PersonActor> {
+    
+
+    /// Getting statuses_count from Actor url.  
+    pub async fn statuses_count(url: String) -> Result<u32> {
         let request = Request::builder()
             .method(Method::Get)
-            .header("Accept", ct)
-            .uri(actor_url)
+            .uri(url)
+            .header("User-Agent", "prefer.social")
+            .header("Accept", "application/activity+json")
             .build();
-        let response: Response = spin_sdk::http::send(request).await.unwrap();
-        let _status = response.status();
-        let _ct = response.header("content-type").unwrap().as_str().unwrap();
+        let response: Response = spin_sdk::http::send(request).await?;
+        let body = str::from_utf8(response.body()).unwrap();
+        let v: crate::activitypub::outbox::Outbox = serde_json::from_str(body).unwrap();
+        Ok(v.total_items as u32)
+    }
 
-        let actor_str = str::from_utf8(response.body()).unwrap();
-        let actor_value = serde_json::to_value(&actor_str).unwrap();
+    /// Get following_count from Actor url.
+    pub async fn following_count(url: String) -> Result<u32> {
+        let request = Request::builder()
+            .method(Method::Get)
+            .uri(url)
+            .header("User-Agent", "prefer.social")
+            .header("Accept", "application/activity+json")
+            .build();
+        let response: Response = spin_sdk::http::send(request).await?;
+        let body = str::from_utf8(response.body()).unwrap();
+        let v: crate::activitypub::following::Following = serde_json::from_str(body).unwrap();
+        Ok(v.total_items as u32)
+    }
 
-        crate::table::actor_json::ActorJson::put(serde_json::from_str(actor_str).unwrap())
-            .await?;
+    /// Get followers_count from Actor url.  
+    pub async fn followers_count(url: String) -> Result<u32> {
+        let request = Request::builder()
+            .method(Method::Get)
+            .uri(url)
+            .header("User-Agent", "prefer.social")
+            .header("Accept", "application/activity+json")
+            .build();
+        let response: Response = spin_sdk::http::send(request).await?;
+        let body = str::from_utf8(response.body()).unwrap();
+        let v: crate::activitypub::follower::Follower = serde_json::from_str(body).unwrap();
+        Ok(v.total_items as u32)
+    }
 
-        // Convert this to ActivityPub Actor
-        let actor: crate::activitypub::person_actor::PersonActor = crate::activitypub::person_actor::PersonActor::try_from(actor_value).unwrap();
+    /// Getting a (Mastodon) Account from uid.  
+    pub async fn fr_uid(uid: Uid) -> Result<Account> {
+        let accounts = crate::table::account::Account::get((
+             "uid".to_string(),
+             uid.to_string(),
+         ))
+         .await
+         .unwrap_or_default();
+         let acct_tbl = accounts.into_iter().next().unwrap();
+         self::Account::fr_tbl(acct_tbl).await
+    }
 
-        tracing::debug!("-=-=-=-=--=--=-=-=-=-=-=-");
-        tracing::debug!("{:?}", actor);
+    /// Getting a (Mastodon) Account from username.  
+    pub async fn fr_username(username: Username) -> Result<Account> {
+         let accounts: Vec<TAccount> = TAccount::get((
+             "username".to_string(),
+             username.to_string(),
+         ))
+         .await
+         .unwrap_or_default();
+         let acct_tbl = accounts.into_iter().next().unwrap();
+         tracing::debug!("{:?}", acct_tbl);
+         self::Account::fr_tbl(acct_tbl).await
+     }
+
+    /// Getting a (Mastodon) Account from Table Account struct.   
+    pub async fn fr_tbl(tbl: TAccount) -> Result<Self> {
         
+        let bot: bool = match tbl.actor_type.unwrap().as_str() {
+            "service" => true,
+            _ => false,
+        };
 
-        Ok(actor)
+        let account = Account {
+            uid: tbl.uid.into(),
+            username: tbl.username.clone().into(),
+            acct: format!(
+                "{}@{}",
+                tbl.username.to_string(),
+                tbl.domain.unwrap()
+            ),
+            display_name: tbl.display_name,
+            locked: tbl.locked.unwrap_or_default(),
+            bot: bot,
+            discoverable: tbl.discoverable.unwrap_or_default(),
+            created_at: DateTime::from_timestamp(
+                tbl.created_at,
+                0,
+            )
+            .unwrap(),
+            note: tbl.note,
+            url: tbl.url.unwrap_or_default(),
+            avatar: tbl.avatar_remote_url.clone().unwrap_or("https://mstd.seungjin.net/avatars/original/missing.png".to_string()),
+            avatar_static: tbl
+                .avatar_remote_url
+                .clone()
+                .unwrap_or("https://mstd.seungjin.net/avatars/original/missing.png".to_string()),
+            header: tbl.header_remote_url.clone().unwrap_or("https://mstd.seungjin.net/avatars/original/missing.png".to_string()),
+            header_static: tbl.header_remote_url.unwrap_or("https://mstd.seungjin.net/avatars/original/missing.png".to_string()),
+            followers_count: Self::followers_count(tbl.followers_url.to_owned().unwrap()).await?,
+            following_count:  Self::following_count(tbl.following_url.to_owned().unwrap()).await?,
+            statuses_count: Self::statuses_count(tbl.outbox_url.to_owned().unwrap()).await?,
+            ..Default::default()
+        };
+        Ok(account)
+    }
+
+    
+
+}
+
+impl TryInto<String> for Account {
+    type Error = ();
+    fn try_into(self) -> Result<String, Self::Error> {
+        Ok(serde_json::to_string(&self).unwrap())
     }
 }
+
+impl TryInto<Value> for Account {
+    type Error = ();
+    fn try_into(self) -> Result<Value, Self::Error> {
+        Ok(serde_json::to_value(&self).unwrap())
+    }
+}
+
+
+#[async_trait(?Send)]
+pub trait Get<T> {
+    async fn get(a: T) -> Result<Account>;
+}
+
+#[async_trait(?Send)]
+impl Get<Uid> for Account {
+    async fn get(uid: Uid) -> Result<Account> {
+        let accounts = crate::table::account::Account::get((
+            "uid".to_string(),
+            uid.to_string(),
+        ))
+        .await
+        .unwrap_or_default();
+        let acct_tbl = accounts.into_iter().next().unwrap();
+        self::Account::fr_tbl(acct_tbl).await
+    }   
+}
+
+#[async_trait(?Send)]
+impl Get<Username> for Account {
+    async fn get(username: Username) -> Result<Account> {
+        let accounts = crate::table::account::Account::get((
+            "username".to_string(),
+            username.to_string(),
+        ))
+        .await
+        .unwrap_or_default();
+        let acct_tbl = accounts.into_iter().next().unwrap();
+        self::Account::get(acct_tbl).await
+    }
+}
+
+#[async_trait(?Send)]
+impl Get<TAccount> for Account {
+    async fn get(acct_tbl: TAccount) -> Result<Self> {
+
+        let bot: bool = match acct_tbl.actor_type.unwrap().as_str() {
+            "service" => true,
+            _ => false,
+        };
+
+        let account = Account {
+            uid: acct_tbl.uid.into(),
+            username: acct_tbl.username.clone().into(),
+            acct: format!(
+                "{}@{}",
+                acct_tbl.username.to_string(),
+                acct_tbl.domain.unwrap()
+            ),
+            display_name: acct_tbl.display_name,
+            locked: acct_tbl.locked.unwrap_or_default(),
+            bot: bot,
+            discoverable: acct_tbl.discoverable.unwrap_or_default(),
+            created_at: DateTime::from_timestamp(
+                acct_tbl.created_at,
+                0,
+            )
+            .unwrap(),
+            note: acct_tbl.note,
+            url: acct_tbl.url.unwrap_or_default(),
+            avatar: acct_tbl.avatar_remote_url.clone().unwrap_or_default(),
+            avatar_static: acct_tbl
+                .avatar_remote_url
+                .clone()
+                .unwrap_or_default(),
+            header: acct_tbl.header_remote_url.clone().unwrap_or_default(),
+            header_static: acct_tbl.header_remote_url.unwrap_or_default(),
+            followers_count: Self::followers_count(acct_tbl.followers_url.to_owned().unwrap()).await?,
+            following_count:  Self::following_count(acct_tbl.followers_url.to_owned().unwrap()).await?,
+            statuses_count: Self::statuses_count(acct_tbl.followers_url.unwrap().to_owned()).await?,
+            ..Default::default()
+        };
+        Ok(account)
+    }
+}
+

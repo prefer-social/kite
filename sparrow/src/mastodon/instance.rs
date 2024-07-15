@@ -8,7 +8,7 @@ use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 use spin_sdk::variables;
 
-use crate::mastodon::account::{Account, Get};
+use crate::mastodon::account::Account;
 use crate::mastodon::username::Username;
 
 /// Represents the software instance of Mastodon running on this domain.
@@ -85,10 +85,12 @@ impl Instance {
         let settings = crate::table::setting::Setting::all().await.unwrap();
         let username =
             settings.get("site_contact_username").unwrap().to_owned();
+
         let account =
-            crate::mastodon::account::Account::get(Username(username))
+            crate::mastodon::account::Account::fr_username(Username(username))
                 .await
                 .unwrap();
+        tracing::debug!("{:?}", account);
 
         Instance {
             uri: variables::get("domain").unwrap(),

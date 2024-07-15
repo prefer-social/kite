@@ -22,18 +22,18 @@ domain = { required = true }
 [application.trigger.redis]
 address = "redis://{{ redis_credential }}@{{ redis_host }}:{{ redis_port }}"
 
-#[[trigger.http]]
-#route = "/..."
-#component = "web"
-#
-#[component.web]
-#source = "target/wasm32-wasi/release/web.wasm"
-#sqlite_databases = ["default"]
-#allowed_outbound_hosts = ["https://*:*", "http://*:*"]
-#[component.web.build]
-#command = "cargo build --target wasm32-wasi --release"
-#workdir = "web"
-#watch = ["web/src/**/*.rs", "web/Cargo.toml"]
+[[trigger.http]]
+route = "/..."
+component = "web"
+
+[component.web]
+source = "target/wasm32-wasi/release/web.wasm"
+sqlite_databases = ["default"]
+allowed_outbound_hosts = ["https://*:*", "http://*:*"]
+[component.web.build]
+command = "cargo build --target wasm32-wasi --release"
+workdir = "web"
+watch = ["web/src/**/*.rs", "web/Cargo.toml"]
 
 [[trigger.http]]
 route = "/assets/..."
@@ -61,15 +61,15 @@ workdir = "well-known"
 watch = ["well-known/src/**/*.rs", "well-known/Cargo.toml"]
 
 [[trigger.http]]
- route = "/api/..."
- component = "api"
+route = "/api/..."
+component = "api"
 
 [component.api]
 source = "target/wasm32-wasi/release/api.wasm"
 allowed_outbound_hosts = [
- "https://*:*",
- "redis://{{ redis_host }}:{{ redis_port }}",
- "rediss://{{ redis_host }}:{{ redis_port }}",
+    "https://*:*",
+    "redis://{{ redis_host }}:{{ redis_port }}",
+    "rediss://{{ redis_host }}:{{ redis_port }}",
 ]
 sqlite_databases = ["default"]
 key_value_stores = ["mem"]
@@ -90,34 +90,6 @@ s3_endpoint = "{{ s3_endpoint }}"
 s3_region = "{{ s3_region }}"
 domain = "{{ domain }}"
 
-#[[trigger.http]]
-#route = "/api/v2/..."
-#component = "api-v2"
-#
-#[component.api-v2]
-#source = "target/wasm32-wasi/release/api_v2.wasm"
-#allowed_outbound_hosts = [
-#    "https://*:*",
-#    "redis://{{ redis_host }}:{{ redis_port }}",
-#    "rediss://{{ redis_host }}:{{ redis_port }}",
-#]
-#sqlite_databases = ["default"]
-#[component.api-v2.build]
-#command = "cargo build --target wasm32-wasi --release"
-#workdir = "api_v2"
-#watch = ["api_v2/src/**/*.rs", "api_v2/Cargo.toml"]
-#
-#[component.api-v2.variables]
-#redis_host = "{{ redis_host }}"
-#redis_credential = "{{ redis_credential }}"
-#redis_port = "{{ redis_port }}"
-#redis_channel = "{{ redis_channel }}"
-#s3_access_key = "{{ s3_access_key }}"
-#s3_secret_key = "{{ s3_secret_key }}"
-#s3_provider = "{{ s3_provider }}"
-#s3_bucket = "{{ s3_bucket }}"
-#s3_endpoint = "{{ s3_endpoint }}"
-#s3_region = "{{ s3_region }}"
 
 [[trigger.http]]
 route = "/oauth/..."

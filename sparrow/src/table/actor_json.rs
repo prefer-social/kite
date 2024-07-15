@@ -1,4 +1,5 @@
-//! actor_json table  
+//! actor_json table: record all actor(json_)  
+//!
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -6,6 +7,7 @@ use serde_json;
 use serde_json::Value;
 use spin_sqlx::Connection as dbcon;
 
+/// actor_json table struct
 #[derive(
     Serialize, Deserialize, Default, Clone, Debug, PartialEq, sqlx::FromRow,
 )]
@@ -16,6 +18,7 @@ pub struct ActorJson {
 }
 
 impl ActorJson {
+    /// Insert actor(json)
     pub async fn put(actor: Value) -> Result<()> {
         let actor_id = actor["id"].as_str().unwrap();
         let sqlx_conn = dbcon::open_default()?;
@@ -28,10 +31,14 @@ impl ActorJson {
         .fetch_all(&sqlx_conn)
         .await?;
 
-        tracing::debug!("{:?}", actor_json_rows.len());
+        tracing::debug!(
+            "Is this already in the table? {:?}",
+            actor_json_rows.len()
+        );
 
         match actor_json_rows.len() {
             0 => {
+                tracing::debug!("new actor adding...");
                 sqlx::query(
                     "INSERT INTO actor_json (uid, actor_json) VALUES(?,?)",
                 )

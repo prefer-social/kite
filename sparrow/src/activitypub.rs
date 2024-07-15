@@ -5,4 +5,5 @@
 pub mod accepted_activity;
 pub mod follower;
 pub mod following;
+pub mod outbox;
 pub mod person_actor;
