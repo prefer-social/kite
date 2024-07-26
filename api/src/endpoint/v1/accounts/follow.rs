@@ -2,18 +2,17 @@
 // https://docs.joinmastodon.org/methods/accounts/#follow
 
 use anyhow::Result;
-use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
-use spin_sdk::redis;
-use spin_sdk::sqlite::Value as SV;
-use spin_sdk::variables;
-use url::Url;
+use spin_sdk::http::{Method, Params, Request, Response};
 use uuid::Uuid;
 
-use sparrow::activitypub::follower::Follower;
-use sparrow::activitypub::following::Following;
+use sparrow::activitypub::follow::Follow;
+use sparrow::activitypub::person_actor::PersonActor;
 use sparrow::http_response::HttpResponse;
-//use sparrow::postbox::Envelop;
-use sparrow::utils::{get_current_time_in_iso_8601, get_inbox_from_actor};
+use sparrow::mastodon::account::uid::Uid;
+use sparrow::mastodon::account::Account as MAccount;
+use sparrow::mastodon::account::Get as _;
+use sparrow::mastodon::setting::Setting;
+use sparrow::mastodon::token::Token;
 
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
@@ -29,31 +28,48 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
         req.path_and_query().unwrap()
     );
 
-    let who_to_follow = params.get("id").unwrap().to_string();
-    // let recipient = sparrow::utils::get_actor_url_from_id(follow_user)
-    //     .await
-    //     .unwrap();
+    let mut token = req.header("Authorization").unwrap().as_str().unwrap();
+    //if token.starts_with("Bearer ") {
+    //    token = token.replace("Bearer ", "");
+    //}
 
-    // let (federation_id, _private_key) =
-    //     sparrow::utils::get_local_user(userid).await.unwrap();
+    let mut c = token.chars();
+    for _ in "Bearer ".chars().into_iter() {
+        c.next();
+    }
+    token = c.as_str();
 
-    // let my_actor = Url::parse(&federation_id).unwrap();
+    tracing::debug!("{}", token);
 
-    // let uuid = Uuid::now_v7().to_string();
-    // let id = format!(
-    //     "{}://{}/{}",
-    //     String::from(my_actor.scheme()),
-    //     String::from(my_actor.host_str().unwrap()),
-    //     uuid
-    // );
+    let who_to_follow = Uid(params.get("id").unwrap().to_string());
 
-    // let follow_object = Follow {
-    //     context: "https://www.w3.org/ns/activitystreams".to_string(),
-    //     id: id,
-    //     kind: "Follow".to_string(),
-    //     actor: federation_id,
-    //     object: recipient.clone(),
-    // };
+    // Get MAccount info with who_to_follow
+    let to_account = MAccount::get(who_to_follow).await?;
+    //let recipient = to_account.account_uri;
+    let recipient_actor =
+        PersonActor::build(to_account.to_owned()).await.unwrap();
+
+    tracing::debug!("{:?}", to_account);
+
+    // Get MAccount info about me
+    let from_account =
+        Token::owner("Bearer".to_string(), token.to_string()).await?;
+    tracing::debug!("----------------------------------");
+    tracing::debug!("{:?}", from_account);
+    let from_actor =
+        PersonActor::build(from_account.to_owned()).await.unwrap();
+
+    tracing::debug!("{:?}", from_account);
+
+    // ActivityPub request to follow
+
+    let uuid = Uuid::now_v7().to_string();
+    let id = format!("https://{}/{}", Setting::domain().await, uuid);
+
+    let follow_object = Follow::new(id, from_actor, recipient_actor);
+
+    let ss = serde_json::to_string(&follow_object).unwrap();
+    tracing::debug!(ss);
 
     // let envelop = Envelop {
     //     address: recipient.clone(),

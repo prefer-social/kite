@@ -2,7 +2,7 @@
 
 use anyhow::Result;
 use async_trait::async_trait;
-use spin_sqlx::Connection as dbcon;
+use spin_sqlx::sqlite::Connection as dbcon;
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct Follow {
@@ -28,31 +28,29 @@ impl Follow {
         Ok(follows)
     }
 
-    pub async fn get_number_of_followers(account_uuid: String) -> Result<i64> {
+    pub async fn follower_count(account_uid: String) -> Result<u64> {
         let sqlx_conn = dbcon::open_default()?;
         let follows: (i64,) = sqlx::query_as(
-            "SELECT count(*) FROM follow WHERE target_account_uuid = ?",
+            "SELECT count(*) FROM follow WHERE target_account_id = ?",
         )
-        .bind(account_uuid)
+        .bind(account_uid)
         .fetch_one(&sqlx_conn)
         .await?;
-        Ok(follows.0)
+        Ok(follows.0 as u64)
     }
 
-    pub async fn get_number_of_followings(
-        account_uuid: String,
-    ) -> Result<i64> {
+    pub async fn following_count(account_uid: String) -> Result<u64> {
         let sqlx_conn = dbcon::open_default()?;
         let followings: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) AS COUNT FROM follow WHERE account_uuid = ?",
+            "SELECT COUNT(*) AS COUNT FROM follow WHERE account_id = ?",
         )
-        .bind(account_uuid)
+        .bind(account_uid)
         .fetch_one(&sqlx_conn)
         .await?;
-        Ok(followings.0)
+        Ok(followings.0 as u64)
     }
 
-    pub async fn get_followers(account_uuid: String) -> Result<Vec<Follow>> {
+    pub async fn followers(account_uuid: String) -> Result<Vec<Follow>> {
         let sqlx_conn = dbcon::open_default()?;
         let followings: Vec<Follow> = sqlx::query_as("SELECT rowid, * AS COUNT FROM follow WHERE target_account_uuid = ?")
             .bind(account_uuid)
@@ -61,7 +59,7 @@ impl Follow {
         Ok(followings)
     }
 
-    pub async fn get_followings(account_uuid: String) -> Result<Vec<Follow>> {
+    pub async fn followings(account_uuid: String) -> Result<Vec<Follow>> {
         let sqlx_conn = dbcon::open_default()?;
         let followings: Vec<Follow> = sqlx::query_as(
             "SELECT rowid, * AS COUNT FROM follow WHERE account_id = ?",

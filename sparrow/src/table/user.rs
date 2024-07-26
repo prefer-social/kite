@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use serde_derive::{Deserialize, Serialize};
-use spin_sqlx::Connection as dbcon;
+use spin_sqlx::sqlite::Connection as dbcon;
 
 #[derive(
     Clone, Debug, Deserialize, Serialize, PartialEq, Default, sqlx::FromRow,
@@ -57,13 +57,11 @@ impl User {
 
     pub async fn get_encrypted_password(
         username: String,
-        domain: String,
     ) -> Result<Vec<(String,)>> {
         let sqlx_conn = dbcon::open_default()?;
         let encryted_password: Vec<(String, )>  = sqlx::query_as(r#"SELECT user.encrypted_password FROM user 
-        LEFT JOIN account ON user.account_id = account.uid WHERE account.username = ? AND account.domain = ?"#)
+        LEFT JOIN account ON user.account_id = account.uid WHERE account.username = ? AND account.domain IS NULL"#)
         .bind(username)
-        .bind(domain)
         .fetch_all(&sqlx_conn)
         .await?;
         Ok(encryted_password)
@@ -103,7 +101,7 @@ impl Get<(String, String)> for User {
     async fn get((key, val): (String, String)) -> Result<Vec<User>> {
         let aaa = key.to_owned();
         let query_template =
-            format!("SELECT rowid, * FROM account WHERE {} = ?", aaa);
+            format!("SELECT rowid, * FROM user WHERE {} = ?", aaa);
         let sqlx_conn = dbcon::open_default()?;
         let accounts = sqlx::query_as(query_template.as_str())
             .bind(val)

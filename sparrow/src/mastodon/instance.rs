@@ -8,8 +8,10 @@ use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 use spin_sdk::variables;
 
-use crate::mastodon::account::Account;
-use crate::mastodon::username::Username;
+use crate::mastodon::account::uri::Uri as AccountUri;
+use crate::mastodon::account::Account as MAccount;
+use crate::mastodon::account::Get;
+use crate::table::user::User;
 
 /// Represents the software instance of Mastodon running on this domain.
 /// <https://docs.joinmastodon.org/entities/V1_Instance>
@@ -32,7 +34,7 @@ pub struct Instance {
     invites_enabled: bool,
     configuration: Value,
     #[serde(skip_serializing_if = "Option::is_none")]
-    contact_account: Option<Account>,
+    contact_account: Option<MAccount>,
     rules: Vec<String>,
 }
 
@@ -85,12 +87,8 @@ impl Instance {
         let settings = crate::table::setting::Setting::all().await.unwrap();
         let username =
             settings.get("site_contact_username").unwrap().to_owned();
-
-        let account =
-            crate::mastodon::account::Account::fr_username(Username(username))
-                .await
-                .unwrap();
-        tracing::debug!("{:?}", account);
+        let account_uri: AccountUri = AccountUri::new(username, None);
+        let maccount = MAccount::get(account_uri).await.unwrap();
 
         Instance {
             uri: variables::get("domain").unwrap(),
@@ -104,13 +102,11 @@ impl Instance {
             version: settings.get("site_version").unwrap().to_string(),
             urls: None,
             stats: Some(Stats {
-                user_count: crate::table::user::User::user_count()
-                    .await
-                    .unwrap(),
+                user_count: User::user_count().await.unwrap(),
                 status_count: 0,
                 domain_count: 1,
             }),
-            contact_account: Some(account),
+            contact_account: Some(maccount),
             ..Default::default()
         }
     }

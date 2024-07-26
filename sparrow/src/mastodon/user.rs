@@ -17,8 +17,9 @@ use crate::table::user::Get as _;
 
 #[derive(Default, Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct User {
-    pub uid: Option<String>,     // not null, primary key
-    pub email: Option<String>,   // default(""), not null
+    /// Uuid v7 value  
+    pub uid: Option<String>, // not null, primary key
+    pub email: Option<String>, // default(""), not null
     pub created_at: Option<i64>, // not null
     pub updated_at: Option<i64>, // not null
     pub encrypted_password: Option<String>, // default(""), not null
@@ -111,13 +112,18 @@ impl Into<Value> for User {
 }
 
 impl User {
-    pub async fn validate(username: String, password: String) -> Result<bool> {
-        let domain = variables::get("domain")
-            .expect("domain is not propery set in SPIN_VARIABLE");
+    pub async fn default() -> Result<Self> {
+        let user = crate::table::user::User::default_user()
+            .await?
+            .first()
+            .unwrap()
+            .to_owned();
+        Ok(Self::from(user))
+    }
 
+    pub async fn validate(username: String, password: String) -> Result<bool> {
         let encrypted_password =
-            crate::table::user::User::get_encrypted_password(username, domain)
-                .await?;
+            crate::table::user::User::get_encrypted_password(username).await?;
 
         if encrypted_password.is_empty() {
             return Ok(false);
@@ -133,30 +139,28 @@ impl User {
 
 #[async_trait]
 pub trait Get<T> {
-    async fn get(a: T) -> Result<Vec<crate::mastodon::user::User>>;
+    async fn get(a: T) -> Result<Option<User>>;
 }
 
 #[async_trait]
 impl Get<MAccount> for User {
     async fn get(
         account: MAccount,
-    ) -> Result<Vec<crate::mastodon::user::User>> {
+    ) -> Result<Option<crate::mastodon::user::User>> {
         let account_id = account.uid.to_string();
 
         let user = crate::table::user::User::get((
             "account_id".to_string(),
             account_id,
         ))
-        .await
-        .unwrap_or_default();
+        .await?;
 
         if user.is_empty() {
-            let empty_vector = Vec::new();
-            return Ok(empty_vector);
+            return Ok(None);
         }
         let user_row = user.last().unwrap().to_owned();
         let mastodon_user = vec![Self::try_from(user_row).unwrap()];
 
-        Ok(mastodon_user)
+        Ok(Some(mastodon_user.last().unwrap().to_owned()))
     }
 }

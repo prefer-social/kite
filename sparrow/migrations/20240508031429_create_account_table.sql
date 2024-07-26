@@ -20,7 +20,7 @@ CREATE TABLE account (
     header_updated_at INTEGER,
     avatar_remote_url TEXT,
     locked BOOLEAN DEFAULT FALSE NOT NULL,
-    header_remote_url TEXT DEFAULT "" NOT NULL,
+    header_remote_url TEXT,
     last_webfingered_at INTEGER,
     inbox_url TEXT DEFAULT "" NOT NULL,
     outbox_url TEXT DEFAULT "" NOT NULL,
@@ -48,7 +48,6 @@ CREATE TABLE account (
     requested_review_at INTEGER,
     indexable BOOLEAN DEFAULT FALSE NOT NULL
 );
-
 
 
 

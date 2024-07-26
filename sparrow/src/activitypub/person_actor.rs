@@ -8,8 +8,12 @@ use serde_json::Value;
 use spin_sdk::http::{Method, Request, Response};
 use std::str;
 
-use crate::table::account::Account;
-use crate::table::user::User;
+use crate::mastodon::account::Account as MAccount;
+use crate::mastodon::setting::Setting;
+use crate::mastodon::user::Get;
+use crate::mastodon::user::User;
+use crate::table::account::Account as TAccount;
+use crate::table::account::Put;
 
 /// Person Actor
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -17,6 +21,7 @@ use crate::table::user::User;
 pub struct PersonActor {
     #[serde(rename = "@context")]
     pub context: Value,
+    /// Actor's id is actorl url.  
     pub id: String,
     #[serde(rename = "type")]
     pub actor_type: String,
@@ -72,23 +77,33 @@ pub struct Endpoints {
 }
 
 impl PersonActor {
-    pub async fn build(u: User, a: Account) -> Result<Self> {
+    /// Get PersonActor struct from MAccount
+    pub async fn build(a: MAccount) -> Result<Self> {
+        // Git User struct from Account (User.account_id = Account.uid)
+        //let u = User::get(a.to_owned()).await?;
+        // if u is None, means it is not local user.
+
+        let domain = match a.local() {
+            true => Setting::domain().await,
+            _ => a.account_uri.domain.unwrap(),
+        };
+
         let pk = PublicKey {
-            id: format!("{}#main-key", a.uri.clone().clone()),
-            owner: a.clone().uri.clone(),
+            id: format!("{}#main-key", a.url.clone()),
+            owner: a.url.to_owned(),
             public_key_pem: a.public_key,
         };
 
         let icon = Image {
             kind: "Image".to_string(),
             media_type: "image/jpeg".to_string(),
-            url: a.avatar_remote_url.unwrap(),
+            url: a.avatar,
         };
 
         let image = Image {
             kind: "Image".to_string(),
             media_type: "image/jpeg".to_string(),
-            url: a.header_remote_url.unwrap(),
+            url: a.header,
         };
 
         let username = a.username;
@@ -99,32 +114,37 @@ impl PersonActor {
         ];
         let ct_val = serde_json::to_value(&ct).unwrap();
 
+        let endpoints = Endpoints {
+            shared_inbox: format!("https://{}/inbox", domain),
+        };
+
         let pa = PersonActor {
             context: ct_val,
-            id: a.uri,
+            id: a.actor_url.to_string(),
             actor_type: "Person".to_string(),
-            following: a.following_url.unwrap().clone(),
-            followers: a.followers_url.unwrap().clone(),
-            inbox: a.inbox_url.unwrap().clone(),
-            outbox: a.outbox_url.unwrap().clone(),
-            featured: "".to_string(),      // Todo:
-            featured_tags: "".to_string(), // Todo:
-            preferred_username: username.clone(), //a.display_name.unwrap().clone(),
-            name: username,
-            summary: a.note,
-            url: a.url.unwrap(),
+            following: a.following_url.to_owned().unwrap_or_default(),
+            followers: a.followers_url.to_owned().unwrap_or_default(),
+            inbox: a.inbox_url.to_owned().unwrap_or_default(),
+            outbox: a.outbox_url.to_owned().unwrap_or_default(),
+            featured: format!("https://{}/collections/featured", domain), // Todo:
+            featured_tags: format!("https://{}/collections/tags", domain), // Todo:
+            preferred_username: username.to_string().to_owned(),
+            name: a.display_name.to_owned(),
+            summary: a.note.to_owned(),
+            url: a.url.to_owned(),
             manually_approves_followers: false, // Todo:
-            discoverable: a.discoverable.unwrap_or_default(),
-            indexable: a.indexable.unwrap_or_default(),
+            discoverable: a.discoverable.to_owned(),
+            indexable: a.indexable.to_owned().unwrap_or_default(),
             published: crate::utils::convert_epoch_to_iso_8601(
-                u.created_at.unwrap(),
+                a.created_at.timestamp(),
             )
             .await,
             memorial: Some(false),
             devices: None,
             public_key: pk,
-            tag: vec![Value::Null],
-            attachment: vec![Value::Null],
+            tag: Vec::new(),
+            attachment: Vec::new(),
+            endpoints: endpoints,
             icon: Some(icon),
             image: Some(image),
             ..Default::default()
@@ -132,125 +152,17 @@ impl PersonActor {
         Ok(pa)
     }
 
-    // async fn get_public_key(u: User) -> PublicKey {
-    //     let account_id = u.account_id;
-    //     let account =
-    //         crate::table::account::Account::get_with_userid(account_id)
-    //             .await
-    //             .unwrap()
-    //             .unwrap();
-    //     let my_account = account.get(0).unwrap();
-    //     let federation_id = my_account.clone().federation_id().await.unwrap();
-    //     let pubkey = my_account.clone().public_key;
-    //     PublicKey {
-    //         id: format!("{}#main-key", federation_id),
-    //         owner: federation_id,
-    //         public_key_pem: pubkey,
-    //     }
-    // }
-
-    // pub async fn create(acct: Account) -> Result<PersonActor> {
-    //     let fmt = StrftimeItems::new("%Y-%m-%d %H:%M:%S");
-    //     let pub_date =
-    //         acct.created_at.format_with_items(fmt.clone()).to_string();
-
-    //     let federation_id = acct.federation_id().await.unwrap();
-
-    //     let public_key_pem = acct.public_key;
-    //     let pk = PublicKey {
-    //         id: format!("{}#main-key", federation_id.clone()),
-    //         owner: federation_id.clone(),
-    //         public_key_pem: public_key_pem,
-    //     };
-
-    //     let avatar_remote_url = acct.avatar_remote_url.unwrap();
-    //     let icon = Image {
-    //         kind: "Image".to_string(),
-    //         media_type: "image/jpeg".to_string(),
-    //         url: avatar_remote_url,
-    //     };
-
-    //     let image = Image {
-    //         kind: "Image".to_string(),
-    //         media_type: "image/jpeg".to_string(),
-    //         url: acct.header_remote_url.unwrap(),
-    //     };
-
-    //     let pa = PersonActor {
-    //         context: vec![
-    //             "https://www.w3.org/ns/activitystreams".to_string(),
-    //             "https://w3id.org/security/v1".to_string(),
-    //         ],
-    //         id: federation_id,
-    //         kind: "Person".to_string(),
-    //         following: todo!(),
-    //         followers: acct.followers_url,
-    //         inbox: acct.inbox_url,
-    //         outbox: acct.outbox_url,
-    //         featured: "".to_string(),      // Todo:
-    //         featured_tags: "".to_string(), // Todo:
-    //         preferred_username: acct.username,
-    //         name: acct.username,
-    //         summary: acct.note,
-    //         url: acct.url,
-    //         manually_approves_followers: false, // Todo:
-    //         discoverable: acct.discoverable.unwrap(),
-    //         indexable: acct.indexable.unwrap(),
-    //         published: pub_date,
-    //         memorial: Some(false),
-    //         devices: None,
-    //         public_key: pk,
-    //         tags: vec![Value::Null],
-    //         attachment: vec![Value::Null],
-    //         icon: icon,
-    //         image: image,
-    //     };
-
-    //     Ok(pa)
-    // }
+    pub async fn store(&self) -> Result<()> {
+        Ok(TAccount::put(self.to_owned()).await?)
+    }
 }
 
 impl TryFrom<serde_json::Value> for PersonActor {
     type Error = ();
     fn try_from(actor_value: serde_json::Value) -> Result<Self, Self::Error> {
+        tracing::debug!("{:?}", actor_value);
         let actor =
             serde_json::from_value::<PersonActor>(actor_value).unwrap();
-        Ok(actor)
-    }
-}
-
-impl PersonActor {
-    /// Getting an Actor from actor_url.  
-    pub async fn from_url(actor_url: String, ct: String) -> Result<Self> {
-        let request = Request::builder()
-            .method(Method::Get)
-            .header("Accept", ct)
-            .uri(actor_url)
-            .build();
-        let response: Response = spin_sdk::http::send(request).await.unwrap();
-        let _status = response.status();
-        let _ct = response.header("content-type").unwrap().as_str().unwrap();
-
-        let actor_str = str::from_utf8(response.body()).unwrap();
-        //tracing::debug!("actor_str: {}", actor_str);
-        let actor_value: Value = serde_json::from_str(actor_str).unwrap();
-        //tracing::debug!("actor_value: {}", actor_value);
-
-        // This saves acor to actor_json table
-        crate::table::actor_json::ActorJson::put(
-            serde_json::from_str(actor_str).unwrap(),
-        )
-        .await?;
-
-        // Convert this to ActivityPub Actor
-        let actor = crate::activitypub::person_actor::PersonActor::try_from(
-            actor_value,
-        )
-        .unwrap();
-
-        tracing::debug!("-=-=-=-=--=--=-=-=-=-=-=-");
-        tracing::debug!("{:?}", actor);
-
         Ok(actor)
     }
 }

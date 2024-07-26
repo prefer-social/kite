@@ -51,7 +51,7 @@ async-trait = "0.1"
 rsa = { version = "0.9", features = ["pem", "serde", "sha2"] }
 spin-sdk = { git = "https://github.com/fermyon/spin-rust-sdk.git", branch = "main" }
 spin-sqlx = { git = "https://github.com/seungjin/spin-sqlx.git", branch = "spin-sdk-main-branch" }
-sqlx = "0.7"
+sqlx = "0.8"
 passwords = "3.1"
 uuid = { version = "1", features = ["v4", "v7", "fast-rng", "js"] }
 validator = { version = "0.18", features = ["derive"] }

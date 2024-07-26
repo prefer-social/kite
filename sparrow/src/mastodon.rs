@@ -10,8 +10,10 @@ use rsa::pkcs8::DecodePublicKey;
 use rsa::sha2::Sha256;
 use rsa::signature::Verifier;
 use rsa::RsaPublicKey;
-use spin_sdk::http::Request;
+use spin_sdk::http::{HeaderValue, Request};
 use std::collections::HashMap;
+
+use crate::table::inbox_log::InboxLog;
 
 pub mod account;
 pub mod application;
@@ -20,6 +22,7 @@ pub mod filter;
 pub mod filter_keyword;
 pub mod filter_result;
 pub mod filter_status;
+pub mod follow;
 pub mod instance;
 pub mod list;
 pub mod media_attachment;
@@ -29,38 +32,47 @@ pub mod preview_card;
 pub mod relationship;
 pub mod relationship_severance_event;
 pub mod report;
+pub mod setting;
 pub mod status;
 pub mod tag;
 pub mod token;
-pub mod uid;
 pub mod user;
 pub mod user_role;
-pub mod username;
 
 // https://github.com/RustCrypto/RSA/issues/341
 
-// TODO: Rename this to signature_verification
-// https://docs.joinmastodon.org/spec/security/#http-verify
-// https://github.com/mastodon/mastodon/blob/main/app/controllers/concerns/signature_verification.rb
-pub async fn validate_mastodon_request(
+/// Validate Mastodon signrature.  
+///
+/// TODO: Rename this to signature_verification
+/// https://docs.joinmastodon.org/spec/security/#http-verify
+/// https://github.com/mastodon/mastodon/blob/main/app/controllers/concerns/signature_verification.rb
+pub async fn validate_signature(
     req: &Request,
     public_key_string: &str,
 ) -> Result<bool> {
-    let hostname = req.header("Host").unwrap().as_str().unwrap();
-    let date = req.header("Date").unwrap().as_str().unwrap();
     let sig_header = req.header("Signature").unwrap().as_str().unwrap();
+    let hostname = req
+        .header("Host")
+        .unwrap_or(req.header("x-forwarded-host").unwrap())
+        .as_str()
+        .unwrap();
+    let date = req.header("Date").unwrap().as_str().unwrap();
     let digest = req.header("Digest").unwrap().as_str().unwrap();
     let content_type = req.header("Content-Type").unwrap().as_str().unwrap();
     let request_path = req.header("spin-path-info").unwrap().as_str().unwrap();
     let request_method = req.method().to_string();
 
-    tracing::debug!("hostname: {hostname}");
-    tracing::debug!("date: {date}");
-    tracing::debug!("sig_header: {sig_header}");
-    tracing::debug!("digest: {digest}");
-    tracing::debug!("content-type: {content_type}");
-    tracing::debug!("request_path: {request_path}");
-    tracing::debug!("request_method: {request_method}");
+    //public_key_string.replace("\n","\r\n");
+    //tracing::debug!(public_key_string);
+
+    // tracing::debug!("sig_header: {sig_header}");
+    // tracing::debug!("hostname: {hostname}");
+    // tracing::debug!("date: {date}");
+    // tracing::debug!("digest: {digest}");
+    // tracing::debug!("content-type: {content_type}");
+    // tracing::debug!("request_path: {request_path}");
+
+    // tracing::debug!("request_method: {request_method}");
 
     fn parse_sig_header(query: &str) -> HashMap<String, String> {
         fn rem_first_and_last(value: &str) -> &str {
@@ -101,7 +113,7 @@ pub async fn validate_mastodon_request(
         content_type,
     );
 
-    tracing::debug!("--> {signature_string}");
+    // tracing::debug!("--> {signature_string}");
 
     let public_key = RsaPublicKey::from_public_key_pem(public_key_string)
         .expect("RsaPublicKey creation failed");
@@ -114,6 +126,18 @@ pub async fn validate_mastodon_request(
     // TODO: Check the signed request was made within the past 12 hours
     // https://docs.joinmastodon.org/spec/security/#http-verify
     let valid_date = true;
+
+    if valid_key && valid_date {
+        let body = String::from_utf8_lossy(req.body()).to_string();
+        InboxLog::put(
+            sig_header.to_string(),
+            sig_header.to_string(),
+            hostname.to_string(),
+            body,
+        )
+        .await
+        .unwrap();
+    }
 
     Ok(valid_key && valid_date)
 }

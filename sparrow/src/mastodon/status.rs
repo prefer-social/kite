@@ -8,9 +8,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::mastodon::{
-    account::Account, custom_emoji::CustomEmoji, filter_result::FilterResult,
+    account::uri::Uri as AccountUri, account::Account as MAccount,
+    custom_emoji::CustomEmoji, filter_result::FilterResult,
     media_attachment::MediaAttachment, poll::Poll, preview_card::PreviewCard,
 };
+use crate::table::status::Status as TStatus;
 
 /// Represents a status posted by an account.  
 /// Mastodon doc: <https://docs.joinmastodon.org/entities/Status/>
@@ -22,12 +24,12 @@ pub struct Status {
     /// ID(uuid v7) of the status in the database.
     #[serde(rename(serialize = "id", deserialize = "id"))]
     pub uid: String,
-    /// URI of the status used for federation.
+    /// URI of the status used for federation. actor_url
     pub uri: String,
     ///  The date when this status was created.
     pub created_at: DateTime<Utc>,
     ///  The account that authored this status.
-    pub account: Account,
+    pub account: MAccount,
     /// HTML-encoded status content.
     pub content: String,
     /// Visibility of this status.
@@ -122,7 +124,12 @@ impl Into<Value> for Status {
 
 impl Status {
     //whose, how many/when
-    pub async fn get(_a: Account) {}
+    pub async fn get(_a: MAccount) {}
+
+    pub async fn count(a: AccountUri) -> Result<u64> {
+        let account_uid = a.account_uid().await.unwrap();
+        Ok(TStatus::count(account_uid.to_string()).await.unwrap() as u64)
+    }
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone)]

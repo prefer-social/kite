@@ -5,7 +5,7 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use serde_json::Value;
-use spin_sqlx::Connection as dbcon;
+use spin_sqlx::sqlite::Connection as dbcon;
 
 /// actor_json table struct
 #[derive(
@@ -20,7 +20,14 @@ pub struct ActorJson {
 impl ActorJson {
     /// Insert actor(json)
     pub async fn put(actor: Value) -> Result<()> {
-        let actor_id = actor["id"].as_str().unwrap();
+        let actor_id = match actor["id"].as_str() {
+            Some(id) => id,
+            None => {
+                tracing::debug!("Can't find actor's ID from given actor");
+                tracing::debug!("{:?}", actor);
+                return Ok(());
+            }
+        };
         let sqlx_conn = dbcon::open_default()?;
         let actor_json_string = serde_json::to_string(&actor).unwrap();
 

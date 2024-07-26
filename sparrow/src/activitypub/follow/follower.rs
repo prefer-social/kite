@@ -5,21 +5,22 @@ use serde_json::Value;
 
 use crate::table::account::Account;
 use crate::table::user::User;
+use crate::mastodon::account::uid::Uid as AccountUid;
+use crate::mastodon::follow::Follow;
 
 /*
-
-     let a = r#"{
+let a = r#"{
     "@context": "https://www.w3.org/ns/activitystreams",
-    "id": "https://dev.prefer.social/followers",
+    "id": "https://dev.prefer.social/following",
     "type": "OrderedCollection",
-    "totalItems": 110,
-    "first": "https://dev.prefer.social/followers?page=1"
-     }"#;
+    "totalItems": 326,
+    "first": "https://dev.prefer.social/following?page=1"
+    }"#;
 */
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Following {
+pub struct Follower {
     #[serde(rename = "@context")]
     pub context: String,
     pub id: String,
@@ -29,13 +30,13 @@ pub struct Following {
     pub first: String,
 }
 
-impl Following {
-    pub async fn build() -> Following {
-        Following {
+impl Follower {
+    pub async fn build(account_id: AccountUid) -> Follower {
+        Follower {
             context: "https://www.w3.org/ns/activitystreams".to_string(),
             id: "https://dev.prefer.social/followers".to_string(),
             kind: "OrderedCollection".to_string(),
-            total_items: 112,
+            total_items: 326,
             first: "https://dev.prefer.social/followers?page=1".to_string(),
         }
     }

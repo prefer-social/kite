@@ -19,8 +19,12 @@ pub async fn request(req: Request, params: Params) -> Result<Response> {
     }
 }
 
-pub async fn get(_req: Request, params: Params) -> Result<Response> {
-    tracing::debug!("requested -> GET /api/v1/accounts");
+pub async fn get(req: Request, params: Params) -> Result<Response> {
+    tracing::debug!(
+        "requested -> {} {}",
+        req.method().to_string(),
+        req.path_and_query().unwrap()
+    );
     // let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap()
     // {
     //     sparrow::auth::TokenAuth::InValid => {

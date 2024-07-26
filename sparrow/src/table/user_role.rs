@@ -3,7 +3,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use spin_sqlx::Connection as dbcon;
+use spin_sqlx::sqlite::Connection as dbcon;
 
 #[derive(
     Clone, Debug, Deserialize, Serialize, PartialEq, Default, sqlx::FromRow,

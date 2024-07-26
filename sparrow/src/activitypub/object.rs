@@ -1,9 +1,15 @@
-// https://www.w3.org/TR/activitypub/#obj
+use serde::{Serialize, Deserialize};
+/// ActivityPub Object struct
+/// Resource: <https://www.w3.org/TR/activitypub/#obj>
 
-pub struct Object {
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Object<T> {
     #[serde(rename = "@context")]
-    context: String,
-    id: String,
+    pub context: String,
+    pub id: String,
     #[serde(rename = "type")]
-    kind: String,
+    pub kind: String,
+    pub actor: String,
+    //#[serde(skip_serializing_if = "Option::is_none")]
+    pub object: T,
 }

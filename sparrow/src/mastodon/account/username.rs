@@ -4,6 +4,7 @@ use std::fmt;
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone, Eq, PartialEq)]
 pub struct Username(pub String);
+
 impl From<String> for Username {
     fn from(i: String) -> Self {
         Username(i)

@@ -1,15 +1,18 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use serde_derive::{Deserialize, Serialize};
-use spin_sqlx::Connection as dbcon;
+use spin_sqlx::sqlite::Connection as dbcon;
 
+/// Represents a status posted by an account.  
+///
+/// Mastodon doc: <https://docs.joinmastodon.org/entities/Status/>
 #[derive(
     Clone, Debug, Deserialize, Serialize, PartialEq, Default, sqlx::FromRow,
 )]
 pub struct Status {
     pub rowid: String,
     pub uid: String,
-    pub uri: Option<String>,
+    pub uri: String,
     pub text: String,
     pub created_at: i64,
     pub updated_at: Option<i64>,
@@ -23,6 +26,7 @@ pub struct Status {
     pub language: String,
     pub conversation_id: String,
     pub local: bool,
+    /// table account's uid
     pub account_id: String,
     pub application_id: String,
     pub in_reply_to_account_id: String,
@@ -31,6 +35,15 @@ pub struct Status {
     pub edited_at: i64,
     pub trendable: bool,
     pub ordered_media_attachment_ids: String,
+}
+
+impl Status {
+    pub async fn count(account_uid: String) -> Result<u32> {
+        let s: Vec<Status> =
+            Self::get(("account_id".to_string(), account_uid)).await?;
+        // Todo: Check sensitibility and visiblity
+        Ok(s.len() as u32)
+    }
 }
 
 #[async_trait]

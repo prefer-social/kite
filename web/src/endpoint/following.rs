@@ -15,7 +15,7 @@ pub async fn get(req: Request, _params: Params) -> anyhow::Result<Response> {
         .status(200)
         .header("Content-Type", "application/activity+json")
         .body(
-            sparrow::activitypub::following::Following::build()
+            sparrow::activitypub::follow::following::Following::build()
                 .await
                 .to_json_string()
                 .await

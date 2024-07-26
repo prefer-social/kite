@@ -4,10 +4,16 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use spin_sqlx::Connection as dbcon;
+use spin_sdk::sqlite::{Connection, Value};
+use spin_sqlx::sqlite::Connection as dbcon;
+use sqlx::{query_builder::QueryBuilder, Any as AnyDb, Execute};
+use std::any::{type_name, Any};
 use std::time::{SystemTime, UNIX_EPOCH};
 use struct_iterable::Iterable;
 use url::Url;
+
+use crate::activitypub::person_actor::PersonActor;
+use crate::mastodon::account::uri::Uri as AccountUri;
 
 /// DB Account table struct
 #[derive(
@@ -21,7 +27,7 @@ use url::Url;
     Iterable,
 )]
 pub struct Account {
-    /// rowid from sqlite
+    /// rowid from sqlite, If rowid is negative < 0, It's not from table.
     pub rowid: i64,
     /// uid, uuid v7 format. Also when transformed to json, this filed becomes `id`
     #[serde(rename(serialize = "id", deserialize = "id"))]
@@ -43,8 +49,10 @@ pub struct Account {
     pub note: String,
     /// display name, default "", not null
     pub display_name: String,
+    /// actor(activity+json)'s URL, http//mastodon.com/users/userme   
     /// uri, default "", not null
     pub uri: String,
+    /// profile(text/html)'s URL   
     pub url: Option<String>,
     pub avatar_file_name: Option<String>,
     pub avatar_content_type: Option<String>,
@@ -56,7 +64,7 @@ pub struct Account {
     pub header_updated_at: Option<i64>,
     pub avatar_remote_url: Option<String>,
     /// default(FALSE), not null
-    pub locked: Option<bool>,
+    pub locked: Option<i64>,
     /// default(""), not null
     pub header_remote_url: Option<String>,
     pub last_webfingered_at: Option<i64>,
@@ -73,28 +81,30 @@ pub struct Account {
     /// default("ostatus"), not null
     pub protocol: Option<i64>,
     /// default(FALSE), not null
-    pub memorial: Option<bool>,
+    pub memorial: Option<i64>,
     pub moved_to_account_id: Option<i64>,
     pub featured_collection_url: Option<String>,
     pub fields: Option<String>,
     pub actor_type: Option<String>,
-    pub discoverable: Option<bool>,
+    pub discoverable: Option<i64>,
     /// is an Array
     pub also_known_as: Option<String>,
     pub silenced_at: Option<i64>,
     pub suspended_at: Option<i64>,
-    pub hide_collections: Option<bool>,
+    pub hide_collections: Option<i64>,
     pub avatar_storage_schema_version: Option<i64>,
     pub header_storage_schema_version: Option<i64>,
     pub devices_url: Option<String>,
     pub suspension_origin: Option<i64>,
     pub sensitized_at: Option<i64>,
-    pub trendable: Option<bool>,
+    pub trendable: Option<i64>,
     pub reviewed_at: Option<i64>,
     pub requested_review_at: Option<i64>,
     /// default(FALSE), not null
-    pub indexable: Option<bool>,
+    pub indexable: Option<i64>,
 }
+
+type TAccount = Account;
 
 impl Account {
     /// returns all Account rows
@@ -115,19 +125,73 @@ impl Account {
     }
 
     /// Get Account struct by account(username and domain)
-    pub async fn get_with_account(
+    pub async fn fr_username_domain(
         username: String,
-        domain: String,
+        domain: Option<String>,
+    ) -> Result<Option<Account>> {
+        let sqlx_conn = dbcon::open_default()?;
+        let accounts: Vec<Account> = match domain.is_none() { 
+            true => {
+                sqlx::query_as("SELECT rowid, * FROM account WHERE username = ? AND domain IS NULL")
+                    .bind(username)
+                    .fetch_all(&sqlx_conn)
+                    .await?
+            },
+            _ => { 
+                sqlx::query_as( "SELECT rowid, * FROM account WHERE username = ? AND domain = ?")
+                    .bind(username)
+                    .bind(domain)
+                    .fetch_all(&sqlx_conn)
+                    .await?
+            },
+        }; 
+        
+        Ok(Some(accounts.last().unwrap().to_owned()))
+    }
+
+    /// Get Account struct from Account's Uri
+    pub async fn fr_account_uri(
+        account_uri: AccountUri,
     ) -> Result<Option<Account>> {
         let sqlx_conn = dbcon::open_default()?;
         let accounts: Vec<Account> = sqlx::query_as(
             "SELECT rowid, * FROM account WHERE username = ? AND domain = ?",
         )
-        .bind(username)
-        .bind(domain)
+        .bind(account_uri.username)
+        .bind(account_uri.domain)
         .fetch_all(&sqlx_conn)
         .await?;
         Ok(Some(accounts.first().unwrap().to_owned()))
+    }
+
+    /// Get Accounf with oauth access token.  
+    pub async fn fr_token(token: String) -> Result<Vec<Account>> {
+        let sqlx_conn = dbcon::open_default()?;
+        let accounts: Vec<Account> = sqlx::query_as(
+            "SELECT account.rowid, account.* FROM oauth_access_token AS TOKEN INNER JOIN account ON TOKEN.resource_owner_id = account.uid WHERE TOKEN.token = ?",
+        ).bind(token).fetch_all(&sqlx_conn).await?;
+        Ok(accounts)
+    }
+
+    /// Get TAccount from actor url. actor's url is TAccount's uri.
+    pub async fn fr_actor_url(url: String) -> Result<Vec<Account>> {
+        let sqlx_conn = dbcon::open_default()?;
+        let accounts: Vec<Account> = sqlx::query_as(
+            "SELECT account.rowid, account.* FROM account WHERE account.uri = ?",
+        ).bind(url).fetch_all(&sqlx_conn).await?;
+        Ok(accounts)
+    }
+
+    /// Check account already existed in datbase table.  
+    pub async fn is_exist(username: String, domain: String) -> Result<bool> {
+        let connection = Connection::open_default()?;
+        let execute_params = [
+            Value::Text(username.to_owned()),
+            Value::Text(domain.to_owned()),
+        ];
+        let count = connection.execute("SELECT count(*) AS cnt FROM account WHERE account.username = ? AND account.domain = ?", execute_params.as_slice())?;
+        let cnt = count.rows().next().unwrap().get::<i64>("cnt").unwrap();
+        Ok(cnt > 0)
     }
 }
 
@@ -145,6 +209,7 @@ impl Get<(String, String)> for Account {
     async fn get((key, val): (String, String)) -> Result<Vec<Account>> {
         let query_template =
             format!("SELECT rowid, * FROM account WHERE {} = ?", key);
+
         let sqlx_conn = dbcon::open_default()?;
         let accounts = sqlx::query_as(query_template.as_str())
             .bind(val)
@@ -154,97 +219,258 @@ impl Get<(String, String)> for Account {
     }
 }
 
+#[async_trait]
+impl Get<AccountUri> for Account {
+    async fn get(uri: AccountUri) -> Result<Vec<Account>> {
+        let sqlx_conn = dbcon::open_default()?;
+        let accounts: Vec<TAccount> = match uri.domain {
+            Some(d) => {
+                let query_template = format!("SELECT rowid, * FROM account WHERE username = ? AND domain = ?");
+                sqlx::query_as(query_template.as_str())
+                    .bind(uri.username)
+                    .bind(d)
+                    .fetch_all(&sqlx_conn)
+                    .await?
+            }
+            None => {
+                let query_template = format!("SELECT rowid, * FROM account WHERE username = ? AND domain IS NULL");
+                sqlx::query_as(query_template.as_str())
+                    .bind(uri.username)
+                    .fetch_all(&sqlx_conn)
+                    .await?
+            }
+        };
+
+        //let a = accounts.map_err(|e| format!("Error: {}", e)).unwrap();
+
+        Ok(accounts)
+    }
+}
+
+/// Trait Put: Inserting into account table.  
 #[async_trait(?Send)]
 pub trait Put<T> {
+    /// Inserting into account table.  
     async fn put(arg: T) -> Result<()>;
+
+    /// Update account table
+    async fn update(arg: T) -> Result<()>;
 }
 
 #[async_trait(?Send)]
-impl Put<crate::activitypub::person_actor::PersonActor> for Account {
-    async fn put(
-        actor: crate::activitypub::person_actor::PersonActor,
-    ) -> Result<()> {
+impl Put<PersonActor> for Account {
+    async fn put(actor: PersonActor) -> Result<()> {
+        // Todo: Convert PersonActor -> TAccount -> Insert TAccount
+        // try_from -> put
+
         let account = Self::try_from(actor).unwrap();
+        Self::put(account).await?;
 
-        for (name, value) in account.iter() {
-            println!("{:?}", name);
-        }
+        Ok(())
+    }
 
-        let a = r#"INSERT INTO account (
-         uid ,
-        username ,
-    domain ,
-    public_key,
-    note, 
-    display_name,
-    uri,
-    url,
-    avatar_file_name,
-    avatar_content_type,
-    avatar_file_size,
-    avatar_updated_at,
-    header_file_name,
-    header_content_type,
-    header_file_size,
-    header_updated_at,
-    avatar_remote_url,
-    locked BOOLEAN,
-    header_remote_url,
-    last_webfingered_at,
-    inbox_url,
-    outbox_url,
-    shared_inbox_url,
-    followers_url,
-    following_url,
-    protocol,
-    memorial,
-    moved_to_account_id bigint,
-    featured_collection_url,
-    fields,
-    actor_type,
-    discoverable,
-    also_known_as,
-    silenced_at,
-    suspended_at,
-    hide_collections,
-    avatar_storage_schema_version,
-    header_storage_schema_version,
-    devices_url,
-    suspension_origin,
-    sensitized_at,
-    trendable,
-    reviewed_at,
-    requested_review_at,
-    indexable,        
-        ) VALUES"#;
-
-        let sqlx_conn = dbcon::open_default()?;
-
-        //sqlx::query(
-        //     r#"INSERT INTO account
-        //() VALUES
-        // (?, ?, ?, ?, ?, ?, ?)"#,
-        // )
-        // .bind(token_id.clone())
-        // .bind(crate::utils::random_string(64).await)
-        // .bind(crate::utils::random_string(64).await)
-        // .bind(scope)
-        // .bind(application_id)
-        // .bind(resource_owner_id)
-        // .bind(last_used_ip)
-        // .execute(&sqlx_conn)
-        // .await?;
+    async fn update(_actor: PersonActor) -> Result<()> {
+        // Todo: Here
         Ok(())
     }
 }
 
-impl TryFrom<crate::activitypub::person_actor::PersonActor> for Account {
-    type Error = &'static str;
+#[derive(Debug)]
+enum FieldType {
+    String,
+    OptionString,
+    I64,
+    OptionI64,
+    F64,
+    OptionF64,
+    NotDefined,
+}
+
+fn check_type(v: &dyn Any) -> FieldType {
+    if v.is::<String>() {
+        return FieldType::String;
+    }
+    if v.is::<Option<String>>() {
+        return FieldType::OptionString;
+    }
+    if v.is::<i64>() {
+        return FieldType::I64;
+    }
+    if v.is::<Option<i64>>() {
+        return FieldType::OptionI64;
+    }
+    if v.is::<f64>() {
+        return FieldType::F64;
+    }
+    if v.is::<Option<f64>>() {
+        return FieldType::OptionF64;
+    }
+    FieldType::NotDefined
+}
+
+#[async_trait(?Send)]
+impl Put<Account> for Account {
+    async fn put(tacct: Account) -> Result<()> {
+        // If account already in table, do update
+
+        let username = tacct.username.clone();
+        let domain = tacct.domain.clone().unwrap();
+
+        if Self::is_exist(username, domain).await? {
+            // do update instead of insert
+            return Self::update(tacct).await;
+        }
+
+        let mut fields = "(".to_string();
+        let mut value_mark = "(".to_string();
+        let mut values = Vec::new();
+        let mut execute_params = Vec::new();
+        for (k, v) in tacct.iter() {
+            // Ignore rowid
+            if k == "rowid" {
+                continue;
+            }
+
+            let value = match check_type(v) {
+                FieldType::String => {
+                    v.downcast_ref::<String>().unwrap().to_owned()
+                }
+                FieldType::OptionString => {
+                    let a = &v.downcast_ref::<Option<String>>();
+                    if a.unwrap().is_none() {
+                        continue;
+                    };
+                    a.unwrap().to_owned().unwrap()
+                }
+                FieldType::I64 => v.downcast_ref::<i64>().unwrap().to_string(),
+                FieldType::OptionI64 => {
+                    let a = &v.downcast_ref::<Option<i64>>();
+                    if a.unwrap().is_none() {
+                        continue;
+                    };
+                    a.unwrap().to_owned().unwrap().to_string()
+                }
+                FieldType::I64 => v.downcast_ref::<i64>().unwrap().to_string(),
+                FieldType::OptionI64 => {
+                    let a = &v.downcast_ref::<Option<i64>>();
+                    if a.unwrap().is_none() {
+                        continue;
+                    };
+                    a.unwrap().to_owned().unwrap().to_string()
+                }
+                FieldType::F64 => v.downcast_ref::<f64>().unwrap().to_string(),
+                FieldType::OptionF64 => {
+                    let a = &v.downcast_ref::<Option<f64>>();
+                    if a.unwrap().is_none() {
+                        continue;
+                    };
+                    a.unwrap().to_owned().unwrap().to_string()
+                }
+                _ => "".to_string(),
+            };
+
+            fields.push_str(k);
+            fields.push_str(", ");
+            value_mark.push_str("?, ");
+
+            values.push(value.clone());
+            execute_params.push(Value::Text(value));
+        }
+
+        fields.pop();
+        fields.pop();
+        fields.push_str(")");
+        value_mark.pop();
+        value_mark.pop();
+        value_mark.push_str(")");
+
+        let sql_insert =
+            format!("INSERT INTO account {} VALUES {}", fields, value_mark);
+
+        let connection = Connection::open_default()?;
+        connection.execute(sql_insert.as_str(), execute_params.as_slice())?;
+
+        Ok(())
+    }
+
+    async fn update(tacct: Account) -> Result<()> {
+        // SQL UPDATE
+        // UPDATE table_name
+        // SET column1 = value1, column2 = value2, ...
+        // WHERE condition;
+
+        let mut sets = "".to_string();
+        let mut execute_params = Vec::new();
+        for (k, v) in tacct.iter() {
+            // Todo: Passing Account struct should not include skip_fields fileds at creation time. Check MAccount
+            let skip_fileds = vec!["rowid", "uid", "created_at"];
+            if skip_fileds.contains(&k) {
+                continue;
+            }
+
+            let value = match check_type(v) {
+                FieldType::String => {
+                    v.downcast_ref::<String>().unwrap().to_owned()
+                }
+                FieldType::OptionString => {
+                    let a = &v.downcast_ref::<Option<String>>();
+                    if a.unwrap().is_none() {
+                        continue;
+                    };
+                    a.unwrap().to_owned().unwrap()
+                }
+                FieldType::I64 => v.downcast_ref::<i64>().unwrap().to_string(),
+                FieldType::OptionI64 => {
+                    let a = &v.downcast_ref::<Option<i64>>();
+                    if a.unwrap().is_none() {
+                        continue;
+                    };
+                    a.unwrap().to_owned().unwrap().to_string()
+                }
+                FieldType::F64 => v.downcast_ref::<f64>().unwrap().to_string(),
+                FieldType::OptionF64 => {
+                    let a = &v.downcast_ref::<Option<f64>>();
+                    if a.unwrap().is_none() {
+                        continue;
+                    };
+                    a.unwrap().to_owned().unwrap().to_string()
+                }
+                _ => "".to_string(),
+            };
+
+            sets.push_str(format!("{} = ?, ", k).as_str());
+
+            execute_params.push(Value::Text(value));
+        }
+        let current_unix_time = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
+
+        sets.push_str("updated_at = ?");
+        execute_params.push(Value::Integer(current_unix_time));
+
+        let username = tacct.username.clone();
+        let domain = tacct.domain.clone().unwrap();
+
+        execute_params.push(Value::Text(username));
+        execute_params.push(Value::Text(domain));
+
+        let sql_stmt =
+            format!("UPDATE account SET {} WHERE account.username = ? AND account.domain = ?", sets);
+
+        let connection = Connection::open_default()?;
+        connection.execute(sql_stmt.as_str(), execute_params.as_slice())?;
+
+        Ok(())
+    }
+}
+
+impl TryFrom<PersonActor> for Account {
+    type Error = anyhow::Error;
 
     /// (Person)Actor to Account
-    fn try_from(
-        actor: crate::activitypub::person_actor::PersonActor,
-    ) -> Result<Self, Self::Error> {
+    fn try_from(actor: PersonActor) -> Result<Self, Self::Error> {
         let current_epoch = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -263,6 +489,7 @@ impl TryFrom<crate::activitypub::person_actor::PersonActor> for Account {
             Some(i) => Some(i.to_owned().url),
             None => None,
         };
+
         let header_content_type = match &actor.image {
             Some(i) => Some(i.to_owned().media_type),
             None => None,
@@ -295,14 +522,18 @@ impl TryFrom<crate::activitypub::person_actor::PersonActor> for Account {
             shared_inbox_url: Some(actor.endpoints.shared_inbox), // default(""), not null
             following_url: Some(actor.following),
             followers_url: Some(actor.followers), // default(""), not null
-            memorial: actor.memorial,
+            memorial: Some(actor.memorial.unwrap() as i64),
             featured_collection_url: Some(actor.featured),
             actor_type: Some(actor.actor_type),
-            discoverable: Some(actor.discoverable),
+            discoverable: Some(actor.discoverable as i64),
             devices_url: actor.devices,
-            indexable: Some(actor.indexable),
+            indexable: Some(actor.indexable as i64),
             ..Default::default() // default(FALSE), not null
         };
         Ok(account)
     }
+}
+
+fn type_of<T>(_: T) -> &'static str {
+    type_name::<T>()
 }

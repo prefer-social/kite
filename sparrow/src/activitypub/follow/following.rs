@@ -7,18 +7,19 @@ use crate::table::account::Account;
 use crate::table::user::User;
 
 /*
-let a = r#"{
+
+     let a = r#"{
     "@context": "https://www.w3.org/ns/activitystreams",
-    "id": "https://dev.prefer.social/following",
+    "id": "https://dev.prefer.social/followers",
     "type": "OrderedCollection",
-    "totalItems": 326,
-    "first": "https://dev.prefer.social/following?page=1"
-    }"#;
+    "totalItems": 110,
+    "first": "https://dev.prefer.social/followers?page=1"
+     }"#;
 */
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Follower {
+pub struct Following {
     #[serde(rename = "@context")]
     pub context: String,
     pub id: String,
@@ -28,13 +29,16 @@ pub struct Follower {
     pub first: String,
 }
 
-impl Follower {
-    pub async fn build() -> Follower {
-        Follower {
+impl Following {
+    pub async fn build() -> Following {
+
+        // SELECT COUNT(*) FROM follow WHERE account_id = account_id
+        
+        Following {
             context: "https://www.w3.org/ns/activitystreams".to_string(),
             id: "https://dev.prefer.social/following".to_string(),
             kind: "OrderedCollection".to_string(),
-            total_items: 326,
+            total_items: 112,
             first: "https://dev.prefer.social/following?page=1".to_string(),
         }
     }

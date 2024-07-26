@@ -1,9 +1,10 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use spin_sqlx::Connection as dbcon;
+use spin_sqlx::sqlite::Connection as dbcon;
 
 use super::account::Account;
 
+// oauth_acess_token table.
 #[derive(Default, Clone, Debug, PartialEq, sqlx::FromRow)]
 pub struct OauthAccessToken {
     pub rowid: i64,
@@ -59,16 +60,7 @@ impl OauthAccessToken {
     }
 
     pub async fn validate(token: String) -> Result<Vec<Account>> {
-        tracing::debug!("---=====----======---");
-        tracing::debug!(token);
         let sqlx_conn = dbcon::open_default()?;
-        // let accts: Vec<crate::table::account::Account> = sqlx::query_as(
-        //     r#"SELECT D.rowid, D.* FROM oauth_access_token
-        //     AS A FULL OUTER JOIN oauth_application AS B ON A.application_id = B.uid
-        //     FULL OUTER JOIN user AS C ON B.owner_id = c.uid
-        //     FULL OUTER JOIN account as D ON D.uid = c.account_id
-        //     WHERE A.token = ?"#,
-        // )
         let accts: Vec<crate::table::account::Account> = sqlx::query_as(
             r#"SELECT account.rowid, account.* FROM oauth_access_token 
             INNER JOIN oauth_application ON oauth_access_token.application_id = oauth_application.uid 

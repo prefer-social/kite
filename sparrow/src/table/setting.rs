@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use serde_derive::{Deserialize, Serialize};
-use spin_sqlx::Connection as dbcon;
+use spin_sqlx::sqlite::Connection as dbcon;
 use std::collections::HashMap;
 
 #[derive(
@@ -38,9 +38,9 @@ pub trait Get<T> {
 
 #[async_trait]
 impl Get<(String, String)> for Setting {
-    async fn get((key, val): (String, String)) -> Result<Vec<Setting>> {
+    async fn get((colume, val): (String, String)) -> Result<Vec<Setting>> {
         let query_template =
-            format!("SELECT rowid, * FROM setting WHERE {} = ?", key);
+            format!("SELECT rowid, * FROM setting WHERE {} = ?", colume);
         let sqlx_conn = dbcon::open_default()?;
         let accounts = sqlx::query_as(query_template.as_str())
             .bind(val)

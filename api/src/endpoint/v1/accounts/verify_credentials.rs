@@ -3,11 +3,10 @@
 // Returns: CredentialAccount (https://docs.joinmastodon.org/entities/Account/#CredentialAccount)
 
 use anyhow::Result;
+use spin_sdk::http::{Method, Params, Request, Response};
 use sparrow::http_response::HttpResponse;
-use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
-use spin_sdk::sqlite::Value as SV;
-use std::collections::HashMap;
-use url::Url;
+
+use crate::auth::Authentication as Auth;
 
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
@@ -25,47 +24,14 @@ pub async fn get(req: Request, _params: Params) -> Result<Response> {
         req.path_and_query().unwrap()
     );
 
-    let account = match req.header("authorization") {
-        Some(a) => {
-            let auth_header_string = a.as_str().unwrap();
-            let mut auth_info = auth_header_string.split(" ").into_iter();
-
-            let auth_type = auth_info.next().unwrap();
-            let auth_token = auth_info.next().unwrap();
-
-            let account = sparrow::mastodon::token::Token::validate(
-                auth_type.to_string(),
-                auth_token.to_string(),
-            )
-            .await?;
-            if account.is_none() {
-                let msg =  r#"{ "error": "This method requires an authenticated user"}"#.to_string();
-                return Ok(Response::builder()
-                    .status(442)
-                    .header("Content-Type", "Application/json")
-                    .body(msg)
-                    .build());
-            }
-            account
-        }
-        None => {
-            let msg =
-                r#"{ "error": "This method requires an authenticated user"}"#
-                    .to_string();
-            return Ok(Response::builder()
-                .status(442)
-                .header("Content-Type", "Application/json")
-                .body(msg)
-                .build());
-        }
-    };
+    let account = Auth::verify(req).await;
 
     // Should return https://docs.joinmastodon.org/entities/Account/#CredentialAccount
     let credential_account =
         sparrow::mastodon::account::Account::from(account.unwrap().to_owned());
     let ca: String = credential_account.try_into().unwrap();
 
-    tracing::debug!("veryfy_credentials passord.");
+    tracing::debug!("veryfy_credentials password.");
     tracing::debug!("account response / json returned");
     tracing::debug!(ca);
 

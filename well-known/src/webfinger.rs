@@ -4,12 +4,14 @@ use spin_sdk::http::{IntoResponse, Params, Request, Response};
 use std::collections::HashMap;
 use url::Url;
 
+use sparrow::mastodon::setting::Setting;
+
 /// webfenger service.  
 pub async fn webfinger(
     req: Request,
     _params: Params,
 ) -> anyhow::Result<impl IntoResponse> {
-    let from = req.header("spin-client-addr").unwrap().as_str().unwrap();
+    let from = req.header("x-forwarded-for").unwrap().as_str().unwrap();
     tracing::debug!("-> Webfinger requested from: {from}");
 
     let k = req.query();
@@ -45,7 +47,7 @@ pub async fn webfinger(
         .build())
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 struct Link {
     rel: String,
     #[serde(
@@ -72,18 +74,24 @@ struct Webfinger {
 pub async fn get_webfinger(acct: &str) -> Result<Option<String>> {
     let at = acct.split("@").collect::<Vec<&str>>();
 
-    let mut username = at[0];
+    let mut username = at[0].to_string();
+    let mut domain = Some(at[1].to_string());
+
     let hostname = at[1];
 
+    let instance_domain = Setting::domain().await;
+
+    if instance_domain == domain.clone().unwrap() {
+        domain = None;
+    }
+
     if username == "" {
-        username = at[1].split(".").collect::<Vec<&str>>()[0];
+        username = at[1].split(".").collect::<Vec<&str>>()[0].to_string();
     };
 
-    let account_result = sparrow::table::account::Account::get_with_account(
-        username.to_string(),
-        hostname.to_string(),
-    )
-    .await;
+    let account_result =
+        sparrow::table::account::Account::fr_username_domain(username, domain)
+            .await;
 
     // let account = match account_result.unwrap().unwrap().last().unwrap().clone();
     let account = match account_result.unwrap() {
@@ -91,41 +99,46 @@ pub async fn get_webfinger(acct: &str) -> Result<Option<String>> {
         None => return Ok(None),
     };
 
-    let links = Vec::from([
+    let mut links = Vec::from([
         Link {
             rel: "http://webfinger.net/rel/profile-page".to_string(),
             link_type: Some("text/html".to_string()),
             href: Some(format!("https://{}", hostname)),
-            //href: Some(format!("https://{}/@{}", hostname, username)),
             template: None,
         },
         Link {
             rel: "self".to_string(),
             link_type: Some("application/activity+json".to_string()),
-            //href: Some(format!("https://{}", hostname)), Mastodon does Not like this
-            href: Some(format!("https://{}/users/{}", hostname, username)),
+            href: Some(format!("https://{}/self", hostname)),
             template: None,
         },
         Link {
             rel: "http://ostatus.org/schema/1.0/subscribe".to_string(),
             link_type: None,
             href: None,
-            template: Some(
-                "https://dev.prefer.social/authorize_interaction?uri={uri}"
-                    .to_string(),
-            ),
+            template: Some(format!(
+                "https://{}/authorize_interaction?uri={{uri}}",
+                hostname
+            )),
         },
     ]);
+
+    if account.avatar_remote_url.is_some() {
+        let avatar_link = Link {
+            rel: "http://webfinger.net/rel/avatar".to_string(),
+            link_type: Some("image/jpeg".to_string()),
+            href: account.avatar_remote_url,
+            ..Default::default()
+        };
+
+        links.push(avatar_link);
+    }
 
     let webfinger = Webfinger {
         subject: format!("acct:{}", acct.to_string()),
         aliases: Vec::from([
             format!("https://{}", hostname),
-            format!("https://{}/actor", hostname),
             format!("https://{}/self", hostname),
-            format!("https://{}/@{}", hostname, username),
-            format!("https://{}/users/{}", hostname, username),
-            format!("https://{}/u/{}", hostname, username),
         ]),
         links: links,
     };

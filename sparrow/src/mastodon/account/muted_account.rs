@@ -10,9 +10,9 @@ use serde::{Deserialize, Serialize};
 use std::str;
 
 use crate::mastodon::account::field::Field;
+use crate::mastodon::account::username::Username;
 use crate::mastodon::custom_emoji::CustomEmoji;
-use crate::mastodon::uid::Uid;
-use crate::mastodon::username::Username;
+use crate::mastodon::account::uid::Uid;
 
 #[derive(Default, Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct MutedAccount {

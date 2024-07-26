@@ -30,9 +30,7 @@ pub async fn get_req_query_hash(req: &Request) -> HashMap<String, String> {
     hash_query
 }
 
-pub async fn not_found(_req: Request, _params: Params) -> Result<Response> {
-    Ok(Response::builder().status(404).build())
-}
+
 
 pub async fn unauthorized() -> Result<Response> {
     let json_str = r#"{

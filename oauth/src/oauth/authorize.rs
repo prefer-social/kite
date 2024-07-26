@@ -4,8 +4,10 @@ use std::collections::HashMap;
 use std::str;
 use url::Url;
 
+use sparrow::mastodon::account::uri::Uri as AccountUri;
+use sparrow::mastodon::account::username::Username;
+use sparrow::mastodon::account::Get;
 use sparrow::mastodon::application::Application;
-use sparrow::mastodon::username::Username;
 
 pub async fn request(
     req: Request,
@@ -161,13 +163,14 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
         querystring::querify(body).into_iter().collect();
     let username = a.get("Username").unwrap().to_string();
     let password = a.get("Password").unwrap().to_string();
-
     let referer = req.header("referer").unwrap().as_str().unwrap();
     let r = Url::parse(referer).unwrap();
+    //let domain = r.domain().unwrap().to_string();
     let hash_query: HashMap<_, _> = r.query_pairs().into_owned().collect();
     // {"client_id": "S8G2w1R95d5TDt5Psw80FNx5U4FWr2JHIV490VE61K8b", "redirect_uri": "icecubesapp://", "scope": "read write follow push", "response_type": "code"}
     tracing::debug!("referer ---> {referer}");
     tracing::debug!("hash_query ---> {hash_query:?}");
+    //tracing::debug!("domain ---> {domain}");
 
     let redirect_uri = hash_query.get("redirect_uri").unwrap();
 
@@ -199,9 +202,10 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
             tracing::debug!(code);
             tracing::debug!(username);
 
-            let user = sparrow::mastodon::account::Account::fr_username(
-                Username(username),
-            )
+            let user = sparrow::mastodon::account::Account::get(AccountUri {
+                username,
+                domain: None, // Local account login
+            })
             .await?;
             let user_id = user.uid.to_string();
 

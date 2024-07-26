@@ -1,16 +1,26 @@
 use anyhow::Result;
+use serde_json::Value;
 use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
 use std::collections::HashMap;
 use std::str;
 use url::Url;
 
-pub async fn req(req: Request, params: Params) -> Result<impl IntoResponse> {
-    tracing::debug!("rasars");
+use crate::http_response::HttpResponse;
 
+use sparrow::activitypub::object::Object as APObject;
+use sparrow::activitypub::person_actor::PersonActor;
+use sparrow::mastodon::account::actor_url::ActorUrl;
+use sparrow::mastodon::account::uri as AccountUri;
+use sparrow::mastodon::account::Account as MAccount;
+use sparrow::mastodon::account::Get as _;
+
+// Very special case, web is accessing directly TAccount
+
+pub async fn req(req: Request, params: Params) -> Result<impl IntoResponse> {
     match req.method() {
         Method::Get => get(req, params).await,
         Method::Post => post(req, params).await,
-        _ => sparrow::http_response::HttpResponse::method_not_allowed().await,
+        _ => HttpResponse::method_not_allowed().await,
     }
 }
 
@@ -24,8 +34,6 @@ pub async fn get(_req: Request, _params: Params) -> Result<Response> {
 }
 pub async fn post(req: Request, _params: Params) -> Result<Response> {
     tracing::debug!("POSTED to INBOX");
-    // TODO: First thing to do -> Create my actor/user struct based on user name!
-    // Reuse one for all
 
     let mut header_hashmap = HashMap::new();
     for (k, v) in req.headers() {
@@ -34,18 +42,16 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
         header_hashmap.entry(k).or_insert_with(Vec::new).push(v)
     }
 
-    let headers_json_string = serde_json::to_string(&header_hashmap).unwrap();
-    let body = String::from_utf8_lossy(req.body()).to_string();
-
-    //let sig_header = req.header("Signature").unwrap().as_str().unwrap();
-
+    // Get sig_headers
     let sig_header = match req.header("Signature") {
         Some(s) => s.as_str().unwrap(),
-        None => {
-            return sparrow::http_response::HttpResponse::not_found().await
-        }
+        None => return HttpResponse::invalid_request().await,
     };
 
+    // Get posted body
+    let body = String::from_utf8_lossy(req.body()).to_string();
+
+    // Get Actor id from sig_header. key id
     fn get_id_from_sig_header(query: &str) -> String {
         fn rem_first_and_last(value: &str) -> &str {
             let mut chars = value.chars();
@@ -65,48 +71,52 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
             .unwrap()
             .to_string()
     }
-
     let key_id = get_id_from_sig_header(sig_header);
-
     let ki: Url = key_id.parse().unwrap();
     let actor_from_key_id =
         format!("{}://{}{}", ki.scheme(), ki.host().unwrap(), ki.path());
 
-    tracing::debug!(actor_from_key_id);
+    // Get Actor id from posted body
+    let obj: APObject<Value> = serde_json::from_str(&body)?;
+    let actor_from_body = obj.actor;
 
-    let (account, user) =
-        sparrow::mastodon::account::Account::default().await?;
-
-    let pubkey_str = account.public_key.unwrap();
-
-    return sparrow::http_response::HttpResponse::not_found().await;
-
-    let valid_signature =
-        sparrow::mastodon::validate_mastodon_request(&req, &pubkey_str)
-            .await
-            .unwrap();
-
-    tracing::debug!("valid signature: {:?}", valid_signature);
-
-    let b = str::from_utf8(req.body()).unwrap();
-
-    if valid_signature {
-        tracing::debug!("VALID SIGNATURE");
-        tracing::debug!("body ->\n {b}");
-
-        //record_to_inbox(&req, &b).await?;
-        //handle_activity(b).await?;
-
-        tracing::debug!("----------arisenasrienariseansrietsrrst----");
-    } else {
-        tracing::debug!("NOT VALID SIGNATURE");
-        return sparrow::http_response::HttpResponse::unauthorized().await;
+    // Match them.
+    if actor_from_body != actor_from_key_id {
+        return sparrow::http_response::HttpResponse::invalid_request().await;
     }
 
-    Ok(Response::builder()
-        .status(200)
-        .header("Context-Type", "application/activity+json")
-        .build())
+    let v = serde_json::from_str::<Value>(&body).unwrap();
+    let actor_url_value = v.get::<&str>("actor").unwrap().as_str().unwrap();
+    let actor_url = ActorUrl::new(actor_url_value.to_string()).unwrap();
+    let person_actor = actor_url.actor().await?;
+    person_actor.store().await?;
+
+    // Validate sig header
+    let account = MAccount::get(actor_url).await?.to_owned();
+    let public_key = account.public_key.as_str();
+    if !sparrow::mastodon::validate_signature(&req, public_key).await? {
+        // NOT VALID signature
+        tracing::debug!("NOT VALID SIGNATURE");
+        return HttpResponse::unauthorized().await;
+    }
+
+    // LETS STORE this INBOX Post to DB
+
+    match obj.kind.as_str() {
+        "Follow" => {
+            tracing::debug!("FOLLOW");
+            return HttpResponse::not_implemented().await;
+        }
+        "Undo" => {
+            tracing::debug!("UNDO");
+            return HttpResponse::not_implemented().await;
+        }
+        verb => {
+            tracing::debug!("{} is not implemented yet", obj.kind.as_str());
+            tracing::debug!("{} is not implemented yet", verb);
+            return HttpResponse::invalid_request().await;
+        }
+    }
 }
 
 /*

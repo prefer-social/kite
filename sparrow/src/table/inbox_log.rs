@@ -4,7 +4,7 @@
 
 use anyhow::Result;
 use async_trait::async_trait;
-use spin_sqlx::Connection as dbcon;
+use spin_sqlx::sqlite::Connection as dbcon;
 use uuid::Uuid;
 
 #[derive(Default, Clone, Debug, PartialEq, sqlx::FromRow)]

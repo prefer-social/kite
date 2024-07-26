@@ -8,6 +8,7 @@ use tracing_subscriber::filter::EnvFilter;
 use tracing_subscriber::FmtSubscriber;
 
 pub mod endpoint;
+pub mod auth;
 
 #[http_component]
 async fn handle_api(req: Request) -> Result<impl IntoResponse> {

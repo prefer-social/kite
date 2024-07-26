@@ -11,12 +11,13 @@ use serde::{Deserialize, Serialize};
 use std::str;
 
 use crate::mastodon::account::field::Field;
+use crate::mastodon::account::uid::Uid;
+use crate::mastodon::account::uri::Uri as AccountUri;
+use crate::mastodon::account::username::Username;
 use crate::mastodon::account::Account as MAccount;
 use crate::mastodon::account::Role;
 use crate::mastodon::account::Source;
 use crate::mastodon::custom_emoji::CustomEmoji;
-use crate::mastodon::uid::Uid;
-use crate::mastodon::username::Username;
 
 /// CredentialAccount: Return account when verify_credentials is passed.  
 /// Based on Account but extra fields are added.  
@@ -78,17 +79,17 @@ pub struct CredentialAccount {
     /// Nullable
     pub last_status_at: DateTime<Utc>,
     /// How many statuses are attached to this account.
-    pub statuses_count: u32,
+    pub statuses_count: u64,
     /// The reported followers of this profile.
-    pub followers_count: u32,
+    pub followers_count: u64,
     /// The reported follows of this profile.
-    pub following_count: u32,
+    pub following_count: u64,
     /// Private_key of Account. Not serializable. Available only for local account
     #[serde(skip_serializing, skip_deserializing)]
     pub private_key: Option<String>,
     /// Public_key of Account. Not serializable.
     #[serde(skip_serializing, skip_deserializing)]
-    pub public_key: Option<String>,
+    pub public_key: String,
     /// CredentialAccount entity attributes
     /// An extra attribute that contains source values to be used with API methods that verify credentials and update credentials.
     pub source: Source,
@@ -104,7 +105,6 @@ impl CredentialAccount {
         use crate::mastodon::user::Get as _;
         let user = crate::mastodon::user::User::get(a.clone())
             .await?
-            .last()
             .unwrap()
             .to_owned();
 
@@ -117,7 +117,7 @@ impl CredentialAccount {
         Ok(CredentialAccount {
             uid: a.uid,
             username: a.username,
-            acct: a.acct,
+            acct: AccountUri::try_from(a.acct).unwrap().to_string(),
             url: a.url,
             display_name: a.display_name,
             note: a.note,

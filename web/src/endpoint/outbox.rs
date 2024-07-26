@@ -3,7 +3,6 @@
 
 //use activitystreams::{collection::OrderedCollection, context, iri, object::ApObject, prelude::*};
 
-use crate::utils::not_found;
 use anyhow::Result;
 use serde_derive::{Deserialize, Serialize};
 use spin_sdk::{
@@ -34,8 +33,8 @@ pub struct OutboxActor {
 }
 
 pub async fn req(req: Request, params: Params) -> Result<impl IntoResponse> {
-    match crate::utils::check_request(&req).await {
-        (Method::Get, crate::utils::RenderType::Json) => {
+    match crate::util::check_request(&req).await {
+        (Method::Get, crate::util::RenderType::Json) => {
             emit_json(req, params).await
         }
         (Method::Get, _) => emit_html(req, params).await,
@@ -105,5 +104,5 @@ pub async fn emit_html(_req: Request, params: Params) -> Result<Response> {
 }
 
 pub async fn post(req: Request, params: Params) -> Result<Response> {
-    not_found(req, params).await
+    crate::http_response::HttpResponse::not_found().await
 }
