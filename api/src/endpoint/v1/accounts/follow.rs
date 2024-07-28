@@ -3,21 +3,19 @@
 
 use anyhow::Result;
 use spin_sdk::http::{Method, Params, Request, Response};
-use uuid::Uuid;
 
+use crate::http_response::HttpResponse;
+use sparrow::activitypub::actor::Actor;
 use sparrow::activitypub::follow::Follow;
-use sparrow::activitypub::person_actor::PersonActor;
-use sparrow::http_response::HttpResponse;
 use sparrow::mastodon::account::uid::Uid;
 use sparrow::mastodon::account::Account as MAccount;
 use sparrow::mastodon::account::Get as _;
-use sparrow::mastodon::setting::Setting;
 use sparrow::mastodon::token::Token;
 
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
         Method::Post => post(req, params).await,
-        _ => HttpResponse::not_found().await,
+        _ => HttpResponse::not_found(),
     }
 }
 
@@ -39,37 +37,27 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
     }
     token = c.as_str();
 
-    tracing::debug!("{}", token);
-
     let who_to_follow = Uid(params.get("id").unwrap().to_string());
 
     // Get MAccount info with who_to_follow
     let to_account = MAccount::get(who_to_follow).await?;
     //let recipient = to_account.account_uri;
-    let recipient_actor =
-        PersonActor::build(to_account.to_owned()).await.unwrap();
-
-    tracing::debug!("{:?}", to_account);
+    let recipient_actor = Actor::build(to_account.to_owned()).await.unwrap();
 
     // Get MAccount info about me
     let from_account =
         Token::owner("Bearer".to_string(), token.to_string()).await?;
-    tracing::debug!("----------------------------------");
-    tracing::debug!("{:?}", from_account);
-    let from_actor =
-        PersonActor::build(from_account.to_owned()).await.unwrap();
-
-    tracing::debug!("{:?}", from_account);
+    let from_actor = Actor::build(from_account.to_owned()).await.unwrap();
 
     // ActivityPub request to follow
 
-    let uuid = Uuid::now_v7().to_string();
-    let id = format!("https://{}/{}", Setting::domain().await, uuid);
+    let follow_object = Follow::new(from_actor.id, recipient_actor.id).await;
+    let send_result = sparrow::mastodon::send(follow_object).await?;
 
-    let follow_object = Follow::new(id, from_actor, recipient_actor);
-
-    let ss = serde_json::to_string(&follow_object).unwrap();
-    tracing::debug!(ss);
+    if send_result == 202u16 {
+        // Need to update table.
+        // Follow requested successfully.
+    }
 
     // let envelop = Envelop {
     //     address: recipient.clone(),
@@ -139,5 +127,5 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
     //         .build())
     // }
 
-    Ok(Response::builder().status(200).body("rasars").build())
+    HttpResponse::accepted()
 }

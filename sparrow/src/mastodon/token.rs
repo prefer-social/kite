@@ -97,11 +97,8 @@ impl Token {
         let account_tbl: TAccount =
             TAccount::fr_token(token).await?.last().unwrap().to_owned();
 
-        tracing::debug!("######################################");
-
         let maccount = MAccount::get(account_tbl).await?;
 
-        tracing::debug!("################### 2");
         return Ok(maccount);
         //}
     }

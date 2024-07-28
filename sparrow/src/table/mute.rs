@@ -11,8 +11,8 @@ pub struct Mute {
     pub created_at: i64,
     pub updated_at: i64,
     pub hide_notifications: bool,
-    pub account_id: String,
-    pub target_account_id: String,
+    pub account_uid: String,
+    pub target_account_uid: String,
     pub expires_at: i64,
 }
 

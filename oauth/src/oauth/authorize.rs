@@ -5,9 +5,8 @@ use std::str;
 use url::Url;
 
 use sparrow::mastodon::account::uri::Uri as AccountUri;
-use sparrow::mastodon::account::username::Username;
-use sparrow::mastodon::account::Get;
-use sparrow::mastodon::application::Application;
+use sparrow::mastodon::account::Account as MAccount;
+use sparrow::mastodon::account::Get as _;
 
 pub async fn request(
     req: Request,
@@ -150,7 +149,7 @@ pub fn auth_client_error() -> Result<Response> {
 }
 
 // POST /oauth/authorize
-pub async fn post(req: Request, params: Params) -> Result<Response> {
+pub async fn post(req: Request, _params: Params) -> Result<Response> {
     tracing::debug!(
         "<---------- ({}) {} ({}) --------->",
         req.method().to_string(),
@@ -202,7 +201,7 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
             tracing::debug!(code);
             tracing::debug!(username);
 
-            let user = sparrow::mastodon::account::Account::get(AccountUri {
+            let user = MAccount::get(AccountUri {
                 username,
                 domain: None, // Local account login
             })

@@ -1,9 +1,7 @@
-
 use anyhow::Result;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
-use spin_sdk::http::{Params, Request, Response, Method};
+use spin_sdk::http::{Method, Request, Response};
 use std::collections::HashMap;
-use spin_sdk::http;
 use url::{ParseError, Url};
 
 /// Just generate random url as object id. In a real project, you probably want to use
@@ -26,11 +24,10 @@ pub async fn get_http_headers_map(req: &Request) {
 
 pub async fn get_req_query_hash(req: &Request) -> HashMap<String, String> {
     let parsed_url = Url::parse(req.uri()).unwrap();
-    let hash_query: HashMap<String, String> = parsed_url.query_pairs().into_owned().collect();
+    let hash_query: HashMap<String, String> =
+        parsed_url.query_pairs().into_owned().collect();
     hash_query
 }
-
-
 
 pub async fn unauthorized() -> Result<Response> {
     let json_str = r#"{
@@ -53,7 +50,11 @@ pub async fn get_current_time_in_RFC_1123() -> String {
 }
 
 pub async fn json_requested(req: Request) -> bool {
-    let accept_type = req.header("Accept").unwrap().as_str().unwrap()
+    let accept_type = req
+        .header("Accept")
+        .unwrap()
+        .as_str()
+        .unwrap()
         .split(";")
         .next()
         .unwrap()
@@ -61,22 +62,33 @@ pub async fn json_requested(req: Request) -> bool {
         .collect::<Vec<&str>>();
     //accept_type.contains(&"application/activity+json")
     for i in accept_type {
-        return i.to_string().contains("json")
+        return i.to_string().contains("json");
     }
     false
 }
 
 #[derive(Debug)]
-pub enum RenderType { Html, Json, Xml }
+pub enum RenderType {
+    Html,
+    Json,
+    Xml,
+}
 pub async fn check_request(req: &Request) -> (Method, RenderType) {
     let method = req.method().clone();
-    let accept_type = req.header("Accept").unwrap().as_str().unwrap()
+    let accept_type = req
+        .header("Accept")
+        .unwrap()
+        .as_str()
+        .unwrap()
         .split(";")
         .next()
         .unwrap()
         .split(",")
         .collect::<Vec<&str>>();
-    let a = accept_type.iter().filter(|e| e.to_string().contains("json")).count();
+    let a = accept_type
+        .iter()
+        .filter(|e| e.to_string().contains("json"))
+        .count();
     if a > 0 {
         (method, RenderType::Json)
     } else {

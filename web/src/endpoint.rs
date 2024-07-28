@@ -1,9 +1,8 @@
-use spin_sdk::http::{Params, Request, Response, Router};
+use spin_sdk::http::{Request, Response, Router};
 
 pub mod actor;
 pub mod followers;
 pub mod following;
-pub mod inbox;
 pub mod outbox;
 
 pub async fn router(req: Request) -> Response {
@@ -28,7 +27,7 @@ pub async fn router(req: Request) -> Response {
         .body(req.into_body())
         .build();
 
-    let path = req.path_and_query().unwrap().to_string();
+    let _path = req.path_and_query().unwrap().to_string();
     let owner =
         sparrow::mastodon::setting::Setting::get("site_contact_username")
             .await
@@ -42,7 +41,7 @@ pub async fn router(req: Request) -> Response {
     router.any_async(format!("@{}", owner).as_str(), actor::req);
     // Just to compatible with Mastodon
     router.any_async(format!("/users/{}", owner).as_str(), actor::req);
-    router.any_async("/inbox", inbox::req);
+    //router.any_async("/inbox", inbox::req);
     router.any_async("/outbox", outbox::req);
     router.any_async("/followers", followers::req);
     router.any_async("/following", following::req);
@@ -50,13 +49,4 @@ pub async fn router(req: Request) -> Response {
     router.handle_async(req).await
 
     // }
-}
-
-// foo, for debug purpose
-async fn foo(_req: Request, _params: Params) -> anyhow::Result<Response> {
-    Ok(Response::builder()
-        .status(200)
-        .header("Content-Type", "text/html; charset=UTF-8")
-        .body("foo foo")
-        .build())
 }

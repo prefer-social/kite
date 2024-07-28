@@ -1,0 +1,14 @@
+/*
+{
+  "@context":"https://www.w3.org/ns/activitystreams",
+  "id":"https://mas.to/users/seungjin#follows/6620256/undo",
+  "type":"Undo",
+  "actor":"https://mas.to/users/seungjin",
+  "object":{
+    "id":"https://mas.to/0614bc2a-9db6-463d-b23b-772fca54b47b",
+    "type":"Follow",
+    "actor":"https://mas.to/users/seungjin",
+    "object":"https://dev.prefer.social/self"
+  }
+}
+*/

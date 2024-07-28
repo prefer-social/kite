@@ -1,3 +1,5 @@
+//! Authentificatoin and Authorizaion module.  
+//!
 
 use anyhow::Result;
 use spin_sdk::http::{Method, Params, Request, Response};
@@ -6,7 +8,7 @@ use sparrow::mastodon::account::Account as MAccount;
 pub struct Authentication;
 
 impl Authentication {
-    pub async fn verify(req: Request) -> Option<MAccount> {
+    pub async fn verify(req: &Request) -> Option<MAccount> {
         match req.header("authorization") {
             Some(a) => {
                 let auth_header_string = a.as_str().unwrap();
@@ -18,24 +20,19 @@ impl Authentication {
                 match sparrow::mastodon::token::Token::validate(
                     auth_type.to_string(),
                     auth_token.to_string(),
-                ).await {
+                )
+                .await
+                {
                     Ok(a) => {
                         if a.is_none() {
                             return None;
                         }
                         a
-                    },
-                    Err(r) => {
-                        None
                     }
+                    Err(_r) => None,
                 }
-
-
-
             }
-            None => {
-                None
-            }
+            None => None,
         }
     }
 }

@@ -2,16 +2,7 @@
 //! 
 //! Mastodon reference: <https://docs.joinmastodon.org/entities/Account/>  
 
-pub mod source;
-pub mod field;
-//pub mod credential_account;
-//pub mod muted_account;
-pub mod username; 
-pub mod uri;
-pub mod uid;
-pub mod actor_url;
-
-use anyhow::Result;
+use anyhow::{Result, Error};
 use async_trait::async_trait;
 use chrono::offset::Utc;
 use chrono::DateTime;
@@ -22,6 +13,7 @@ use std::str;
 use regex::Regex;
 use struct_iterable::Iterable;
 
+use crate::activitypub::follow::follower::Follower;
 use crate::mastodon::custom_emoji::CustomEmoji;
 use crate::mastodon::user::User;
 use crate::mastodon::user_role::UserRole as Role;
@@ -35,9 +27,19 @@ use crate::mastodon::follow::Follow;
 use crate::mastodon::status::Status;
 use crate::table::account::Account as TAccount;
 use crate::table::account::Get as _;
+use crate::table::account::Remove as _;
 use crate::table::user::Get as _;
 use crate::table::account::Put as _;
 
+
+pub mod source;
+pub mod field;
+//pub mod credential_account;
+//pub mod muted_account;
+pub mod username; 
+pub mod uri;
+pub mod uid;
+pub mod actor_url;
 
 /// Account struct  
 /// 
@@ -170,12 +172,12 @@ impl Account {
         };
 
         if acct_tbl.private_key.is_some() { // Local user 
-            tracing::debug!("LOCAL USER");
+            //tracing::debug!("LOCAL USER");
             followers_count = Follow::follower_count(account_uri.clone()).await?;
             following_count = 11; //Follow::following_count(account_uri.clone()).await?;
             statuses_count = 11; //Status::count(account_uri).await?;
         } else { // Remote user
-            tracing::debug!("REMOTE USER");
+            //tracing::debug!("REMOTE USER");
             followers_count = Self::followers_count(acct_tbl.followers_url.clone().unwrap()).await?.into();
             following_count =  Self::following_count(acct_tbl.following_url.clone().unwrap()).await?.into();
             statuses_count = Self::statuses_count(acct_tbl.outbox_url.clone().unwrap().to_owned()).await.unwrap();
@@ -250,7 +252,7 @@ impl Account {
     /// Searching account.  
     /// Mastodon doc: <https://docs.joinmastodon.org/entities/Search/#accounts>
     pub async fn search(st: &String) -> Result<Vec<MAccount>> {
-        let mut search_term: String = st.to_string();
+        let mut search_term: String = st.to_string().to_lowercase();
         // Local account: Don't search local acct b/c it is a single user server
         if !search_term.contains("@") && !search_term.starts_with("@") {
             let empty: Vec<Account> = Vec::new();
@@ -264,7 +266,7 @@ impl Account {
         let account_regex = 
             Regex::new(r"^([a-z0-9_+@]([a-z0-9_+.]*[a-z0-9_+])?)@([a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,6}+$)").unwrap();
         if account_regex.is_match(search_term.as_str()) {
-
+            tracing::debug!("Search: AccountUri");
             if search_term.starts_with("@") {
                 search_term = search_term[1..].to_string();
             }
@@ -286,6 +288,7 @@ impl Account {
         let url_regex = 
             Regex::new(r"https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)").unwrap();
         if url_regex.is_match(search_term.as_str()) {
+            tracing::debug!("Seach ActorUrl");
             actor_url = search_term;
         }
 
@@ -329,6 +332,10 @@ impl Account {
             .header("Accept", "application/activity+json")
             .build();
         let response: Response = spin_sdk::http::send(request).await?;
+        match response.status() {
+            410u16 => { return Err(anyhow::Error::msg("Resource is Gone")); },
+            _ => (),
+        }
         let body = str::from_utf8(response.body()).unwrap();
         let v: crate::activitypub::outbox::Outbox = serde_json::from_str(body).unwrap();
         Ok( v.total_items as u64)
@@ -343,6 +350,10 @@ impl Account {
             .header("Accept", "application/activity+json")
             .build();
         let response: Response = spin_sdk::http::send(request).await?;
+        match response.status() {
+            410u16 => { return Err(anyhow::Error::msg("Resource is Gone")); },
+            _ => (),
+        }
         let body = str::from_utf8(response.body()).unwrap();
         let v: crate::activitypub::follow::following::Following = serde_json::from_str(body).unwrap();
         Ok(v.total_items as u32)
@@ -358,60 +369,14 @@ impl Account {
             .header("Accept", "application/activity+json")
             .build();
         let response: Response = spin_sdk::http::send(request).await?;
+        match response.status() {
+            410u16 => { return Err(anyhow::Error::msg("Resource is Gone")); },
+            _ => (),
+        }
         let body = str::from_utf8(response.body()).unwrap();
-        let v: crate::activitypub::follow::follower::Follower = serde_json::from_str(body).unwrap();
+        let v: Follower = serde_json::from_str(body).unwrap();
         Ok(v.total_items as u32)
     }
-
-    // /// Getting a (Mastodon) Account from uid.  
-    // pub async fn fr_uid(uid: AccountUid) -> Result<Account> {
-    //     //tracing::debug!("{}", uid.to_string());
-    //     let accounts = crate::table::account::Account::get((
-    //          "uid".to_string(),
-    //          uid.to_string(),
-    //      ))
-    //      .await
-    //      .unwrap_or_default();
-    //      let acct_tbl = accounts.last().unwrap().to_owned();
-    //      self::Account::fr_tbl(acct_tbl).await
-    // }
-
-    // /// Getting a (Mastodon) Account from AccountUri
-    // pub async fn fr_account_uri(acct_uri: AccountUri) -> Result<Self> {
-    //     let taccounts = TAccount::get(acct_uri)
-    //     .await
-    //     .unwrap();
-    //     // Todo: Should check if returned accounts is None. 
-    //     let acct_tbl = taccounts.last().unwrap().to_owned();
-    //     let a = Box::pin(Self::fr_tbl(acct_tbl)).await.unwrap();
-    //     Ok(a)
-    // }
-
-    // pub async fn fr_actor_url(actor_url: &str) -> Result<Vec<MAccount>> {
-    //     let actor = PersonActor::from_url(actor_url, "application/activity+json").await?;
-
-    //     //tracing::debug!("Received actor: {:?}", actor);
-
-    //     let acct_tbl: TAccount = TAccount::try_from(actor).unwrap();
-
-    //     //tracing::debug!("Generated TAccount from received actor: {:?}", acct_tbl);
-
-    //     // INSERT this searched account into Account table.
-    //     TAccount::put(acct_tbl.clone()).await?;
-
-    //     //tracing::debug!("{:?}", acct_tbl);
-
-    //     //let acc = MAccount::fr_tbl(acct_tbl).await.unwrap();
-    //     let acc = MAccount::get(AccountUri{
-    //         username: acct_tbl.username, domain: acct_tbl.domain.unwrap()
-    //     }).await?;
-
-    //     //tracing::debug!("Generated MAccount from above TAccount: {:?}", acc);
-
-
-    //     Ok(vec![acc])
-    // }
-
     
 }
 
@@ -556,6 +521,34 @@ impl Get<ActorUrl> for Account {
 
     }
 }
+
+#[async_trait(?Send)]
+pub trait Remove<T> {
+    /// Getter for account. 
+    async fn remove(a: T) -> Result<()>;
+}
+
+#[async_trait(?Send)]
+impl Remove<AccountUri> for Account {
+    async fn remove(uri: AccountUri) -> Result<()> {
+        todo!()
+    }
+}
+
+#[async_trait(?Send)]
+impl Remove<ActorUrl> for Account {
+    async fn remove(url: ActorUrl) -> Result<()> {
+        //let accounts = crate::table::account::Account::get(uri).await?;
+        //let acct_tbl: TAccount = accounts.last().unwrap().to_owned();
+        //let a = Self::from_table(acct_tbl).await?;
+        //Ok(a)
+
+        TAccount::remove(url).await
+        
+    }
+}
+
+
 
 fn convert_to_bool(value: i64) -> bool {
     match value {

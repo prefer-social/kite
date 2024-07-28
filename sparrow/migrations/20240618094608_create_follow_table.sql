@@ -15,13 +15,14 @@
 
 
 CREATE TABLE follow (
-    uuid TEXT NOT NULL,
+    uid TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT (unixepoch()) NOT NULL,
     updated_at TIMESTAMP,
-    account_id TEXT NOT NULL,
-    target_account_id TEXT NOT NULL,
+    account_uid TEXT NOT NULL,
+    target_account_uid TEXT NOT NULL,
     show_reblogs BOOLEAN DEFAULT true NOT NULL,
     uri TEXT,
     notify BOOLEAN DEFAULT false NOT NULL,
-    languages TEXT
+    languages TEXT,
+    UNIQUE(account_uid,target_account_uid)
 );

@@ -1598,6 +1598,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "inbox"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64 0.22.1",
+ "chrono",
+ "epoch",
+ "headers",
+ "pem",
+ "rand",
+ "regex",
+ "rsa",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "sha2",
+ "sparrow",
+ "spin-sdk",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "indexmap"
 version = "2.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"

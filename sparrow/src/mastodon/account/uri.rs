@@ -10,7 +10,7 @@ use spin_sdk::http::{Method, Request, Response};
 use std::{fmt, str};
 use url::Url;
 
-use crate::activitypub::person_actor::PersonActor;
+use crate::activitypub::actor::Actor;
 use crate::mastodon::account::actor_url::ActorUrl;
 use crate::mastodon::account::uid::Uid as AccountUid;
 use crate::mastodon::account::Account as MAccount;
@@ -82,8 +82,16 @@ impl Uri {
         }
     }
 
-    pub fn new(username: String, domain: Option<String>) -> Self {
-        Uri { username, domain }
+    pub fn new(username: String, mut domain: Option<String>) -> Self {
+        domain = match domain {
+            None => None,
+            Some(x) => Some(x.to_lowercase()),
+        };
+
+        Uri {
+            username: username.to_lowercase(),
+            domain,
+        }
     }
 
     /// Is local user?  

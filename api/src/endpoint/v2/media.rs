@@ -3,14 +3,15 @@
 //! Mastodon doc: <https://docs.joinmastodon.org/methods/media/>
 
 use anyhow::{Error, Result};
-
 use spin_sdk::http::{Method, Params, Request, Response};
+
+use crate::http_response::HttpResponse;
 
 // https://docs.joinmastodon.org/methods/media/#get
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
         Method::Get => get(req, params).await,
-        _ => return sparrow::http_response::HttpResponse::not_found().await,
+        _ => return HttpResponse::not_found(),
     }
 }
 

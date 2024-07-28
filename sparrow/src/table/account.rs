@@ -6,14 +6,14 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use spin_sdk::sqlite::{Connection, Value};
 use spin_sqlx::sqlite::Connection as dbcon;
-use sqlx::{query_builder::QueryBuilder, Any as AnyDb, Execute};
 use std::any::{type_name, Any};
 use std::time::{SystemTime, UNIX_EPOCH};
 use struct_iterable::Iterable;
 use url::Url;
 
-use crate::activitypub::person_actor::PersonActor;
+use crate::activitypub::actor::Actor;
 use crate::mastodon::account::uri::Uri as AccountUri;
+use crate::mastodon::account::actor_url::ActorUrl;
 
 /// DB Account table struct
 #[derive(
@@ -258,8 +258,8 @@ pub trait Put<T> {
 }
 
 #[async_trait(?Send)]
-impl Put<PersonActor> for Account {
-    async fn put(actor: PersonActor) -> Result<()> {
+impl Put<Actor> for Account {
+    async fn put(actor: Actor) -> Result<()> {
         // Todo: Convert PersonActor -> TAccount -> Insert TAccount
         // try_from -> put
 
@@ -269,7 +269,7 @@ impl Put<PersonActor> for Account {
         Ok(())
     }
 
-    async fn update(_actor: PersonActor) -> Result<()> {
+    async fn update(_actor: Actor) -> Result<()> {
         // Todo: Here
         Ok(())
     }
@@ -466,11 +466,11 @@ impl Put<Account> for Account {
     }
 }
 
-impl TryFrom<PersonActor> for Account {
+impl TryFrom<Actor> for Account {
     type Error = anyhow::Error;
 
     /// (Person)Actor to Account
-    fn try_from(actor: PersonActor) -> Result<Self, Self::Error> {
+    fn try_from(actor: Actor) -> Result<Self, Self::Error> {
         let current_epoch = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -497,9 +497,9 @@ impl TryFrom<PersonActor> for Account {
 
         let account = Account {
             uid: uuid::Uuid::now_v7().to_string(),
-            username: actor.preferred_username,
+            username: actor.preferred_username.to_lowercase(),
             domain: Some(
-                Url::parse(actor.id.as_str())
+                Url::parse(actor.id.to_lowercase().as_str())
                     .unwrap()
                     .domain()
                     .unwrap()
@@ -524,7 +524,7 @@ impl TryFrom<PersonActor> for Account {
             followers_url: Some(actor.followers), // default(""), not null
             memorial: Some(actor.memorial.unwrap() as i64),
             featured_collection_url: Some(actor.featured),
-            actor_type: Some(actor.actor_type),
+            actor_type: Some(actor.actor_type.to_string()),
             discoverable: Some(actor.discoverable as i64),
             devices_url: actor.devices,
             indexable: Some(actor.indexable as i64),
@@ -536,4 +536,23 @@ impl TryFrom<PersonActor> for Account {
 
 fn type_of<T>(_: T) -> &'static str {
     type_name::<T>()
+}
+
+
+#[async_trait]
+pub trait Remove<T> {
+    async fn remove(arg: T) -> Result<()>;
+}
+
+#[async_trait]
+impl Remove<ActorUrl> for Account {
+    async fn remove(actor_url: ActorUrl) -> Result<()> {
+        let sqlx_conn = dbcon::open_default()?;
+        let query_template = format!("DELETE FROM account WHERE uri = ?");
+        sqlx::query(query_template.as_str())
+            .bind(actor_url.to_string())
+            .fetch_all(&sqlx_conn)
+            .await?;
+        Ok(())
+    }
 }

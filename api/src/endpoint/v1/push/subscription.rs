@@ -1,15 +1,13 @@
 use anyhow::Result;
-use sparrow::http_response::HttpResponse;
-use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
-use spin_sdk::sqlite::Value as SV;
-use std::collections::HashMap;
-use url::Url;
+use spin_sdk::http::{Method, Params, Request, Response};
+
+use crate::http_response::HttpResponse;
 
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
         Method::Get => get(req, params).await,
         Method::Post => post(req, params).await,
-        _ => HttpResponse::not_found().await,
+        _ => HttpResponse::not_found(),
     }
 }
 

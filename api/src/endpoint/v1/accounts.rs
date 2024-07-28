@@ -1,3 +1,6 @@
+//! Accounts API  
+//! Mastodon doc: <https://docs.joinmastodon.org/methods/accounts/>
+
 //pub mod statuses;
 //pub mod unfollow;
 pub mod follow;
@@ -8,18 +11,22 @@ pub mod verify_credentials;
 // https://docs.joinmastodon.org/methods/accounts/#get
 
 use anyhow::Result;
-use sparrow::http_response::HttpResponse;
 use spin_sdk::http::{Method, Params, Request, Response};
 
+use crate::http_response::HttpResponse;
+
 pub async fn request(req: Request, params: Params) -> Result<Response> {
-    tracing::debug!("????????????????");
     match req.method() {
         Method::Get => get(req, params).await,
-        _ => HttpResponse::not_found().await,
+        _ => HttpResponse::not_found(),
     }
 }
 
-pub async fn get(req: Request, params: Params) -> Result<Response> {
+/// Get multiple accounts  
+///
+/// `GET /api/v1/accounts HTTP/1.1`
+/// Mastodon doc: <https://docs.joinmastodon.org/methods/accounts/#index>
+pub async fn get(req: Request, _params: Params) -> Result<Response> {
     tracing::debug!(
         "requested -> {} {}",
         req.method().to_string(),
@@ -52,9 +59,5 @@ pub async fn get(req: Request, params: Params) -> Result<Response> {
     // let b = serde_json::to_string(&account).unwrap();
     // tracing::debug!(b);
 
-    Ok(Response::builder()
-        .status(200)
-        .header("Content-Type", "application/activity+json")
-        .body("arsars".to_owned())
-        .build())
+    todo!()
 }

@@ -3,10 +3,10 @@ use chrono::format::strftime::StrftimeItems;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::table::account::Account;
-use crate::table::user::User;
 use crate::mastodon::account::uid::Uid as AccountUid;
 use crate::mastodon::follow::Follow;
+use crate::table::account::Account;
+use crate::table::user::User;
 
 /*
 let a = r#"{
@@ -27,7 +27,8 @@ pub struct Follower {
     #[serde(rename = "type")]
     pub kind: String,
     pub total_items: i64,
-    pub first: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub first: Option<String>,
 }
 
 impl Follower {
@@ -37,7 +38,9 @@ impl Follower {
             id: "https://dev.prefer.social/followers".to_string(),
             kind: "OrderedCollection".to_string(),
             total_items: 326,
-            first: "https://dev.prefer.social/followers?page=1".to_string(),
+            first: Some(
+                "https://dev.prefer.social/followers?page=1".to_string(),
+            ),
         }
     }
 

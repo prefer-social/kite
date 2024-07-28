@@ -4,9 +4,9 @@ use spin_sdk::{
 };
 use tracing_subscriber::{filter::EnvFilter, FmtSubscriber};
 
-pub mod endpoint;
-pub mod http_response;
-pub mod util;
+pub(crate) mod endpoint;
+pub(crate) mod http_response;
+pub(crate) mod util;
 
 /// A Spin HTTP component that internally routes requests.
 #[http_component]

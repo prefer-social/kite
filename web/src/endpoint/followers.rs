@@ -1,12 +1,13 @@
-use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
+use spin_sdk::http::{Method, Params, Request, Response};
 
+use crate::http_response::HttpResponse;
 use sparrow::activitypub::follow::follower::Follower;
 use sparrow::mastodon::account::Account as MAccount;
 
 pub async fn req(req: Request, params: Params) -> anyhow::Result<Response> {
     match req.method() {
         Method::Get => get(req, params).await,
-        _ => sparrow::http_response::HttpResponse::not_found().await,
+        _ => HttpResponse::not_found(),
     }
 }
 

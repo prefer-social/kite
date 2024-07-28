@@ -1,14 +1,16 @@
+//! Mastodon API implementation for prefer.social.  
+
 use anyhow::Result;
 use spin_sdk::{
-    http::{IntoResponse, Request, Response, Router},
+    http::{IntoResponse, Request, Router},
     http_component,
 };
-use tracing::{debug, info};
 use tracing_subscriber::filter::EnvFilter;
 use tracing_subscriber::FmtSubscriber;
 
-pub mod endpoint;
-pub mod auth;
+pub(crate) mod auth;
+pub(crate) mod endpoint;
+pub(crate) mod http_response;
 
 #[http_component]
 async fn handle_api(req: Request) -> Result<impl IntoResponse> {

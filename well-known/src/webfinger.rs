@@ -14,9 +14,7 @@ pub async fn webfinger(
     let from = req.header("x-forwarded-for").unwrap().as_str().unwrap();
     tracing::debug!("-> Webfinger requested from: {from}");
 
-    let k = req.query();
-    tracing::debug!("{k}");
-
+    let _k = req.query();
     let parsed_url = Url::parse(req.uri())?;
 
     let hash_query: HashMap<String, String> =

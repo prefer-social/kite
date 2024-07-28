@@ -2,16 +2,16 @@
 // GET /api/v1/accounts/verify_credentials HTTP/1.1
 // Returns: CredentialAccount (https://docs.joinmastodon.org/entities/Account/#CredentialAccount)
 
+use crate::http_response::HttpResponse;
 use anyhow::Result;
 use spin_sdk::http::{Method, Params, Request, Response};
-use sparrow::http_response::HttpResponse;
 
 use crate::auth::Authentication as Auth;
 
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
         Method::Get => get(req, params).await,
-        _ => HttpResponse::not_found().await,
+        _ => HttpResponse::not_found(),
     }
 }
 
@@ -24,7 +24,7 @@ pub async fn get(req: Request, _params: Params) -> Result<Response> {
         req.path_and_query().unwrap()
     );
 
-    let account = Auth::verify(req).await;
+    let account = Auth::verify(&req).await;
 
     // Should return https://docs.joinmastodon.org/entities/Account/#CredentialAccount
     let credential_account =

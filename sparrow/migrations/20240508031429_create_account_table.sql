@@ -47,6 +47,7 @@ CREATE TABLE account (
     reviewed_at INTEGER,
     requested_review_at INTEGER,
     indexable BOOLEAN DEFAULT FALSE NOT NULL
+    --UNIQUE(username, domain)
 );
 
 

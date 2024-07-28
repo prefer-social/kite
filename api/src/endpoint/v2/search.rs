@@ -6,20 +6,19 @@
 //! Mastodon doc: <https://docs.joinmastodon.org/methods/search/>
 
 use anyhow::Result;
-use regex::Regex;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use sparrow::mastodon::account::Account as MAccount;
 use spin_sdk::http::{Method, Params, Request, Response};
 use std::collections::HashMap;
 use std::str;
-use tracing::debug;
 use url::Url;
+
+use crate::http_response::HttpResponse;
+use sparrow::mastodon::account::Account as MAccount;
 
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
         Method::Get => get(req, params).await,
-        _ => return sparrow::http_response::HttpResponse::not_found().await,
+        _ => return HttpResponse::not_found(),
     }
 }
 

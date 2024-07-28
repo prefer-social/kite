@@ -2,16 +2,14 @@
 
 use anyhow::Result;
 use sparrow::utils::random_string;
-use spin_sdk::{
-    http::{IntoResponse, Method, Params, Request, Response},
-    key_value::Store,
-    sqlite::{Connection, QueryResult, Value},
-};
+use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
 use std::collections::HashMap;
 use std::ops::Add;
 use std::time::Duration;
 use url::Url;
 use uuid::Uuid;
+
+use crate::http_response::HttpResponse;
 
 pub async fn request(
     req: Request,
@@ -19,7 +17,7 @@ pub async fn request(
 ) -> Result<impl IntoResponse> {
     match req.method() {
         Method::Post => post(req, params).await,
-        _ => sparrow::http_response::HttpResponse::not_found().await,
+        _ => HttpResponse::not_found(),
     }
 }
 
@@ -48,7 +46,7 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
         .get("redirect_uris")
         .unwrap_or(&"urn:ietf:wg:oauth:2.0:oob".to_string())
         .to_string();
-    let scopes = query_hashmap
+    let _scopes = query_hashmap
         .get("scopes")
         .unwrap_or(&"read write push".to_string())
         .to_string();

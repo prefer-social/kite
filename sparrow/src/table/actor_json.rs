@@ -38,11 +38,6 @@ impl ActorJson {
         .fetch_all(&sqlx_conn)
         .await?;
 
-        tracing::debug!(
-            "Is this already in the table? {:?}",
-            actor_json_rows.len()
-        );
-
         match actor_json_rows.len() {
             0 => {
                 tracing::debug!("new actor adding...");

@@ -26,20 +26,22 @@ pub struct Following {
     #[serde(rename = "type")]
     pub kind: String,
     pub total_items: i64,
-    pub first: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub first: Option<String>,
 }
 
 impl Following {
     pub async fn build() -> Following {
-
         // SELECT COUNT(*) FROM follow WHERE account_id = account_id
-        
+
         Following {
             context: "https://www.w3.org/ns/activitystreams".to_string(),
             id: "https://dev.prefer.social/following".to_string(),
             kind: "OrderedCollection".to_string(),
             total_items: 112,
-            first: "https://dev.prefer.social/following?page=1".to_string(),
+            first: Some(
+                "https://dev.prefer.social/following?page=1".to_string(),
+            ),
         }
     }
 

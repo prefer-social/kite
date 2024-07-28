@@ -103,7 +103,7 @@ impl HttpResponse {
     }
 
     /// 418 I'm a teapot
-    pub fn i_am_a_teapot() -> Result<Response> {
+    pub fn teapot() -> Result<Response> {
         let m = r#"{"message": "418 I'm a teapot"}"#;
         Ok(Response::builder()
             .status(418)

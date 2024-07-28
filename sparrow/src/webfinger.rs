@@ -75,10 +75,6 @@ impl WebFinger {
             domain, acct
         );
 
-        tracing::debug!("----------------------------------");
-
-        tracing::debug!("----------------------------------");
-
         tracing::debug!("Requesting webfinger: {}", webfinger_url);
 
         let request = Request::builder()

@@ -2,12 +2,14 @@ use anyhow::Result;
 use sparrow::mastodon::instance::Instance;
 use spin_sdk::http::{Method, Params, Request, Response};
 
+use crate::http_response::HttpResponse;
+
 pub mod peer;
 
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
         Method::Get => get(req, params).await,
-        _ => return sparrow::http_response::HttpResponse::not_found().await,
+        _ => return HttpResponse::not_found(),
     }
 }
 

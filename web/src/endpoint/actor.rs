@@ -1,12 +1,12 @@
-use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
+use spin_sdk::http::{Method, Params, Request, Response};
 
-use crate::util;
-use sparrow::activitypub::person_actor::PersonActor;
+use crate::http_response::HttpResponse;
+use sparrow::activitypub::actor::Actor;
 
 pub async fn req(req: Request, params: Params) -> anyhow::Result<Response> {
     match req.method() {
         Method::Get => get(req, params).await,
-        _ => sparrow::http_response::HttpResponse::not_found().await,
+        _ => HttpResponse::not_found(),
     }
 }
 
@@ -19,7 +19,7 @@ pub async fn get(req: Request, _params: Params) -> anyhow::Result<Response> {
 
     let (account, _user) =
         sparrow::mastodon::account::Account::default().await?;
-    let actor = PersonActor::build(account).await.unwrap();
+    let actor = Actor::build(account).await.unwrap();
     let s = serde_json::to_string(&actor).unwrap();
 
     Ok(Response::builder()

@@ -10,6 +10,8 @@ use spin_sdk::{
     sqlite::{Connection, Value},
 };
 
+use crate::http_response::HttpResponse;
+
 // {
 // "@context": "https://www.w3.org/ns/activitystreams",
 // "id": "https://dev.prefer.social/outbox",
@@ -39,7 +41,7 @@ pub async fn req(req: Request, params: Params) -> Result<impl IntoResponse> {
         }
         (Method::Get, _) => emit_html(req, params).await,
         (Method::Post, _) => post(req, params).await,
-        _ => sparrow::http_response::HttpResponse::not_found().await,
+        _ => HttpResponse::not_found(),
     }
 }
 
@@ -104,5 +106,5 @@ pub async fn emit_html(_req: Request, params: Params) -> Result<Response> {
 }
 
 pub async fn post(req: Request, params: Params) -> Result<Response> {
-    crate::http_response::HttpResponse::not_found().await
+    HttpResponse::method_not_allowed()
 }

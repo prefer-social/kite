@@ -1,5 +1,5 @@
 build:
-	cargo doc --no-deps
+	cargo doc --no-deps --workspace
 	cargo build
 
 spin.build:

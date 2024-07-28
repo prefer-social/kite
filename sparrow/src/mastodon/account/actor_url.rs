@@ -3,10 +3,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use spin_sdk::http::{Method, Request, Response};
 use std::default::Default;
+use std::string::ToString;
 use std::{fmt, str};
 use url::Url;
 
-use crate::activitypub::person_actor::PersonActor;
+use crate::activitypub::actor::Actor;
 use crate::table::actor_json::ActorJson;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
@@ -22,7 +23,7 @@ impl ActorUrl {
         }
     }
 
-    pub async fn actor(&self) -> Result<PersonActor> {
+    pub async fn actor(&self) -> Result<Actor> {
         let ct = "application/activity+json";
         let actor_url = self.0.as_ref().unwrap().to_owned();
         let request = Request::builder()
@@ -34,9 +35,24 @@ impl ActorUrl {
         let response: Response = spin_sdk::http::send(request).await.unwrap();
 
         let actor_str = str::from_utf8(response.body()).unwrap();
-        if response.status().to_owned() != 200u16 {
-            tracing::debug!("actor response: {}", response.status());
-            tracing::debug!("actor_str: {}", actor_str);
+
+        match response.status().to_owned() {
+            200 => {}
+            410 => {
+                // Http response 410 is Gone
+                return Err(anyhow::Error::msg(format!(
+                    "Actor {:?} is gone",
+                    self.0.as_ref().unwrap().to_string()
+                )));
+                // TODO: need to delete from db table?
+            } // Gone.
+            r => {
+                tracing::debug!(
+                    "Actor {:?} response is {}",
+                    self.0.as_ref().unwrap(),
+                    r
+                );
+            }
         }
 
         let _ct = response.header("content-type").unwrap().as_str().unwrap();
@@ -46,9 +62,13 @@ impl ActorUrl {
         ActorJson::put(serde_json::from_str(actor_str).unwrap()).await?;
 
         // Convert this to ActivityPub Actor
-        let actor = PersonActor::try_from(actor_value).unwrap();
+        let actor = Actor::try_from(actor_value).unwrap();
 
         Ok(actor)
+    }
+
+    pub async fn remove(&self) {
+        todo!()
     }
 }
 

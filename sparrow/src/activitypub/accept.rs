@@ -1,4 +1,6 @@
-//! ActivityPub's Follow Object.  
+//! Accept activity.    
+//!
+//!
 
 use std::fmt;
 use std::fmt::Debug;
@@ -17,40 +19,39 @@ use crate::mastodon::account::Get as _;
 use crate::mastodon::follow::Follow as MFollow;
 use crate::mastodon::setting::Setting;
 
-pub mod follower;
-pub mod following;
+/*
+{
+  "@context":"https://www.w3.org/ns/activitystreams",
+  "id":"https://mas.to/users/seungjin#accepts/follows/",
+  "type":"Accept",
+  "actor":"https://mas.to/users/seungjin",
+  "object": {
+      "id":"https://dev.prefer.social/0190f4bf-aad1-7290-ac1f-86333df63b82",
+      "type":"Follow",
+      "actor":"https://dev.prefer.social/self",
+      "object":"https://mas.to/users/seungjin"
+   }
+}
+*/
 
-// #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-// pub struct Follow {
-//     #[serde(default = "default_context")]
-//     pub context: String,
-//     pub id: String,
-//     #[serde(default = "follow")]
-//     pub kind: String,
-//     //pub actor: PersonActor,
-//     //pub object: PersonActor,
-//     pub actor: String,
-//     pub object: String,
-// }
-
-/// Follow actor object.  
+/// Accept activity struct.  
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone)]
-pub struct Follow(String);
+pub struct Accept(Value);
 
-impl Follow {
-    /// resturn Follow object.  
-    pub async fn new(actor: String, object: String) -> APObject<Follow> {
+impl Accept {
+    /// resturn Accept object.  
+    pub async fn new(actor: String, object: Value) -> APObject<Accept> {
         let uuid = Uuid::now_v7().to_string();
         let id = format!("https://{}/{}", Setting::domain().await, uuid);
 
-        let follow_object = APObject::new(
+        let accept_object = APObject::new(
             id,
-            ObjectType::Follow,
+            ObjectType::Accept,
             actor,
             None,
             None,
             None,
-            Follow(object),
+            Accept(object),
         );
 
         follow_object
@@ -58,6 +59,11 @@ impl Follow {
 
     /// when follow action received at inbox.  
     pub async fn receive(ap_obj: APObject<Value>) -> Result<APObject<Self>> {
+        tracing::debug!("{:?}", ap_obj);
+
+        tracing::debug!(ap_obj.actor);
+        tracing::debug!("{}", ap_obj.object.as_str().unwrap().to_string());
+
         let subj = ActorUrl::new(ap_obj.actor.clone()).unwrap();
         let obj = ActorUrl::new(ap_obj.object.as_str().unwrap().to_string())
             .unwrap();
@@ -69,7 +75,20 @@ impl Follow {
         let obj_account = MAccount::get(obj).await?;
         let obj_account_id = obj_account.uid;
 
+        tracing::debug!("{} follows {}", obj_account_id, subj_account_id);
         MFollow::new(obj_id.clone(), subj_account_id, obj_account_id).await?;
+
+        //let a2 = serde_json::from_value(ap_obj).unwrap();
+
+        // let follow_object = APObject::new(
+        //     id,
+        //     ObjectType::Follow,
+        //     actor,
+        //     None,
+        //     None,
+        //     None,
+        //     Follow(object),
+        // );
 
         let follow_object = APObject {
             context: ap_obj.context,
@@ -84,24 +103,4 @@ impl Follow {
 
         Ok(follow_object)
     }
-}
-
-impl fmt::Display for Follow {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl fmt::Debug for Follow {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-fn default_context() -> String {
-    "https://www.w3.org/ns/activitystreams".to_string()
-}
-
-fn follow() -> String {
-    "Follow".to_string()
 }

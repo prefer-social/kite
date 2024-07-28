@@ -7,7 +7,7 @@ pub struct Username(pub String);
 
 impl From<String> for Username {
     fn from(i: String) -> Self {
-        Username(i)
+        Username(i.to_lowercase())
     }
 }
 impl Into<String> for Username {
