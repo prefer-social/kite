@@ -8,6 +8,7 @@ use crate::mastodon::account::Get as _;
 use crate::table::follow::Follow as TFollow;
 use anyhow::Result;
 
+/// Follow
 #[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct Follow {
     pub rowid: Option<i64>,
@@ -22,6 +23,7 @@ pub struct Follow {
     pub languages: Option<String>,
 }
 
+/// Relation status between two accounts.  
 #[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub enum FollowRelation {
     #[default]
@@ -37,16 +39,9 @@ impl Follow {
         sub: AccountUid,
         obj: AccountUid,
     ) -> Result<()> {
-        TFollow::new(uri.clone(), sub.clone(), obj.clone()).await
+        TFollow::new(uri, sub, obj).await
         //Self::get(uri, sub, obj).await
     }
-
-    // pub async fn get(
-    //     uri: String,
-    //     sub: AccountUid,
-    //     obj: AccountUid,
-    // ) -> Result<Self> {
-    // }
 
     pub async fn follower_count(account_uri: AccountUri) -> Result<u64> {
         let account_uid = account_uri.account_uid().await.unwrap().to_string();
@@ -60,6 +55,7 @@ impl Follow {
 
     //pub async fn relations(a: MAccount, b: MAccount) -> Result<Vec<Follow>> {}
 
+    /// shows FollowRelation between two accounts.  
     pub async fn relationship(a: MAccount, b: MAccount) -> FollowRelation {
         let c = a.uid.to_string();
         let d = b.uid.to_string();
@@ -71,8 +67,6 @@ impl Follow {
                 .await
                 .unwrap();
 
-        let following: bool;
-        let followed_by: bool;
         return match follow_relationship {
             0 => FollowRelation::None,
             1 => FollowRelation::OnlyA,

@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 use crate::mastodon::account::uid::Uid as AccountUid;
 
+/// follow table in Database
 #[derive(
     Serialize, Deserialize, Default, Clone, Debug, PartialEq, sqlx::FromRow,
 )]

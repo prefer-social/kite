@@ -13,7 +13,8 @@ use std::str;
 use regex::Regex;
 use struct_iterable::Iterable;
 
-use crate::activitypub::follow::follower::Follower;
+use crate::activitystream::activity::follow::Follow as FollowActivity;
+use crate::activitystream::ordered_collection::OrderedCollection;
 use crate::mastodon::custom_emoji::CustomEmoji;
 use crate::mastodon::user::User;
 use crate::mastodon::user_role::UserRole as Role;
@@ -29,7 +30,7 @@ use crate::table::account::Account as TAccount;
 use crate::table::account::Get as _;
 use crate::table::account::Remove as _;
 use crate::table::user::Get as _;
-use crate::table::account::Put as _;
+use crate::table::account::New as _;
 
 
 pub mod source;
@@ -274,6 +275,11 @@ impl Account {
             let webfinger =
                crate::webfinger::WebFinger::query(search_term.as_str()).await?;
 
+            // Webfinger query returns None.  
+            if webfinger.is_none() {
+                return Ok(Vec::new());
+            }
+
             let links = webfinger.unwrap().links;
 
             for link in links.iter() {
@@ -308,7 +314,7 @@ impl Account {
         //tracing::debug!("Generated TAccount from received actor: {:?}", acct_tbl);
 
         // INSERT this searched account into Account table.
-        TAccount::put(acct_tbl.clone()).await?;
+        TAccount::new(acct_tbl.clone()).await?;
 
         //tracing::debug!("{:?}", acct_tbl);
 
@@ -337,7 +343,7 @@ impl Account {
             _ => (),
         }
         let body = str::from_utf8(response.body()).unwrap();
-        let v: crate::activitypub::outbox::Outbox = serde_json::from_str(body).unwrap();
+        let v: OrderedCollection = serde_json::from_str(body).unwrap();
         Ok( v.total_items as u64)
     }
 
@@ -355,7 +361,7 @@ impl Account {
             _ => (),
         }
         let body = str::from_utf8(response.body()).unwrap();
-        let v: crate::activitypub::follow::following::Following = serde_json::from_str(body).unwrap();
+        let v: OrderedCollection = serde_json::from_str(body).unwrap();
         Ok(v.total_items as u32)
     }
 
@@ -374,7 +380,8 @@ impl Account {
             _ => (),
         }
         let body = str::from_utf8(response.body()).unwrap();
-        let v: Follower = serde_json::from_str(body).unwrap();
+        
+        let v: OrderedCollection = serde_json::from_str(body).unwrap();
         Ok(v.total_items as u32)
     }
     
@@ -418,7 +425,7 @@ impl Get<TAccount> for Account {
             domain: acct_tbl.domain.clone(),
         };
 
-        if acct_tbl.private_key.is_some() { // Local user 
+        if acct_tbl.domain.is_none() { // Local user 
             //tracing::debug!("LOCAL USER");
             followers_count = Follow::follower_count(account_uri.clone()).await?;
             following_count = Follow::following_count(account_uri.clone()).await?;
@@ -522,6 +529,13 @@ impl Get<ActorUrl> for Account {
     }
 }
 
+/// Get trait for account.  
+#[async_trait(?Send)]
+pub trait New<T> {
+    /// Getter for account. 
+    async fn new(a: T) -> Result<()>;
+}
+
 #[async_trait(?Send)]
 pub trait Remove<T> {
     /// Getter for account. 
@@ -531,24 +545,16 @@ pub trait Remove<T> {
 #[async_trait(?Send)]
 impl Remove<AccountUri> for Account {
     async fn remove(uri: AccountUri) -> Result<()> {
-        todo!()
+        TAccount::remove(uri).await
     }
 }
 
 #[async_trait(?Send)]
 impl Remove<ActorUrl> for Account {
     async fn remove(url: ActorUrl) -> Result<()> {
-        //let accounts = crate::table::account::Account::get(uri).await?;
-        //let acct_tbl: TAccount = accounts.last().unwrap().to_owned();
-        //let a = Self::from_table(acct_tbl).await?;
-        //Ok(a)
-
         TAccount::remove(url).await
-        
     }
 }
-
-
 
 fn convert_to_bool(value: i64) -> bool {
     match value {

@@ -14,11 +14,11 @@
 //!
 
 pub mod account;
+pub mod activity_log;
 pub mod actor_json;
 pub mod conversation;
 pub mod conversation_mute;
 pub mod follow;
-pub mod inbox_log;
 pub mod mute;
 pub mod oauth_access_grant;
 pub mod oauth_access_token;

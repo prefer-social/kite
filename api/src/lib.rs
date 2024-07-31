@@ -76,6 +76,13 @@ async fn handle_api(req: Request) -> Result<impl IntoResponse> {
     // //router.any_async("/api/v1/streaming", streaming::request);
     // router.any_async("/api/v1/streaming/health", streaming::health::request);
     //
+
+    // Account API requests
+    router.any_async("/api/v1/accounts/:id", endpoint::v1::accounts::request);
+    router.any_async(
+        "/api/v1/accounts/:id/follow",
+        endpoint::v1::accounts::follow::request,
+    );
     // router.any_async(
     //     "/api/v1/accounts/:id/statuses",
     //     accounts::statuses::request,
@@ -84,11 +91,6 @@ async fn handle_api(req: Request) -> Result<impl IntoResponse> {
     //     "/api/v1/accounts/relationships",
     //     accounts::relationships::request,
     // );
-    // router.any_async("/api/v1/accounts/:id", accounts::request);
-    router.any_async(
-        "/api/v1/accounts/:id/follow",
-        endpoint::v1::accounts::follow::request,
-    );
     // router.any_async(
     //     "/api/v1/accounts/:id/unfollow",
     //     accounts::unfollow::request,

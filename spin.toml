@@ -149,3 +149,31 @@ allowed_outbound_hosts = ["https://*:*", "http://*:*"]
 command = "cargo build --target wasm32-wasi --release"
 workdir = "inbox"
 watch = ["inbox/src/**/*.rs", "inbox/Cargo.toml"]
+
+[[trigger.http]]
+route = "/following/..."
+component = "following"
+
+[component.following]
+source = "target/wasm32-wasi/release/following.wasm"
+sqlite_databases = ["default"]
+key_value_stores = ["mem"]
+allowed_outbound_hosts = ["https://*:*", "http://*:*"]
+[component.following.build]
+command = "cargo build --target wasm32-wasi --release"
+workdir = "following"
+watch = ["following/src/**/*.rs", "following/Cargo.toml"]
+
+[[trigger.http]]
+route = "/followers/..."
+component = "followers"
+
+[component.followers]
+source = "target/wasm32-wasi/release/followers.wasm"
+sqlite_databases = ["default"]
+key_value_stores = ["mem"]
+allowed_outbound_hosts = ["https://*:*", "http://*:*"]
+[component.followers.build]
+command = "cargo build --target wasm32-wasi --release"
+workdir = "followers"
+watch = ["followers/src/**/*.rs", "followers/Cargo.toml"]

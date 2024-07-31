@@ -4,14 +4,17 @@ use spin_sdk::{
     http::{HeaderValue, IntoResponse, Method, Request, Response},
     http_component,
 };
+use std::str::FromStr;
 use tracing_subscriber::{filter::EnvFilter, FmtSubscriber};
 
 //use sparrow::activitypub::action::follow::Follow as FollowAction;
 use crate::http_response::HttpResponse;
-use sparrow::activitypub::object::Object as APObject;
-use sparrow::activitypub::object::ObjectType;
+use sparrow::activitystream::activity::accept::Accept as AcceptActivity;
+use sparrow::activitystream::activity::delete::Delete as DeleteActivity;
+use sparrow::activitystream::activity::follow::Follow as FollowActivity;
+use sparrow::activitystream::activity::Activity;
+use sparrow::activitystream::activity::ActivityType;
 
-mod action;
 mod http_response;
 
 /// A simple Spin HTTP component.
@@ -24,7 +27,7 @@ async fn handle_inbox(req: Request) -> anyhow::Result<impl IntoResponse> {
         .expect("setting default subscriber failed");
 
     tracing::debug!(
-        "<---------- ({}) {} ({}) {}--------->",
+        "<--------- ({}) {} ({}) {} --------->",
         req.method().to_string(),
         req.path_and_query().unwrap_or_default(),
         req.header("x-forwarded-ip")
@@ -53,7 +56,7 @@ async fn get(_req: Request) -> Result<Response> {
 pub async fn post(req: Request) -> Result<Response> {
     tracing::debug!("POST to INBOX");
 
-    // Validate signature
+    // Validate signature, add an actor to account, add to activity_log table
     if !sparrow::mastodon::validate_signature(&req).await? {
         tracing::debug!("NOT VALID SIGNATURE");
         return HttpResponse::invalid_request();
@@ -61,21 +64,75 @@ pub async fn post(req: Request) -> Result<Response> {
 
     tracing::debug!("VALID SIGNATURE");
 
-    // Get posted body
-    let body = String::from_utf8_lossy(req.body()).to_string();
-    let obj: APObject<Value> = serde_json::from_str(&body)?;
-    let _actor_from_body = obj.actor.clone();
+    // Get posted body and inspect it.
+    let (body, activity_type, _object_type) =
+        inspect(String::from_utf8_lossy(req.body()).to_string());
 
-    // Delete(Account Gone) processing.
-    return match obj.object_type {
-        ObjectType::Delete => action::delete::delete(obj).await,
-        ObjectType::Follow => action::follow::follow(obj).await,
-        ObjectType::Accept => action::accept::accept(obj).await,
+    let _activity_actor = body.get("actor").unwrap().as_str().unwrap();
+
+    match activity_type {
+        ActivityType::Delete => {
+            let activity =
+                serde_json::from_value::<Activity<DeleteActivity>>(body)
+                    .unwrap();
+            match activity.execute().await {
+                Ok(_) => HttpResponse::accepted(),
+                Err(e) => {
+                    tracing::error!(
+                        "Error from Inbox's Follow request -> {e:?}",
+                    );
+                    HttpResponse::not_acceptable()
+                }
+            }
+        }
+        ActivityType::Follow => {
+            let activity =
+                serde_json::from_value::<Activity<FollowActivity>>(body)
+                    .unwrap();
+            match activity.execute().await {
+                Ok(_) => HttpResponse::accepted(),
+                Err(e) => {
+                    tracing::error!(
+                        "Error from Inbox's Follow request -> {e:?}",
+                    );
+                    HttpResponse::not_acceptable()
+                }
+            }
+        }
+        ActivityType::Accept => {
+            //action::accept::received(obj).await,
+            let activity =
+                serde_json::from_value::<Activity<AcceptActivity>>(body)
+                    .unwrap();
+            match activity.execute().await {
+                Ok(_) => HttpResponse::accepted(),
+                Err(e) => {
+                    tracing::error!(
+                        "Error from Inbox's Follow request -> {e:?}",
+                    );
+                    HttpResponse::not_acceptable()
+                }
+            }
+        }
         action => {
             // returns
             // HttpResponse::invalid_request()
-            tracing::debug!("action '{:?}' is not implemented yet", action);
-            HttpResponse::teapot()
+            tracing::warn!("action '{:?}' is not implemented yet", action);
+            HttpResponse::not_acceptable()
         }
+    }
+}
+
+pub fn inspect(body: String) -> (Value, ActivityType, Option<String>) {
+    let v = serde_json::from_str::<Value>(body.as_str()).unwrap();
+    let v_type = v.get("type").unwrap().as_str().unwrap();
+    let activity_type = ActivityType::from_str(v_type).unwrap();
+    let a = v.get("object").unwrap();
+
+    let object_type = match a.is_object() {
+        true => a.get("type").unwrap().as_str().map(String::from),
+        _ => Some(a.as_str().unwrap().to_string()),
     };
+
+    (v, activity_type, object_type)
 }

@@ -1,8 +1,6 @@
 use spin_sdk::http::{Request, Response, Router};
 
 pub mod actor;
-pub mod followers;
-pub mod following;
 pub mod outbox;
 
 pub async fn router(req: Request) -> Response {
@@ -10,7 +8,7 @@ pub async fn router(req: Request) -> Response {
     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept
 
     // Modifying headers, Custom header (Sample)
-    //let mut headers = req
+    // let mut headers = req
     let headers = req
         .headers()
         .map(|(k, v)| (k.to_string(), v.as_bytes().to_vec()))
@@ -41,10 +39,11 @@ pub async fn router(req: Request) -> Response {
     router.any_async(format!("@{}", owner).as_str(), actor::req);
     // Just to compatible with Mastodon
     router.any_async(format!("/users/{}", owner).as_str(), actor::req);
-    //router.any_async("/inbox", inbox::req);
+
+    // Todo: following endpoints will become separated Spin componenets.
     router.any_async("/outbox", outbox::req);
-    router.any_async("/followers", followers::req);
-    router.any_async("/following", following::req);
+    //router.any_async("/followers", followers::req);
+    //router.any_async("/following", following::req);
 
     router.handle_async(req).await
 

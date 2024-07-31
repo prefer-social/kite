@@ -10,7 +10,7 @@ use spin_sdk::http::{Method, Request, Response};
 use std::{fmt, str};
 use url::Url;
 
-use crate::activitypub::actor::Actor;
+use crate::activitystream::actor::person::Person as PersonActor;
 use crate::mastodon::account::actor_url::ActorUrl;
 use crate::mastodon::account::uid::Uid as AccountUid;
 use crate::mastodon::account::Account as MAccount;

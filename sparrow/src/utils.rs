@@ -23,14 +23,15 @@ pub async fn create_token() -> String {
     pg.generate_one().unwrap()
 }
 
+///
 pub async fn get_current_time_in_rfc_1123() -> String {
     use chrono::{DateTime, Utc};
     let current_time: DateTime<Utc> = Utc::now();
     current_time.format("%a, %d %b %Y %H:%M:%S GMT").to_string()
 }
 
-// https://docs.rs/chrono/latest/chrono/format/strftime/index.html
-// 2024-02-27T06:17:54Z
+/// Iso8601: 2024-02-27T06:17:54Z
+/// https://docs.rs/chrono/latest/chrono/format/strftime/index.html
 pub async fn get_current_time_in_iso_8601() -> String {
     use chrono::{DateTime, Utc};
     let current_time: DateTime<Utc> = Utc::now();

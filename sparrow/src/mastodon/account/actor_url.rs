@@ -7,11 +7,11 @@ use std::string::ToString;
 use std::{fmt, str};
 use url::Url;
 
-use crate::activitypub::actor::Actor;
+use crate::activitystream::actor::person::Person;
 use crate::table::actor_json::ActorJson;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
-pub struct ActorUrl(Option<Url>);
+pub struct ActorUrl(pub Option<Url>);
 
 impl ActorUrl {
     pub fn new(u: String) -> Result<Self> {
@@ -23,7 +23,7 @@ impl ActorUrl {
         }
     }
 
-    pub async fn actor(&self) -> Result<Actor> {
+    pub async fn actor(&self) -> Result<Person> {
         let ct = "application/activity+json";
         let actor_url = self.0.as_ref().unwrap().to_owned();
         let request = Request::builder()
@@ -62,7 +62,7 @@ impl ActorUrl {
         ActorJson::put(serde_json::from_str(actor_str).unwrap()).await?;
 
         // Convert this to ActivityPub Actor
-        let actor = Actor::try_from(actor_value).unwrap();
+        let actor = Person::try_from(actor_value).unwrap();
 
         Ok(actor)
     }

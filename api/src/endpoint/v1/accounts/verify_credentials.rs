@@ -31,10 +31,6 @@ pub async fn get(req: Request, _params: Params) -> Result<Response> {
         sparrow::mastodon::account::Account::from(account.unwrap().to_owned());
     let ca: String = credential_account.try_into().unwrap();
 
-    tracing::debug!("veryfy_credentials password.");
-    tracing::debug!("account response / json returned");
-    tracing::debug!(ca);
-
     Ok(Response::builder()
         .status(200)
         .header("Content-Type", "Application/json")

@@ -1,7 +1,7 @@
 use spin_sdk::http::{Method, Params, Request, Response};
 
 use crate::http_response::HttpResponse;
-use sparrow::activitypub::actor::Actor;
+use sparrow::activitystream::actor::person::Person;
 
 pub async fn req(req: Request, params: Params) -> anyhow::Result<Response> {
     match req.method() {
@@ -19,7 +19,7 @@ pub async fn get(req: Request, _params: Params) -> anyhow::Result<Response> {
 
     let (account, _user) =
         sparrow::mastodon::account::Account::default().await?;
-    let actor = Actor::build(account).await.unwrap();
+    let actor = Person::build(account).await.unwrap();
     let s = serde_json::to_string(&actor).unwrap();
 
     Ok(Response::builder()

@@ -11,7 +11,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use struct_iterable::Iterable;
 use url::Url;
 
-use crate::activitypub::actor::Actor;
+use crate::activitystream::actor::person::Person as PersonActor;
 use crate::mastodon::account::uri::Uri as AccountUri;
 use crate::mastodon::account::actor_url::ActorUrl;
 
@@ -224,11 +224,11 @@ impl Get<AccountUri> for Account {
     async fn get(uri: AccountUri) -> Result<Vec<Account>> {
         let sqlx_conn = dbcon::open_default()?;
         let accounts: Vec<TAccount> = match uri.domain {
-            Some(d) => {
+            Some(domain) => {
                 let query_template = format!("SELECT rowid, * FROM account WHERE username = ? AND domain = ?");
                 sqlx::query_as(query_template.as_str())
                     .bind(uri.username)
-                    .bind(d)
+                    .bind(domain)
                     .fetch_all(&sqlx_conn)
                     .await?
             }
@@ -249,27 +249,27 @@ impl Get<AccountUri> for Account {
 
 /// Trait Put: Inserting into account table.  
 #[async_trait(?Send)]
-pub trait Put<T> {
+pub trait New<T> {
     /// Inserting into account table.  
-    async fn put(arg: T) -> Result<()>;
+    async fn new(arg: T) -> Result<()>;
 
     /// Update account table
     async fn update(arg: T) -> Result<()>;
 }
 
 #[async_trait(?Send)]
-impl Put<Actor> for Account {
-    async fn put(actor: Actor) -> Result<()> {
+impl New<PersonActor> for Account {
+    async fn new(actor: PersonActor) -> Result<()> {
         // Todo: Convert PersonActor -> TAccount -> Insert TAccount
         // try_from -> put
 
         let account = Self::try_from(actor).unwrap();
-        Self::put(account).await?;
+        Self::new(account).await?;
 
         Ok(())
     }
 
-    async fn update(_actor: Actor) -> Result<()> {
+    async fn update(_actor: PersonActor) -> Result<()> {
         // Todo: Here
         Ok(())
     }
@@ -309,8 +309,8 @@ fn check_type(v: &dyn Any) -> FieldType {
 }
 
 #[async_trait(?Send)]
-impl Put<Account> for Account {
-    async fn put(tacct: Account) -> Result<()> {
+impl New<Account> for Account {
+    async fn new(tacct: Account) -> Result<()> {
         // If account already in table, do update
 
         let username = tacct.username.clone();
@@ -466,11 +466,11 @@ impl Put<Account> for Account {
     }
 }
 
-impl TryFrom<Actor> for Account {
+impl TryFrom<PersonActor> for Account {
     type Error = anyhow::Error;
 
     /// (Person)Actor to Account
-    fn try_from(actor: Actor) -> Result<Self, Self::Error> {
+    fn try_from(actor: PersonActor) -> Result<Self, Self::Error> {
         let current_epoch = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -556,3 +556,19 @@ impl Remove<ActorUrl> for Account {
         Ok(())
     }
 }
+
+#[async_trait]
+impl Remove<AccountUri> for Account {
+    async fn remove(account_uri: AccountUri) -> Result<()> {
+        let sqlx_conn = dbcon::open_default()?;
+        let query_template = format!("DELETE FROM account WHERE account.username = ? AND account.domain = ?");
+        sqlx::query(query_template.as_str())
+            .bind(account_uri.username)
+            .bind(account_uri.domain.unwrap())
+            .fetch_all(&sqlx_conn)
+            .await?;
+        Ok(())
+    }
+
+}
+

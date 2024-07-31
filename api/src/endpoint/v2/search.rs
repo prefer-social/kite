@@ -63,9 +63,9 @@ pub async fn get(req: Request, _params: Params) -> Result<Response> {
     }
 
     let search_result = SearchResult {
-        accounts: accounts_search_result.unwrap(),
-        statuses: statuses_search_result.unwrap(),
-        hashtags: hashtags_search_result.unwrap(),
+        accounts: accounts_search_result.unwrap_or(Vec::new()),
+        statuses: statuses_search_result.unwrap_or(Vec::new()),
+        hashtags: hashtags_search_result.unwrap_or(Vec::new()),
     };
 
     let search_result = serde_json::to_string(&search_result).unwrap();

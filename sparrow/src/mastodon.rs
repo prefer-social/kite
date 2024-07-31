@@ -22,15 +22,18 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use url::Url;
 
-use crate::activitypub::object::Object as APObject;
-use crate::activitypub::object::ObjectType;
+use crate::activitystream::activity::Activity;
+use crate::activitystream::activity::ActivityType;
+use crate::activitystream::activity::Execute;
 use crate::mastodon::account::actor_url::ActorUrl;
 use crate::mastodon::account::Account as MAccount;
 use crate::mastodon::account::Get as _;
-use crate::table::inbox_log::InboxLog;
+use crate::mastodon::setting::Setting;
+use crate::table::activity_log::ActivityLog;
 use crate::utils::get_current_time_in_rfc_1123;
 
 pub mod account;
+pub mod activity_log;
 pub mod application;
 pub mod custom_emoji;
 pub mod filter;
@@ -58,8 +61,8 @@ pub mod user_role;
 
 /// Validate Mastodon signrature.  
 ///
-/// This also adds new actor to Account.  
-/// TODO: Rename this to signature_verification
+/// This adds new actor to Account.  
+/// This adds incoming request to activityLog table.
 /// https://docs.joinmastodon.org/spec/security/#http-verify
 /// https://github.com/mastodon/mastodon/sender_actor_url_stringblob/main/app/controllers/concerns/signature_verification.rb
 pub async fn validate_signature(req: &Request) -> Result<bool> {
@@ -84,17 +87,21 @@ pub async fn validate_signature(req: &Request) -> Result<bool> {
     // tracing::debug!("content-type: {content_type}");
     // tracing::debug!("request_path: {request_path}");
     // tracing::debug!("request_method: {request_method}");
-    tracing::debug!("request_body: {body}");
+    // tracing::debug!("request_body: {body}");
 
-    let obj: APObject<Value> = serde_json::from_str(&body)?;
+    //let obj: Activity<Value> = serde_json::from_str(&body)?;
+    let body_value: Value = serde_json::from_str(&body)?;
+    let activity_type = body_value.get("type").unwrap().as_str().unwrap();
+    let actor_url_str = body_value.get("actor").unwrap().as_str().unwrap();
 
-    // Delete request returns true because it can't validate signrature - pubkey is already removed.
-    if obj.object_type == ObjectType::Delete {
-        InboxLog::put(
-            sig_header.to_string(),
+    // Delete request returns true because it can't validate signature with already removed account.
+    // Simply returns OK without validating key.
+    if activity_type == "Delete" {
+        ActivityLog::put(
             sig_header.to_string(),
             hostname.to_string(),
             body,
+            None,
         )
         .await
         .unwrap();
@@ -102,11 +109,21 @@ pub async fn validate_signature(req: &Request) -> Result<bool> {
         return Ok(true);
     }
 
-    let sender_actor_url = ActorUrl::new(obj.actor).unwrap();
+    let sender_actor_url = ActorUrl::new(actor_url_str.to_string()).unwrap();
 
-    // Add this actor to Account
-    let sender_actor = sender_actor_url.actor().await?;
-    sender_actor.store().await?;
+    // Add this actor to Account (only if this is not local account)
+    let sender_actor = sender_actor_url.actor().await?.clone();
+    let site_domain = Setting::domain().await;
+    let sender_domain = sender_actor_url
+        .clone()
+        .0
+        .unwrap()
+        .host()
+        .unwrap()
+        .to_string();
+    if sender_domain != site_domain {
+        sender_actor.store().await?;
+    }
 
     let sender_account = MAccount::get(sender_actor_url).await?;
     let public_key_string = sender_account.public_key.as_str();
@@ -164,11 +181,11 @@ pub async fn validate_signature(req: &Request) -> Result<bool> {
     let valid_date = true;
 
     if valid_key && valid_date {
-        InboxLog::put(
-            sig_header.to_string(),
+        ActivityLog::put(
             sig_header.to_string(),
             hostname.to_string(),
             body,
+            None,
         )
         .await
         .unwrap();
@@ -177,64 +194,51 @@ pub async fn validate_signature(req: &Request) -> Result<bool> {
     Ok(valid_key && valid_date)
 }
 
-/// Creating HTTP signature  
-/// Signing POST requests and the Digest header  
-/// Reference this doc: <https://docs.joinmastodon.org/spec/security/#http-sign>  
-pub async fn signing_request(req: &Request, _priv_key_string: &str) {
-    let _hostname = req.header("Host").unwrap().as_str().unwrap();
-    let _date = req.header("Date").unwrap().as_str().unwrap();
-    //let sig_header = req.header("Signature").unwrap().as_str().unwrap();
-    //let digest = req.header("Digest").unwrap().as_str().unwrap();
-    let _content_type = req.header("content-type").unwrap().as_str().unwrap();
-    let _request_path =
-        req.header("spin-path-info").unwrap().as_str().unwrap();
-    let _request_method = req.method().to_string();
-}
-
 /// Send ActivityPub Object/Message
-pub async fn send<T>(activitypub_obj: APObject<T>) -> Result<u16>
+pub async fn publish_activity<T>(activity: Activity<T>) -> Result<u16>
 where
-    T: Debug + Serialize + ToString,
+    T: Debug + Serialize + ToString + Execute,
 {
-    let sender_actor_url_string = activitypub_obj.actor.clone();
+    let sender_actor_url_string = activity.actor.clone();
 
-    let recipient_actor_url_string = match activitypub_obj.object_type {
-        ObjectType::Follow => activitypub_obj.object.to_string(),
-        //AcceptType::Undo => {}
-        _ => return Err(anyhow::Error::msg("UNKOWN ObjectType")),
+    let recipient_actor_url_string = match activity.activity_type {
+        ActivityType::Follow => activity.activity_object.to_string(),
+        //ActivityType::Undo => {}
+        ActivityType::Accept => {
+            let a = activity.activity_object.to_string();
+            let b: Value = serde_json::from_str(a.as_str()).unwrap();
+            let c = b.get("object").unwrap().as_str().unwrap();
+            c.to_string()
+        }
+        ob_type => {
+            return Err(anyhow::Error::msg(format!(
+                "UNKOWN ObjectType {:?}",
+                ob_type
+            )))
+        }
     };
 
     let sender_actor_url =
         ActorUrl::new(sender_actor_url_string.clone()).unwrap();
-    let sender_account = MAccount::get(sender_actor_url).await?;
-    let sender_private_key_pem = sender_account.private_key.unwrap();
+    let sender_account = MAccount::get(sender_actor_url.clone()).await?;
+
+    let sender_private_key_pem = sender_account.private_key.clone().unwrap();
 
     let recipient_actor_url =
         ActorUrl::new(recipient_actor_url_string).unwrap();
     let recipient_account = MAccount::get(recipient_actor_url).await?;
-
-    // //let my_actor = format!("{}", Url::parse(me).unwrap().to_string());
-    // let recipient_actor = recipient.actor().await?;
-    // let recipient_server = recipient_actor.url;
-
-    // let private_key_pem =
-    //     get_privatekey_with_actor_url(me.to_string()).await.unwrap();
     let date = get_current_time_in_rfc_1123().await;
     let content_type = "application/activity+json".to_string();
 
-    let request_body = serde_json::to_string(&activitypub_obj).unwrap();
+    let request_body = serde_json::to_string(&activity).unwrap();
 
     // tracing::debug!("me -> {me}");
-    // //tracing::debug!("my_actor -> {my_actor}");
+    // tracing::debug!("my_actor -> {my_actor}");
     // tracing::debug!("recipient_actor -> {recipient_actor}");
     // tracing::debug!("recipient_server -> {recipient_server}");
     // tracing::debug!("private_key_pem -> {private_key_pem}");
     // tracing::debug!("date -> {date}");
     // tracing::debug!("content_type -> {content_type}");
-
-    // // TODO: This should be created from activity_stream crate not from string literal.
-
-    // tracing::debug!("request_body -> {request_body}");
 
     let mut hasher = Sha256::new();
     hasher.update(request_body.clone());
@@ -242,9 +246,10 @@ where
         "SHA-256={}",
         general_purpose::STANDARD.encode(hasher.finalize())
     );
-    // tracing::debug!("digest --> {digest}");
 
-    let hostname = recipient_account.account_uri.domain.unwrap();
+    let site_domain = Setting::domain().await;
+
+    let hostname = recipient_account.account_uri.domain.unwrap_or(site_domain);
     let inbox_url = recipient_account.inbox_url.unwrap();
     let inbox_path_url = url::Url::parse(inbox_url.as_str()).unwrap();
     let inbox_path = inbox_path_url.path();
@@ -252,7 +257,6 @@ where
          "(request-target): post {}\nhost: {}\ndate: {}\ndigest: {}\ncontent-type: {}",
         inbox_path, hostname, date, digest, content_type
     );
-    // tracing::debug!("signature_string --> \n{signature_string}");
 
     // The signature string is constructed using the values of the HTTP headers defined in headers, joined by newlines. Typically, you will want to include the request target, as well as the host and the date. Mastodon assumes Date: header if none are provided. For the above GET request, to generate a Signature: with headers="(request-target) host date"
     // https://github.com/RustCrypto/RSA/issues/341
@@ -271,11 +275,9 @@ where
         sender_actor_url_string, encoded_signature
     );
 
-    // tracing::debug!("sig_header --> {sig_header}");
-
     let request = RequestBuilder::new(Method::Post, inbox_url)
         .header("Date", date)
-        .header("Signature", sig_header)
+        .header("Signature", sig_header.clone())
         .header("Digest", digest)
         .header("Content-Type", &content_type)
         .header("Accept", &content_type)
@@ -285,10 +287,16 @@ where
     let response: IncomingResponse = http::send(request).await?;
     let status = response.status();
 
-    //let response_body =
-    //    String::from_utf8(response.into_body().await.unwrap()).unwrap();
-    //tracing::debug!("status --> {status}");
-    //tracing::debug!("response body -->\n{response_body}");
+    //if status == 202u16 { // Only 202? or
+    ActivityLog::put(
+        sig_header.to_string(),
+        hostname.to_string(),
+        request_body,
+        Some(status.to_string()),
+    )
+    .await
+    .unwrap();
+    //}ActivityLog
 
     Ok(status)
 }
