@@ -381,7 +381,16 @@ impl Account {
         }
         let body = str::from_utf8(response.body()).unwrap();
         
-        let v: OrderedCollection = serde_json::from_str(body).unwrap();
+        //let v = serde_json::from_str::<OrderedCollection>(body);
+        let v = match serde_json::from_str::<OrderedCollection>(body) {
+            Ok(x) => x,
+            Err(e) => {
+                tracing::error!(body);
+                tracing::error!("{e:?}");
+                return Err(Error::msg("{e:?}"));
+            }
+        };
+        
         Ok(v.total_items as u32)
     }
     

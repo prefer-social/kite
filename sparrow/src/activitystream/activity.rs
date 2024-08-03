@@ -15,6 +15,7 @@ use std::str::FromStr;
 use crate::activitystream;
 use crate::activitystream::activity::accept::Accept;
 use crate::activitystream::activity::follow::Follow;
+use crate::activitystream::Execute;
 use crate::mastodon;
 //use crate::activitystream::activity::undo::Undo;
 use crate::mastodon::account::Account as MAccount;
@@ -23,13 +24,6 @@ pub mod accept;
 pub mod create;
 pub mod delete;
 pub mod follow;
-
-pub trait Execute {
-    /// Execute given activity.  
-    /// Check actor. If actor is self, publish(send)
-    /// If actor is somebody else, insert it to Mastdon database
-    async fn execute(&self, actor: String) -> Result<()>;
-}
 
 /// ActivityPub Object Types
 #[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone)]
@@ -131,7 +125,7 @@ where
         }
     }
 
-    /// Execute action.  
+    /// Execute activity.  
     pub async fn execute(&self) -> Result<()> {
         // Todo: get an account from auth token.
         let (my_account, _) = MAccount::default().await?;

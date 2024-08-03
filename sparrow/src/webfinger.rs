@@ -15,7 +15,7 @@ pub struct WebFinger {
     /// WebFinger subject
     pub subject: String,
     /// WebFinger alaises
-    pub aliases: Vec<String>,
+    pub aliases: Option<Vec<String>>,
     /// WebFinger Link
     pub links: Vec<Link>,
 }
@@ -56,7 +56,7 @@ impl From<String> for WebFinger {
 
         WebFinger {
             subject: format!("acct:{}", acct),
-            aliases: aliases,
+            aliases: Some(aliases),
             links: links,
         }
     }
@@ -87,6 +87,10 @@ impl WebFinger {
         tracing::debug!("Request response: {}", response.status());
 
         if response.status().to_owned() != 200u16 {
+            tracing::warn!(
+                "Webfinger request returns not 200 status: {}",
+                response.status()
+            );
             return Ok(None);
         }
         let _ct = response.header("content-type").unwrap().as_str().unwrap();
@@ -94,7 +98,7 @@ impl WebFinger {
         let body = str::from_utf8(response.body()).unwrap();
         let webfinger: WebFinger = serde_json::from_str(body).unwrap();
 
-        tracing::debug!("WebFinger struct: {:?}", webfinger);
+        // tracing::debug!("WebFinger struct: {:?}", webfinger);
 
         Ok(Some(webfinger))
     }

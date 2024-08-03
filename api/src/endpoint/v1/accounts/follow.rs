@@ -48,12 +48,12 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
     // Get MAccount info with who_to_follow
     let to_account = MAccount::get(who_to_follow).await?;
     //let recipient = to_account.account_uri;
-    let recipient_actor = Person::build(to_account.to_owned()).await.unwrap();
+    let recipient_actor = Person::new(to_account.to_owned()).await.unwrap();
 
     // Get MAccount info about me
     let from_account =
         Token::owner("Bearer".to_string(), token.to_string()).await?;
-    let from_actor = Person::build(from_account.to_owned()).await.unwrap();
+    let from_actor = Person::new(from_account.to_owned()).await.unwrap();
 
     // ActivityPub request to follow
 

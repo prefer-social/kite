@@ -24,7 +24,7 @@ use url::Url;
 
 use crate::activitystream::activity::Activity;
 use crate::activitystream::activity::ActivityType;
-use crate::activitystream::activity::Execute;
+use crate::activitystream::Execute;
 use crate::mastodon::account::actor_url::ActorUrl;
 use crate::mastodon::account::Account as MAccount;
 use crate::mastodon::account::Get as _;

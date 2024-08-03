@@ -19,7 +19,7 @@ pub async fn get(req: Request, _params: Params) -> anyhow::Result<Response> {
 
     let (account, _user) =
         sparrow::mastodon::account::Account::default().await?;
-    let actor = Person::build(account).await.unwrap();
+    let actor = Person::new(account).await.unwrap();
     let s = serde_json::to_string(&actor).unwrap();
 
     Ok(Response::builder()

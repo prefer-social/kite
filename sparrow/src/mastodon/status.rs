@@ -3,29 +3,36 @@
 //! Mastodon doc: <https://docs.joinmastodon.org/entities/Status/>
 
 use anyhow::Result;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, FixedOffset, Local, NaiveDateTime, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use struct_iterable::Iterable;
+use uuid::Uuid;
 
+use crate::activitystream::object::note::Note as NoteObject;
 use crate::mastodon::{
-    account::uri::Uri as AccountUri, account::Account as MAccount,
-    custom_emoji::CustomEmoji, filter_result::FilterResult,
-    media_attachment::MediaAttachment, poll::Poll, preview_card::PreviewCard,
+    account::actor_url::ActorUrl, account::uri::Uri as AccountUri,
+    account::Account as MAccount, account::Get, custom_emoji::CustomEmoji,
+    filter_result::FilterResult, media_attachment::MediaAttachment,
+    poll::Poll, preview_card::PreviewCard,
 };
 use crate::table::status::Status as TStatus;
+use crate::table::New;
 
 /// Represents a status posted by an account.  
 /// Mastodon doc: <https://docs.joinmastodon.org/entities/Status/>
-#[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone)]
+#[derive(
+    Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone, Iterable,
+)]
 #[serde(rename_all = "camelCase")]
 pub struct Status {
     // rowid from sqlite
-    pub rowid: i64,
+    pub rowid: Option<i64>,
     /// ID(uuid v7) of the status in the database.
     #[serde(rename(serialize = "id", deserialize = "id"))]
     pub uid: String,
     /// URI of the status used for federation. actor_url
-    pub uri: String,
+    pub uri: Option<String>,
     ///  The date when this status was created.
     pub created_at: DateTime<Utc>,
     ///  The account that authored this status.
@@ -70,7 +77,7 @@ pub struct Status {
     pub in_reply_to_account_id: Option<String>,
     /// The status being reblogged.
     /// Nullable Status or null
-    pub reblog: Box<Status>,
+    pub reblog: Option<Box<Status>>,
     /// The poll attached to the status.
     /// Nullable Poll or null
     pub poll: Option<Poll>,
@@ -157,10 +164,67 @@ impl Status {
 #[derive(
     Hash, Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone,
 )]
-struct Application {
+pub struct Application {
     /// The name of the application that posted this status.
     pub name: String,
     /// The website associated with the application that posted this status.
     /// Nullable String (URL) or null
     pub website: String,
+}
+
+impl Status {
+    pub async fn new(note: NoteObject) -> Result<()> {
+        let note_published_at = note.published.unwrap();
+        let created_at = NaiveDateTime::parse_from_str(
+            &note_published_at.as_str(),
+            "%Y-%m-%dT%H:%M:%SZ",
+        )
+        .map(|d| DateTime::<Utc>::from_naive_utc_and_offset(d, Utc))
+        .unwrap();
+
+        let actor_url = ActorUrl::new(note.attributed_to.unwrap()).unwrap();
+        let account = MAccount::get(actor_url).await.unwrap();
+
+        let status = Status {
+            uid: Uuid::now_v7().to_string(),
+            uri: Some(note.id),
+            created_at: created_at,
+            account,
+            //content,
+            //visibility: note,
+            sensitive: note.sensitivity.unwrap_or_default(),
+            // spoiler_text,
+            media_attachments: vec![],
+            // application,
+            // mentions,
+            // tags,
+            // emojis,
+            // reblogs_count,
+            // favourites_count,
+            // replies_count,
+            url: Some(note.url.unwrap()),
+            in_reply_to_id: None,
+            in_reply_to_account_id: None,
+            // reblog,
+            // poll,
+            // card,
+            language: "en".to_string(),
+            text: note.content.unwrap(),
+            // edited_at,
+            // favourited,
+            // reblogged,
+            // muted,
+            // bookmarked,
+            // pinned,
+            // filtered,
+            ..Default::default()
+        };
+
+        status.save().await
+    }
+
+    pub async fn save(&self) -> Result<()> {
+        let a = TStatus::try_from(self.to_owned()).unwrap();
+        a.new().await
+    }
 }

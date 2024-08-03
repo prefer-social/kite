@@ -28,7 +28,7 @@ impl fmt::Display for ActorType {
 #[serde(rename_all = "camelCase")]
 pub struct Person {
     #[serde(rename = "@context")]
-    pub context: Value,
+    pub context: Option<Value>,
     /// Actor's id is actorl url.  
     pub id: String,
     #[serde(rename = "type")]
@@ -86,7 +86,7 @@ pub struct Endpoints {
 
 impl Person {
     /// Get PersonActor struct from MAccount
-    pub async fn build(a: MAccount) -> Result<Self> {
+    pub async fn new(a: MAccount) -> Result<Self> {
         // Git User struct from Account (User.account_id = Account.uid)
         //let u = User::get(a.to_owned()).await?;
         // if u is None, means it is not local user.
@@ -127,7 +127,7 @@ impl Person {
         };
 
         let pa = Person {
-            context: ct_val,
+            context: Some(ct_val),
             id: a.actor_url.to_string(),
             actor_type: ActorType::Person,
             following: a.following_url.to_owned().unwrap_or_default(),
@@ -145,8 +145,7 @@ impl Person {
             indexable: a.indexable.to_owned().unwrap_or_default(),
             published: crate::utils::convert_epoch_to_iso_8601(
                 a.created_at.timestamp(),
-            )
-            .await,
+            ),
             memorial: Some(false),
             devices: None,
             public_key: pk,

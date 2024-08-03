@@ -33,10 +33,10 @@ use crate::mastodon::account::Account as MAccount;
 #[serde(rename_all = "camelCase")]
 pub struct OrderedCollection {
     #[serde(rename = "@context")]
-    pub context: Value,
+    pub context: Option<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub summary: Option<String>,
-    pub id: String,
+    pub id: Option<String>,
     #[serde(rename = "type")]
     pub object_type: String,
     pub total_items: i64,
@@ -53,8 +53,8 @@ pub struct OrderedCollection {
 impl OrderedCollection {
     pub fn new(id: String, total_items: i64) -> Self {
         OrderedCollection {
-            context: activitystream::default_context(),
-            id: id.clone(),
+            context: Some(activitystream::default_context()),
+            id: Some(id.clone()),
             object_type: "OrderedCollection".to_string(),
             total_items,
             first: Some(format!("{}?page=1", id)),

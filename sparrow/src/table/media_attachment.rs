@@ -12,7 +12,7 @@ pub struct MediaAttachement {
     pub updated_at: DateTime<Utc>,
     pub shortcode: String,
     #[serde(rename(serialize = "type", deserialize = "type"))]
-    pub MediaType: i64,
+    pub media_type: i64,
     pub file_meta: String,
     pub account_id: String,
     pub description: String,

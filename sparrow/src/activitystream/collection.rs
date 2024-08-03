@@ -7,7 +7,7 @@ use serde_json::Value;
 
 /// ActivityPub Collection.  
 /// <https://www.w3.org/TR/activitystreams-vocabulary/#dfn-collection>
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Collection {
     #[serde(rename = "@context")]

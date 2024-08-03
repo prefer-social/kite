@@ -2,8 +2,15 @@
 //!
 //! <https://www.w3.org/TR/activitystreams-vocabulary/#dfn-note>
 
+use anyhow::Result;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::collections::HashMap;
+use std::fmt;
+
 use crate::activitystream::collection::Collection;
 use crate::activitystream::object::ObjectType;
+use crate::activitystream::Execute;
 
 /*
 
@@ -44,35 +51,82 @@ use crate::activitystream::object::ObjectType;
     }
 
 
+  Object {
+    "id": String("https://mas.to/users/seungjin/statuses/112884530431559850"),
+    "type": String("Note"),
+    "summary": Null,
+    "inReplyTo": Null,
+    "published": String("2024-08-01T03:00:38Z"),
+    "url": String("https://mas.to/@seungjin/112884530431559850"),
+    "attributedTo": String("https://mas.to/users/seungjin"),
+    "to": Array [String("https://www.w3.org/ns/activitystreams#Public")],
+    "cc": Array [String("https://mas.to/users/seungjin/followers")],
+    "sensitive": Bool(false),
+    "atomUri": String("https://mas.to/users/seungjin/statuses/112884530431559850"),
+    "inReplyToAtomUri": Null,
+    "conversation": String("tag:mas.to,2024-08-01:objectId=369230771:objectType=Conversation"),
+    "content": String("<p>999</p>"),
+    "contentMap": Object {"en": String("<p>999</p>")},
+    "attachment": Array [],
+    "tag": Array [],
+    "replies": Object {
+      "id": String("https://mas.to/users/seungjin/statuses/112884530431559850/replies"),
+      "type": String("Collection"),
+      "first": Object {
+        "type": String("CollectionPage"),
+        "next": String("https://mas.to/users/seungjin/statuses/112884530431559850/replies?only_other_accounts=true&page=true"),
+        "partOf": String("https://mas.to/users/seungjin/statuses/112884530431559850/replies"),
+        "items": Array []
+      }
+    }
+  }
+
 */
 
+#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct Note {
-    id: String,
-    note_type: ObjectType,
-    name: Option<String>,
-    attachment: Option<String>,
-    attributedTo: Option<String>,
-    audience: Option<String>,
-    content: Option<String>,
-    context: Option<String>,
-    endTime: Option<String>,
-    generator: Option<String>,
-    icon: Option<String>,
-    image: Option<String>,
-    inReplyTo: Option<String>,
-    location: Option<String>,
-    preview: Option<String>,
-    published: Option<String>,
-    replies: Collection,
-    startTime: Option<String>,
-    summary: Option<String>,
-    tag: Option<String>,
-    updated: Option<String>,
-    url: Option<String>,
-    to: Option<String>,
-    bto: Option<String>,
-    cc: Option<String>,
-    bcc: Option<String>,
-    mediaType: Option<String>,
-    duration: Option<String>,
+    pub id: String,
+    #[serde(rename = "type")]
+    pub note_type: ObjectType,
+    pub summary: Option<String>,
+    pub in_reply_to: Option<String>,
+    pub published: Option<String>,
+    pub url: Option<String>,
+    pub attributed_to: Option<String>,
+    pub to: Option<Vec<String>>,
+    pub bto: Option<Vec<String>>,
+    pub cc: Option<Vec<String>>,
+    pub bcc: Option<Vec<String>>,
+    pub sensitivity: Option<bool>,
+    pub atom_url: Option<String>,
+    pub in_reply_to_atom_uri: Option<String>,
+    pub conversation: Option<String>,
+    pub content: Option<String>,
+    pub content_map: Option<HashMap<String, String>>, // Object {"en": String("<p>999</p>")},
+    pub attachment: Option<Vec<String>>,              // Array [],
+    pub tag: Option<Vec<String>>,                     // Array [],
+    // Todo: Value for now.
+    pub replies: Option<Value>,
+}
+
+impl fmt::Display for Note {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let a = serde_json::to_string(self).unwrap();
+        write!(f, "{}", a)
+    }
+}
+
+impl fmt::Debug for Note {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let a = serde_json::to_string(self).unwrap();
+        write!(f, "{}", a)
+    }
+}
+
+impl Execute for Note {
+    async fn execute(&self, actor: String) -> Result<()> {
+        tracing::debug!("##########################");
+        Ok(())
+    }
 }

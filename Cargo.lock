@@ -3076,7 +3076,7 @@ dependencies = [
 [[package]]
 name = "spin-executor"
 version = "3.0.1"
-source = "git+https://github.com/fermyon/spin-rust-sdk.git?branch=main#184946fdd3cb48de3c3af60f8e053b42947c791b"
+source = "git+https://github.com/fermyon/spin-rust-sdk?branch=main#184946fdd3cb48de3c3af60f8e053b42947c791b"
 dependencies = [
  "futures",
  "once_cell",
@@ -3086,7 +3086,7 @@ dependencies = [
 [[package]]
 name = "spin-macro"
 version = "3.0.1"
-source = "git+https://github.com/fermyon/spin-rust-sdk.git?branch=main#184946fdd3cb48de3c3af60f8e053b42947c791b"
+source = "git+https://github.com/fermyon/spin-rust-sdk?branch=main#184946fdd3cb48de3c3af60f8e053b42947c791b"
 dependencies = [
  "anyhow",
  "bytes",
@@ -3098,7 +3098,7 @@ dependencies = [
 [[package]]
 name = "spin-sdk"
 version = "3.0.1"
-source = "git+https://github.com/fermyon/spin-rust-sdk.git?branch=main#184946fdd3cb48de3c3af60f8e053b42947c791b"
+source = "git+https://github.com/fermyon/spin-rust-sdk?branch=main#184946fdd3cb48de3c3af60f8e053b42947c791b"
 dependencies = [
  "anyhow",
  "async-trait",

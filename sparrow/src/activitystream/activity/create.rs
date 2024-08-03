@@ -8,6 +8,7 @@ use std::fmt::Debug;
 use anyhow::Result;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
+use std::str::FromStr;
 use uuid::Uuid;
 
 use crate::activitystream;
@@ -15,12 +16,14 @@ use crate::activitystream::activity::Activity;
 use crate::activitystream::activity::ActivityType;
 use crate::activitystream::activity::Execute;
 use crate::activitystream::actor::person::Person as PersonActor;
+use crate::activitystream::object::note::Note as NoteObject;
+use crate::activitystream::object::ObjectType;
 use crate::mastodon::account::actor_url::ActorUrl;
 use crate::mastodon::account::Account as MAccount;
 use crate::mastodon::account::Get as _;
 use crate::mastodon::activity_log::ActivityLog;
-use crate::mastodon::follow::Follow as MFollow;
 use crate::mastodon::setting::Setting;
+use crate::mastodon::status::Status as MStatus;
 use chrono::{DateTime, Utc};
 
 /// Accept activity struct.  
@@ -71,6 +74,35 @@ pub struct Create(Value);
     "signatureValue":"Dlby/9rMnA6PJqqdUv/eVuNjTPPbwmG2JPf2SKiMqvLZ7BtJ+DFbraMHIp6NmnYbvN0CV9OZQ7HNo3Rvr4vVeARzBfwCLiyp2zNh/GVqtlyaDDVHmCiFvwYzbVqAMBj8dYklHcZiU5zOeaMfznt8q9I9WPuPruqrPrFcZZNEd5nbSSTe17CVkJLeAeQpMrg6uE8MurjolMkzqwakmOjn3pZbbXASXIJvbjOlR/c5+SG9zOnOqJLv8x9fVkanZJlwlZD3CuhfTaiokKcNZpwviYzOTlHxDvHQ5lmISXWQP3FC8seNy2+dvhCgtLdOZwduymOj2zW1fq/4QqHhx0jX7w=="
   }
 }
+
+  Ok( {
+  "id":"https://mas.to/users/seungjin/statuses/112885048174202789",
+  "type":"Note",
+  "summary":null,
+  "inReplyTo":null,
+  "published":"2024-08-01T05:12:18Z",
+  "url":"https://mas.to/@seungjin/112885048174202789",
+  "attributedTo":"https://mas.to/users/seungjin",
+  "to":["https://www.w3.org/ns/activitystreams#Public"],
+  "bto":null,
+  "cc":["https://mas.to/users/seungjin/followers"],
+  "bcc":null,
+  "sensitivity":null,
+  "atomUrl":null,
+  "inReplyToAtomUri":null,
+  "conversation": "tag:mas.to,2024-08-01:objectId=369259710:objectType=Conversation",
+  "content":"<p>tdd</p>",
+  "contentMap":{"en":"<p>tdd</p>"},
+  "attachment":[],
+  "tag":[],
+  "replies":
+    {"id":"https://mas.to/users/seungjin/statuses/112885048174202789/replies",
+      "type":"Collection","first":{"type":"CollectionPage",
+      "next":"https://mas.to/users/seungjin/statuses/112885048174202789/replies?only_other_accounts=true&page=true",
+      "partOf":"https://mas.to/users/seungjin/statuses/112885048174202789/replies","items":[]}}})
+
+
+
 */
 
 impl Create {
@@ -111,55 +143,26 @@ impl fmt::Debug for Create {
 }
 
 impl Execute for Create {
-    async fn execute(&self, actor: String) -> Result<()> {
-        // Check activiy.object is what I really sent.
-        // https://dev.prefer.social/0190fcb0-5272-77c3-acb1-3e9be71ff930
-        // SELECT * FROM activity_log WHERE JSON_EXTRACT(body, '$.id') = ?
-        match ActivityLog::get_with_id(
-            self.0.get("id").unwrap().as_str().unwrap(),
-        )
-        .await
-        .unwrap()
-        {
-            None => {
-                tracing::error!(
-                    "Havn't published this acticity {}",
-                    self.0.get("id").unwrap().to_string()
-                )
+    async fn execute(&self, _actor: String) -> Result<()> {
+        let a: &str = self.0.get("type").unwrap().as_str().unwrap();
+        let object_type = ObjectType::from_str(a).unwrap();
+
+        match object_type {
+            ObjectType::Note => {
+                let note =
+                    serde_json::from_value::<NoteObject>(self.0.to_owned())
+                        .unwrap();
+                //tracing::debug!("{:?}", note);
+                let status = MStatus::new(note).await;
+                tracing::debug!("{:?}", status)
             }
-            Some(x) => {
-                let log_obj = activitystream::remove_context(x);
-                let given_obj =
-                    activitystream::remove_context(self.0.to_owned());
-                if given_obj != log_obj {
-                    tracing::error!(
-                        "Integration error! No matching follow was published! {}", self.0.get("id").unwrap().to_string()
-                    );
-                    return Err(anyhow::Error::msg(
-                        "Given activity is not published by SELF!",
-                    ));
-                }
+            unkown_type => {
+                tracing::debug!(
+                    "Create '{:?}' is not implemented!",
+                    unkown_type
+                );
             }
-        };
-
-        let subj = ActorUrl::new(
-            self.0.get("actor").unwrap().as_str().unwrap().to_string(),
-        )
-        .unwrap();
-        let obj = ActorUrl::new(
-            self.0.get("object").unwrap().as_str().unwrap().to_string(),
-        )
-        .unwrap();
-        let obj_id = self.0.get("id").unwrap().as_str().unwrap().to_string();
-
-        let subj_account = MAccount::get(subj).await?;
-        let subj_account_id = subj_account.uid;
-
-        let obj_account = MAccount::get(obj).await?;
-        let obj_account_id = obj_account.uid;
-
-        MFollow::new(obj_id, subj_account_id, obj_account_id).await?;
-
+        }
         Ok(())
     }
 }

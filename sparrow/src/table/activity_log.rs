@@ -12,6 +12,7 @@ use uuid::Uuid;
 
 use crate::activitystream::activity::follow::Follow as FollowActivity;
 use crate::activitystream::actor::person::Person as PersonActor;
+use crate::table::New;
 
 #[derive(Default, Clone, Debug, PartialEq, sqlx::FromRow)]
 pub struct ActivityLog {
@@ -84,3 +85,5 @@ impl Get<(String, String)> for ActivityLog {
         Ok(accounts)
     }
 }
+
+impl New for ActivityLog {}

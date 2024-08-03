@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Error, Result};
 use serde_json::Value;
 use spin_sdk::{
     http::{HeaderValue, IntoResponse, Method, Request, Response},
@@ -12,8 +12,11 @@ use crate::http_response::HttpResponse;
 use sparrow::activitystream::activity::accept::Accept as AcceptActivity;
 use sparrow::activitystream::activity::delete::Delete as DeleteActivity;
 use sparrow::activitystream::activity::follow::Follow as FollowActivity;
+use sparrow::activitystream::activity::create::Create as CreateActivity;
+use sparrow::activitystream::object::ObjectType;
 use sparrow::activitystream::activity::Activity;
 use sparrow::activitystream::activity::ActivityType;
+use sparrow::activitystream::object::note::Note as NoteObject;
 
 mod http_response;
 
@@ -65,8 +68,10 @@ pub async fn post(req: Request) -> Result<Response> {
     tracing::debug!("VALID SIGNATURE");
 
     // Get posted body and inspect it.
-    let (body, activity_type, _object_type) =
+    let (body, activity_type, object_type) =
         inspect(String::from_utf8_lossy(req.body()).to_string());
+
+    tracing::debug!("{:?} {:?}", activity_type, object_type);
 
     let _activity_actor = body.get("actor").unwrap().as_str().unwrap();
 
@@ -104,6 +109,22 @@ pub async fn post(req: Request) -> Result<Response> {
             let activity =
                 serde_json::from_value::<Activity<AcceptActivity>>(body)
                     .unwrap();
+            match activity.execute().await {
+                Ok(_) => HttpResponse::accepted(),
+                Err(e) => {
+                    tracing::error!(
+                        "Error from Inbox's Follow request -> {e:?}",
+                    );
+                    HttpResponse::not_acceptable()
+                }
+            }
+        }
+        ActivityType::Create => {
+            let activity =
+                serde_json::from_value::<Activity<CreateActivity>>(body)
+                    .unwrap();
+            let ot = ObjectType::from_str(object_type.unwrap().as_str());
+
             match activity.execute().await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {

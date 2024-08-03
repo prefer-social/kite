@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use spin_sdk::sqlite::{Connection, Value};
 use spin_sqlx::sqlite::Connection as dbcon;
-use std::any::{type_name, Any};
+use std::any::{type_name};
 use std::time::{SystemTime, UNIX_EPOCH};
 use struct_iterable::Iterable;
 use url::Url;
@@ -14,6 +14,7 @@ use url::Url;
 use crate::activitystream::actor::person::Person as PersonActor;
 use crate::mastodon::account::uri::Uri as AccountUri;
 use crate::mastodon::account::actor_url::ActorUrl;
+use crate::table::FieldType;
 
 /// DB Account table struct
 #[derive(
@@ -275,38 +276,6 @@ impl New<PersonActor> for Account {
     }
 }
 
-#[derive(Debug)]
-enum FieldType {
-    String,
-    OptionString,
-    I64,
-    OptionI64,
-    F64,
-    OptionF64,
-    NotDefined,
-}
-
-fn check_type(v: &dyn Any) -> FieldType {
-    if v.is::<String>() {
-        return FieldType::String;
-    }
-    if v.is::<Option<String>>() {
-        return FieldType::OptionString;
-    }
-    if v.is::<i64>() {
-        return FieldType::I64;
-    }
-    if v.is::<Option<i64>>() {
-        return FieldType::OptionI64;
-    }
-    if v.is::<f64>() {
-        return FieldType::F64;
-    }
-    if v.is::<Option<f64>>() {
-        return FieldType::OptionF64;
-    }
-    FieldType::NotDefined
-}
 
 #[async_trait(?Send)]
 impl New<Account> for Account {
@@ -331,7 +300,7 @@ impl New<Account> for Account {
                 continue;
             }
 
-            let value = match check_type(v) {
+            let value = match super::check_type(v) {
                 FieldType::String => {
                     v.downcast_ref::<String>().unwrap().to_owned()
                 }
@@ -408,7 +377,7 @@ impl New<Account> for Account {
                 continue;
             }
 
-            let value = match check_type(v) {
+            let value = match super::check_type(v) {
                 FieldType::String => {
                     v.downcast_ref::<String>().unwrap().to_owned()
                 }

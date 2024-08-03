@@ -1,19 +1,18 @@
 //! Delete activity.  
 //! <https://www.w3.org/TR/activitystreams-vocabulary/#dfn-delete>
 
-use std::fmt;
-use std::fmt::Debug;
-
 use anyhow::Result;
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json::Value;
 use spin_sdk::http::{Method, RequestBuilder, Response};
+use std::fmt;
+use std::fmt::Debug;
 use uuid::Uuid;
 
 use crate::activitystream::activity::Activity;
 use crate::activitystream::activity::ActivityType;
-use crate::activitystream::activity::Execute;
 use crate::activitystream::default_context;
+use crate::activitystream::Execute;
 use crate::mastodon;
 use crate::mastodon::account::actor_url::ActorUrl;
 use crate::mastodon::account::Account as MAccount;
@@ -198,6 +197,7 @@ async fn redirect_http_request(
     url: &str,
     max_retry: usize,
 ) -> Result<Response> {
+    tracing::warn!("redirect_http_request! {}", max_retry);
     let request = RequestBuilder::new(Method::Get, url)
         .header("Content-Type", "application/activity+json")
         .build();
@@ -208,6 +208,10 @@ async fn redirect_http_request(
     }
 
     if vec![301u16, 307u16, 308u16].contains(response.status()) {
+        tracing::debug!(
+            "Requesting redirected location: {}",
+            response.header("Location").unwrap().as_str().unwrap()
+        );
         Box::pin(redirect_http_request(
             response.header("Location").unwrap().as_str().unwrap(),
             max_retry - 1,
