@@ -37,13 +37,13 @@ pub struct Person {
     pub followers: String,
     pub inbox: String,
     pub outbox: String,
-    pub featured: String,
-    pub featured_tags: String,
+    pub featured: Option<String>,
+    pub featured_tags: Option<String>,
     pub preferred_username: String,
     pub name: String,
     pub summary: String,
     pub url: String,
-    pub manually_approves_followers: bool,
+    pub manually_approves_followers: Option<bool>,
     pub discoverable: bool,
     pub indexable: bool,
     pub published: String,
@@ -52,8 +52,8 @@ pub struct Person {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub devices: Option<String>,
     pub public_key: PublicKey,
-    pub tag: Vec<Value>,
-    pub attachment: Vec<Value>,
+    pub tag: Option<Vec<Value>>,
+    pub attachment: Option<Vec<Value>>,
     pub endpoints: Endpoints,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub icon: Option<Image>,
@@ -93,12 +93,15 @@ impl Person {
 
         let domain = match a.local() {
             true => Setting::domain().await,
-            _ => a.account_uri.domain.unwrap(),
+            _ => a.account_uri.to_owned().domain.unwrap(),
         };
 
         let pk = PublicKey {
-            id: format!("{}#main-key", a.url.clone()),
-            owner: a.url.to_owned(),
+            id: format!(
+                "{}#main-key",
+                a.account_uri.actor_url().await.unwrap().to_string()
+            ),
+            owner: a.account_uri.actor_url().await.unwrap().to_string(),
             public_key_pem: a.public_key,
         };
 
@@ -134,13 +137,16 @@ impl Person {
             followers: a.followers_url.to_owned().unwrap_or_default(),
             inbox: a.inbox_url.to_owned().unwrap_or_default(),
             outbox: a.outbox_url.to_owned().unwrap_or_default(),
-            featured: format!("https://{}/collections/featured", domain), // Todo:
-            featured_tags: format!("https://{}/collections/tags", domain), // Todo:
+            featured: Some(format!("https://{}/collections/featured", domain)), // Todo:
+            featured_tags: Some(format!(
+                "https://{}/collections/tags",
+                domain
+            )), // Todo:
             preferred_username: username.to_string().to_owned(),
             name: a.display_name.to_owned(),
             summary: a.note.to_owned(),
             url: a.url.to_owned(),
-            manually_approves_followers: false, // Todo:
+            manually_approves_followers: Some(false), // Todo:
             discoverable: a.discoverable.to_owned(),
             indexable: a.indexable.to_owned().unwrap_or_default(),
             published: crate::utils::convert_epoch_to_iso_8601(
@@ -149,8 +155,8 @@ impl Person {
             memorial: Some(false),
             devices: None,
             public_key: pk,
-            tag: Vec::new(),
-            attachment: Vec::new(),
+            tag: Some(Vec::new()),
+            attachment: Some(Vec::new()),
             endpoints: endpoints,
             icon: Some(icon),
             image: Some(image),

@@ -491,8 +491,13 @@ impl TryFrom<PersonActor> for Account {
             shared_inbox_url: Some(actor.endpoints.shared_inbox), // default(""), not null
             following_url: Some(actor.following),
             followers_url: Some(actor.followers), // default(""), not null
-            memorial: Some(actor.memorial.unwrap() as i64),
-            featured_collection_url: Some(actor.featured),
+            memorial: actor.memorial.map(|x| 
+                match x {
+                    false => 0, 
+                    true => 1,
+                }
+            ),
+            featured_collection_url: actor.featured,
             actor_type: Some(actor.actor_type.to_string()),
             discoverable: Some(actor.discoverable as i64),
             devices_url: actor.devices,

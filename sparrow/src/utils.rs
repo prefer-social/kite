@@ -23,22 +23,28 @@ pub async fn create_token() -> String {
     pg.generate_one().unwrap()
 }
 
-///
-pub async fn get_current_time_in_rfc_1123() -> String {
+/// RFC 1123: Sun, 21 Oct 2018 12:16:24 GMT
+pub fn get_current_time_in_rfc_1123() -> String {
     use chrono::{DateTime, Utc};
     let current_time: DateTime<Utc> = Utc::now();
     current_time.format("%a, %d %b %Y %H:%M:%S GMT").to_string()
 }
 
+pub fn get_current_time_for_signing() -> String {
+    use chrono::{DateTime, Utc};
+    let current_time: DateTime<Utc> = Utc::now();
+    current_time.format("%d %b %Y %H:%M:%S GMT").to_string()
+}
+
 /// Iso8601: 2024-02-27T06:17:54Z
 /// https://docs.rs/chrono/latest/chrono/format/strftime/index.html
-pub async fn get_current_time_in_iso_8601() -> String {
+pub fn get_current_time_in_iso_8601() -> String {
     use chrono::{DateTime, Utc};
     let current_time: DateTime<Utc> = Utc::now();
     current_time.format("%Y-%m-%dT%H:%M:%SZ").to_string()
 }
 
-pub async fn get_current_epoch() -> i64 {
+pub fn get_current_epoch() -> i64 {
     use std::time::{SystemTime, UNIX_EPOCH};
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -54,7 +60,9 @@ pub fn convert_epoch_to_iso_8601(epoch: i64) -> String {
 }
 
 // debug tool
-pub async fn see_headers(headers: impl Iterator<Item = (&str, &HeaderValue)>) {
+pub fn see_headers<'a>(
+    headers: impl Iterator<Item = (&'a str, &'a HeaderValue)>,
+) {
     for header in headers {
         tracing::debug!("{header:?}");
     }

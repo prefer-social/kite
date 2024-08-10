@@ -95,7 +95,6 @@ where
 
 impl<T> Activity<T>
 where
-<<<<<<< HEAD
     T: Debug
         + Serialize
         + ToString
@@ -104,9 +103,6 @@ where
         + Clone
         + Default
         + Execute,
-=======
-    T: Debug + Serialize + ToString + PartialEq + Eq + Clone + Default + Execute,
->>>>>>> 20adcdf955a016e90b8884496fc561f717b516ac
 {
     /// Create new ActivityPub object.  
     pub fn new(
@@ -138,11 +134,7 @@ where
         // If an actor is self, publish/send to world
         if self.actor == my_account.actor_url.to_string() {
             tracing::debug!("If an actor is self, publish/send to world");
-<<<<<<< HEAD
-            match mastodon::publish_activity(self.to_owned()).await {
-=======
             match mastodon::post_activity(self.to_owned()).await {
->>>>>>> 20adcdf955a016e90b8884496fc561f717b516ac
                 Ok(_) => return Ok(()),
                 Err(e) => {
                     tracing::error!("{e:?}");

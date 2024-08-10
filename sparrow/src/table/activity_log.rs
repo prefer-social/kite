@@ -4,15 +4,10 @@
 
 use anyhow::Result;
 use async_trait::async_trait;
-<<<<<<< HEAD
-use serde::Serialize;
-use serde_json::Value;
-=======
 use oauth2::http::method;
 use serde::Serialize;
 use serde_json::Value;
 use spin_sdk::http::Method;
->>>>>>> 20adcdf955a016e90b8884496fc561f717b516ac
 use spin_sqlx::sqlite::Connection as dbcon;
 use std::fmt::Debug;
 use uuid::Uuid;
@@ -26,10 +21,7 @@ pub struct ActivityLog {
     pub rowid: Option<i64>,
     pub uid: Option<String>,
     pub sig_header: Option<String>,
-<<<<<<< HEAD
-=======
     pub method: Option<i64>,
->>>>>>> 20adcdf955a016e90b8884496fc561f717b516ac
     pub headers: Option<String>,
     pub body: Option<String>,
     pub status: Option<String>,
@@ -41,16 +33,6 @@ impl ActivityLog {
     pub async fn put(
         sig_header: String,
         hostname: String,
-<<<<<<< HEAD
-        body: String,
-        status: Option<String>,
-    ) -> Result<()> {
-        let sqlx_conn = dbcon::open_default()?;
-        sqlx::query("INSERT INTO activity_log (uid, sig_header, hostname, body, status) VALUES ($1, $2, $3, $4, $5)")
-            .bind(Uuid::now_v7().to_string())
-            .bind(sig_header)
-            .bind(hostname)
-=======
         method: Option<Method>,
         body: String,
         status: Option<String>,
@@ -70,7 +52,6 @@ impl ActivityLog {
             .bind(sig_header)
             .bind(hostname)
             .bind(method_code)
->>>>>>> 20adcdf955a016e90b8884496fc561f717b516ac
             .bind(body)
             .bind(status)
             .execute(&sqlx_conn)
@@ -108,12 +89,8 @@ pub trait Get<T> {
 #[async_trait]
 impl Get<(String, String)> for ActivityLog {
     async fn get((key, val): (String, String)) -> Result<Vec<ActivityLog>> {
-<<<<<<< HEAD
         let query_template =
             format!("SELECT rowid, * FROM activity_log WHERE {} = ?", key);
-=======
-        let query_template = format!("SELECT rowid, * FROM activity_log WHERE {} = ?", key);
->>>>>>> 20adcdf955a016e90b8884496fc561f717b516ac
         let sqlx_conn = dbcon::open_default()?;
         let accounts = sqlx::query_as(query_template.as_str())
             .bind(val)
