@@ -3,11 +3,15 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use spin_sdk::http::{Method, Request, Response};
 use std::default::Default;
+use std::ops::Deref;
 use std::string::ToString;
 use std::{fmt, str};
 use url::Url;
 
 use crate::activitystream::actor::person::Person;
+use crate::mastodon;
+use crate::mastodon::account::Account as MAccount;
+use crate::mastodon::account::Get as _;
 use crate::table::actor_json::ActorJson;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
@@ -24,17 +28,29 @@ impl ActorUrl {
     }
 
     pub async fn actor(&self) -> Result<Person> {
+        // TODO: do secure call!!!
+        // Call get with sining key!
+
         let ct = "application/activity+json";
         let actor_url = self.0.as_ref().unwrap().to_owned();
-        let request = Request::builder()
-            .method(Method::Get)
-            .header("Accept", ct)
-            .uri(actor_url)
-            .build();
 
-        let response: Response = spin_sdk::http::send(request).await.unwrap();
+        // let request = Request::builder()
+        //     .method(Method::Get)
+        //     .header("Accept", ct)
+        //     .uri(actor_url)
+        //     .build();
+        // let response: Response = spin_sdk::http::send(request).await.unwrap();
 
-        let actor_str = str::from_utf8(response.body()).unwrap();
+        tracing::debug!("##############");
+        tracing::debug!("{:?}", actor_url);
+        let response = mastodon::get_fediverse(actor_url).await?;
+        tracing::debug!("##############");
+
+        //let body = String::from_utf8(response.into_body().await?).unwrap();
+        let body = response.body();
+        let actor = str::from_utf8(body).unwrap();
+
+        tracing::debug!(actor);
 
         match response.status().to_owned() {
             200 => {}
@@ -46,6 +62,13 @@ impl ActorUrl {
                 )));
                 // TODO: need to delete from db table?
             } // Gone.
+            404 => {
+                // Actor not found
+                return Err(anyhow::Error::msg(format!(
+                    "Actor {:?} NOT FOUND",
+                    self.0.as_ref().unwrap().to_string()
+                )));
+            }
             r => {
                 tracing::debug!(
                     "Actor {:?} response is {}",
@@ -55,11 +78,11 @@ impl ActorUrl {
             }
         }
 
-        let _ct = response.header("content-type").unwrap().as_str().unwrap();
-        let actor_value: Value = serde_json::from_str(actor_str).unwrap();
+        let headers = response.headers();
+        let actor_value: Value = serde_json::from_str(actor).unwrap();
 
         // This saves acor to actor_json table
-        ActorJson::put(serde_json::from_str(actor_str).unwrap()).await?;
+        ActorJson::put(serde_json::from_str(actor).unwrap()).await?;
 
         // Convert this to ActivityPub Actor
         let actor = Person::try_from(actor_value).unwrap();

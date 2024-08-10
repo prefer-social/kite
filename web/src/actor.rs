@@ -24,7 +24,7 @@ pub async fn get(req: Request, _params: Params) -> anyhow::Result<Response> {
 
     Ok(Response::builder()
         .status(200)
-        .header("Content-Type", "application/activity+json; charset=utf-8")
+        .header("Content-Type", "application/ld+json; profile=\"https://www.w3.org/ns/activitystreams\"")
         .body(s)
         .build())
 }

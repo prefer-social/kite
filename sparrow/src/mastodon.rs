@@ -15,9 +15,7 @@ use rsa::signature::Verifier;
 use rsa::{RsaPrivateKey, RsaPublicKey};
 use serde::Serialize;
 use serde_json::Value;
-use spin_sdk::http::{
-    self, IncomingResponse, Method, Request, RequestBuilder,
-};
+use spin_sdk::http::{self, Method, Request, RequestBuilder, Response};
 use std::collections::HashMap;
 use std::fmt::Debug;
 use url::Url;
@@ -195,7 +193,7 @@ pub async fn validate_signature(req: &Request) -> Result<bool> {
 }
 
 /// Send ActivityPub Object/Message
-pub async fn publish_activity<T>(activity: Activity<T>) -> Result<u16>
+pub async fn publish_activity_1<T>(activity: Activity<T>) -> Result<u16>
 where
     T: Debug + Serialize + ToString + Execute,
 {
@@ -207,7 +205,7 @@ where
         ActivityType::Accept => {
             let a = activity.activity_object.to_string();
             let b: Value = serde_json::from_str(a.as_str()).unwrap();
-            let c = b.get("object").unwrap().as_str().unwrap();
+            let c = b.get("actor").unwrap().as_str().unwrap();
             c.to_string()
         }
         ob_type => {
@@ -217,6 +215,10 @@ where
             )))
         }
     };
+
+    tracing::debug!("??????????????????????????????");
+    tracing::debug!(sender_actor_url_string);
+    tracing::debug!(recipient_actor_url_string);
 
     let sender_actor_url =
         ActorUrl::new(sender_actor_url_string.clone()).unwrap();
@@ -284,7 +286,7 @@ where
         .body(request_body.to_string())
         .build();
 
-    let response: IncomingResponse = http::send(request).await?;
+    let response: Response = http::send(request).await?;
     let status = response.status();
 
     //if status == 202u16 { // Only 202? or
@@ -298,5 +300,215 @@ where
     .unwrap();
     //}ActivityLog
 
-    Ok(status)
+    Ok(*status)
+}
+
+pub async fn publish_activity<T>(activity: Activity<T>) -> Result<u16>
+where
+    T: Debug + Serialize + ToString + Execute,
+{
+    let sender_actor_url_string = activity.actor.clone();
+
+    let recipient_actor_url_string = match activity.activity_type {
+        ActivityType::Follow => activity.activity_object.to_string(),
+        //ActivityType::Undo => {}
+        ActivityType::Accept => {
+            let a = activity.activity_object.to_string();
+            let b: Value = serde_json::from_str(a.as_str()).unwrap();
+            let c = b.get("actor").unwrap().as_str().unwrap();
+            c.to_string()
+        }
+        ob_type => {
+            return Err(anyhow::Error::msg(format!(
+                "UNKOWN ObjectType {:?}",
+                ob_type
+            )))
+        }
+    };
+
+    tracing::debug!("??????????????????????????????");
+    tracing::debug!(sender_actor_url_string);
+    tracing::debug!(recipient_actor_url_string);
+
+    let sender_actor_url =
+        ActorUrl::new(sender_actor_url_string.clone()).unwrap();
+    let sender_account = MAccount::get(sender_actor_url.clone()).await?;
+
+    let sender_private_key_pem = sender_account.private_key.unwrap();
+
+    let recipient_actor_url =
+        ActorUrl::new(recipient_actor_url_string).unwrap();
+    let recipient_account = MAccount::get(recipient_actor_url).await?;
+    let date = get_current_time_in_rfc_1123().await;
+    let content_type = "application/activity+json";
+
+    let message = serde_json::to_string(&activity).unwrap();
+
+    // tracing::debug!("me -> {me}");
+    // tracing::debug!("my_actor -> {my_actor}");
+    // tracing::debug!("recipient_actor -> {recipient_actor}");
+    // tracing::debug!("recipient_server -> {recipient_server}");
+    // tracing::debug!("private_key_pem -> {private_key_pem}");
+    // tracing::debug!("date -> {date}");
+    // tracing::debug!("content_type -> {content_type}");
+
+    let (signature, digest) = create_signrature(
+        sender_account.inbox_url.unwrap().as_str(),
+        &sender_private_key_pem,
+        recipient_account.inbox_url.to_owned().unwrap().as_str(),
+        &message,
+        &date,
+        &content_type,
+    );
+
+    let request = RequestBuilder::new(
+        Method::Post,
+        recipient_account.inbox_url.unwrap(),
+    )
+    .header("Date", date)
+    .header("Signature", &signature)
+    .header("Digest", digest)
+    .header("Content-Type", content_type)
+    .header("Accept", content_type)
+    .body(message.as_str())
+    .build();
+
+    let response: Response = http::send(request).await?;
+    let status = response.status();
+
+    //if status == 202u16 { // Only 202? or
+    ActivityLog::put(
+        signature,
+        Setting::domain().await,
+        message,
+        Some(status.to_string()),
+    )
+    .await
+    .unwrap();
+    //}ActivityLog
+
+    Ok(*status)
+}
+
+pub async fn get_fediverse(request_url: Url) -> Result<Response> {
+    // What I need:
+    // sender inbox url,
+    // sender private key,
+    // recipient inbox url,
+
+    // Todo: get from auth
+    let (sender, _) = MAccount::default().await?;
+
+    let _sender_inbox = sender.inbox_url.unwrap();
+    let sender_priv_key = sender.private_key.unwrap();
+    let date = get_current_time_in_rfc_1123().await;
+    let content_type = "application/ld+json; profile=\"https://www.w3.org/ns/activitystreams\"";
+
+    let signature = get_signrature(
+        "https://dev.prefer.social/self",
+        &sender_priv_key,
+        &request_url.to_string(),
+        &date,
+    );
+
+    let request = Request::builder()
+        .method(Method::Get)
+        .uri(request_url.to_owned())
+        .header("Date", date)
+        .header("Signature", &signature)
+        //.header("Digest", digest)
+        //.header("Content-Type", content_type)
+        .header("Accept", content_type)
+        //.body(message.as_str())
+        .build();
+
+    let response: Response = spin_sdk::http::send(request).await.unwrap();
+
+    tracing::debug!("$$$$$$$$$$$$$$$$$");
+    tracing::debug!("{:?}", request_url);
+    tracing::debug!("{:?}", signature);
+    tracing::debug!("{:?}", response.status());
+
+    Ok(response)
+}
+
+pub fn create_signrature(
+    sender_inbox_url: &str,
+    sender_private_key_pem: &str,
+    recipient_inbox_url: &str,
+    message: &String,
+    date_in_rfc_1123: &String,
+    content_type: &str,
+) -> (String, String) {
+    let sender = Url::parse(sender_inbox_url).unwrap();
+    let recipient = Url::parse(recipient_inbox_url).unwrap();
+    let private_key = RsaPrivateKey::from_pkcs8_pem(&sender_private_key_pem)
+        .expect("RsaPrivateKey creation failed");
+
+    let mut hasher = Sha256::new();
+    hasher.update(message);
+    let digest = format!(
+        "SHA-256={}",
+        general_purpose::STANDARD.encode(hasher.finalize())
+    );
+
+    let signature_string = format!(
+         "(request-target): post {}\nhost: {}\ndate: {}\ndigest: {}\ncontent-type: {}",
+        sender.path(), sender.domain().unwrap(), date_in_rfc_1123, digest, content_type
+    );
+
+    let signing_key: SigningKey<Sha256> = SigningKey::new(private_key);
+    let signature = <SigningKey<Sha256> as Signer<Signature>>::sign(
+        &signing_key,
+        signature_string.as_bytes(),
+    );
+    let encoded_signature =
+        general_purpose::STANDARD.encode(signature.to_bytes().as_ref());
+
+    let signature = format!(
+        r#"keyId="{}#main-key",algorithm="rsa-sha256",headers="(request-target) host date digest content-type",signature="{}""#,
+        sender.as_str(),
+        encoded_signature
+    );
+
+    (signature, digest)
+}
+
+pub fn get_signrature(
+    sender_actor_url: &str,
+    sender_private_key_pem: &str,
+    request_url: &str,
+    date_in_rfc_1123: &String,
+) -> String {
+    let sender = Url::parse(sender_actor_url).unwrap();
+    let recipient = Url::parse(request_url).unwrap();
+    let private_key = RsaPrivateKey::from_pkcs8_pem(&sender_private_key_pem)
+        .expect("RsaPrivateKey creation failed");
+
+    let signature_string = format!(
+        "(request-target): get {}\nhost: {}\ndate: {}",
+        recipient.path(),
+        recipient.domain().unwrap(),
+        date_in_rfc_1123
+    );
+
+    let signing_key: SigningKey<Sha256> = SigningKey::new(private_key);
+    let signature = <SigningKey<Sha256> as Signer<Signature>>::sign(
+        &signing_key,
+        signature_string.as_bytes(),
+    );
+    let encoded_signature =
+        general_purpose::STANDARD.encode(signature.to_bytes().as_ref());
+
+    tracing::debug!(signature_string);
+    tracing::debug!("--->sender---> {:?}", sender);
+
+    // keyId="https://my.example.com/actor#main-key",headers="(request-target) host date",signature="Y2FiYW...IxNGRiZDk4ZA=="
+    let signature = format!(
+        r#"keyId="{}#main-key",headers="(request-target) host date",signature="{}""#,
+        sender.to_string(),
+        encoded_signature
+    );
+
+    signature
 }

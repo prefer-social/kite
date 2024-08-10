@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fmt;
 use std::str::FromStr;
+use url::Url;
 
 pub mod note;
 
@@ -18,6 +19,7 @@ pub enum ObjectType {
     Profile,
     Relationship,
     Tombstone,
+    Url(String),
     #[default]
     NotDefined,
 }
@@ -31,6 +33,9 @@ impl fmt::Display for ObjectType {
 impl FromStr for ObjectType {
     type Err = ();
     fn from_str(input: &str) -> Result<ObjectType, Self::Err> {
+        if Url::parse(input).is_ok() {
+            return Ok(ObjectType::Url(input.to_string()));
+        }
         match input {
             "Article" => Ok(ObjectType::Article),
             "Document" => Ok(ObjectType::Document),

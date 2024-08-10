@@ -83,6 +83,10 @@ async fn handle_api(req: Request) -> Result<impl IntoResponse> {
         "/api/v1/accounts/:id/follow",
         endpoint::v1::accounts::follow::request,
     );
+    router.any_async(
+        "/api/v1/accounts/:id/unfollow",
+        endpoint::v1::accounts::unfollow::request,
+    );
     // router.any_async(
     //     "/api/v1/accounts/:id/statuses",
     //     accounts::statuses::request,
@@ -91,10 +95,7 @@ async fn handle_api(req: Request) -> Result<impl IntoResponse> {
     //     "/api/v1/accounts/relationships",
     //     accounts::relationships::request,
     // );
-    // router.any_async(
-    //     "/api/v1/accounts/:id/unfollow",
-    //     accounts::unfollow::request,
-    // );
+
     // router.any_async("/api/v1/statuses", statuses::request);
     // router.any_async("/api/v1/favourites", favourites::request);
     // router.any_async("/api/v1/bookmarks", bookmarks::request);

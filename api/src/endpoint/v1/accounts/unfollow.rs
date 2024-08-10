@@ -1,5 +1,6 @@
-// (POST) /api/v1/accounts/seungjin@mas.to/unfollow
-// https://docs.joinmastodon.org/methods/accounts/#unfollow
+//! Unfollow is basically doing undo follow
+//! (POST) /api/v1/accounts/seungjin@mas.to/unfollow
+//! https://docs.joinmastodon.org/methods/accounts/#unfollow
 
 use anyhow::Result;
 use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
@@ -8,30 +9,71 @@ use std::collections::HashMap;
 use tracing::debug;
 use url::Url;
 
+use sparrow::activitystream::activity::follow::Follow;
 use sparrow::http_response::HttpResponse;
+use sparrow::mastodon::account::uid::Uid;
 
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
         Method::Post => post(req, params).await,
-        _ => HttpResponse::not_found().await,
+        _ => HttpResponse::method_not_allowed(),
     }
 }
 
 pub async fn post(req: Request, params: Params) -> Result<Response> {
-    let userid: i64 = match sparrow::auth::check_api_auth(&req).await.unwrap()
-    {
-        sparrow::auth::TokenAuth::InValid => {
-            return HttpResponse::unauthorized().await;
-        }
-        sparrow::auth::TokenAuth::TokenNotProvided => {
-            return HttpResponse::unauthorized().await;
-        }
-        sparrow::auth::TokenAuth::Valid(userid) => {
-            Some(userid).unwrap() as i64
-        }
-    };
+    tracing::debug!(
+        "requested -> {} {}",
+        req.method().to_string(),
+        req.path_and_query().unwrap()
+    );
 
-    debug!(userid);
+    let mut token = req.header("Authorization").unwrap().as_str().unwrap();
+
+    let mut c = token.chars();
+    for _ in "Bearer ".chars().into_iter() {
+        c.next();
+    }
+    token = c.as_str();
+
+    let who_to_unfollow = Uid(params.get("id").unwrap().to_string());
+
+    // Unfollow is basically doing undo follow
+
+    /*
+    {
+      "@context":"https://www.w3.org/ns/activitystreams",
+      "id":"https://mas.to/users/seungjin#follows/6620256/undo",
+      "type":"Undo",
+      "actor":"https://mas.to/users/seungjin",
+      "object":{
+        "id":"https://mas.to/0614bc2a-9db6-463d-b23b-772fca54b47b",
+        "type":"Follow",
+        "actor":"https://mas.to/users/seungjin",
+        "object":"https://dev.prefer.social/self"
+      }
+    }
+    */
+
+    // Find the original follow request message from follow table (follow.uri)
+    // and generate Follow object
+    /*
+        let follow = Follow();
+
+        let follow_activity = Activity::new(
+            id,
+            ActivityType::Follow,
+            actor,
+            None,
+            None,
+            None,
+            follow,
+        );
+
+        let undo_activity = Activity
+
+
+
+    */
 
     //let my_actor = Url::parse("https://ap.dev.seungjin.net/users/seungjin").unwrap();
     //let recipient_actor = Url::parse("https://mas.to/users/seungjin").unwrap();

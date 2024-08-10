@@ -6,6 +6,7 @@
 pub mod follow;
 pub mod lookup;
 pub mod relationships;
+pub mod unfollow;
 pub mod verify_credentials;
 // https://docs.joinmastodon.org/methods/accounts/
 // https://docs.joinmastodon.org/methods/accounts/#get

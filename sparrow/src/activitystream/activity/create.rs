@@ -5,7 +5,7 @@
 use std::fmt;
 use std::fmt::Debug;
 
-use anyhow::Result;
+use anyhow::{Error, Result};
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 use std::str::FromStr;
@@ -143,26 +143,34 @@ impl fmt::Debug for Create {
 }
 
 impl Execute for Create {
-    async fn execute(&self, _actor: String) -> Result<()> {
+    async fn execute(&self, activity_val: Value) -> Result<()> {
         let a: &str = self.0.get("type").unwrap().as_str().unwrap();
         let object_type = ObjectType::from_str(a).unwrap();
 
         match object_type {
             ObjectType::Note => {
-                let note =
-                    serde_json::from_value::<NoteObject>(self.0.to_owned())
-                        .unwrap();
-                //tracing::debug!("{:?}", note);
-                let status = MStatus::new(note).await;
-                tracing::debug!("{:?}", status)
+                create_note(self.to_owned(), activity_val).await
             }
-            unkown_type => {
-                tracing::debug!(
-                    "Create '{:?}' is not implemented!",
-                    unkown_type
-                );
-            }
+            unkown_type => unkown(unkown_type).await,
         }
-        Ok(())
     }
+}
+
+async fn create_note(s: Create, activity: Value) -> Result<()> {
+    match serde_json::from_value::<NoteObject>(s.0) {
+        Ok(note) => MStatus::new(note).await,
+        Err(e) => {
+            tracing::error!("Error from Parsing NoteObject: {e:?}");
+            tracing::error!("{activity:?}");
+            Err(Error::msg("Error from Parsing NoteObject: {e:?}"))
+        }
+    }
+}
+
+async fn unkown(unknown_type: ObjectType) -> Result<()> {
+    tracing::error!("Create '{:?}' is not implemented!", unknown_type);
+    Err(Error::msg(format!(
+        "Create '{:?}' is not implemented!",
+        unknown_type
+    )))
 }

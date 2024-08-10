@@ -4,6 +4,7 @@
 //! Mastodon doc about ActivityPub <https://docs.joinmastodon.org/spec/activitypub/>
 //!
 
+use crate::activitystream::activity::Activity;
 use anyhow::Result;
 use serde_json::Value;
 
@@ -13,11 +14,11 @@ pub mod collection;
 pub mod object;
 pub mod ordered_collection;
 
-pub(crate) trait Execute {
+pub trait Execute {
     /// Execute given activity.  
     /// Check actor. If actor is self, publish(send)
     /// If actor is somebody else, insert it to Mastdon database
-    async fn execute(&self, actor: String) -> Result<()>;
+    async fn execute(&self, arg: Value) -> Result<()>;
 }
 
 /// Helper function that remove @context key from serde_json::Value object.

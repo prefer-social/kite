@@ -1,7 +1,6 @@
 use spin_sdk::http::{Request, Response, Router};
 
-pub mod actor;
-pub mod outbox;
+use crate::actor;
 
 pub async fn router(req: Request) -> Response {
     // Accept request
@@ -39,11 +38,6 @@ pub async fn router(req: Request) -> Response {
     router.any_async(format!("@{}", owner).as_str(), actor::req);
     // Just to compatible with Mastodon
     router.any_async(format!("/users/{}", owner).as_str(), actor::req);
-
-    // Todo: following endpoints will become separated Spin componenets.
-    router.any_async("/outbox", outbox::req);
-    //router.any_async("/followers", followers::req);
-    //router.any_async("/following", following::req);
 
     router.handle_async(req).await
 

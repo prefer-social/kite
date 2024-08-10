@@ -21,6 +21,7 @@ use crate::mastodon::account::Account as MAccount;
 use crate::mastodon::account::Get as _;
 use crate::mastodon::activity_log::ActivityLog;
 use crate::mastodon::follow::Follow as MFollow;
+use crate::mastodon::publish_activity;
 use crate::mastodon::setting::Setting;
 
 /*
@@ -40,7 +41,7 @@ use crate::mastodon::setting::Setting;
 
 /// Accept activity struct.  
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone)]
-pub struct Accept(Value);
+pub struct Accept(pub Value);
 
 impl Accept {
     /// resturn Accept object.  
@@ -77,57 +78,58 @@ impl fmt::Debug for Accept {
 }
 
 impl Execute for Accept {
-    async fn execute(&self, actor: String) -> Result<()> {
-        tracing::debug!("{:?}", actor);
+    async fn execute(&self, activity_val: Value) -> Result<()> {
+        tracing::debug!("{:?}", activity_val);
 
-        //
+        tracing::debug!("-----------> Accept execute <---------------");
+
         // Check activiy.object is what I really sent.
         // https://dev.prefer.social/0190fcb0-5272-77c3-acb1-3e9be71ff930
         // SELECT * FROM activity_log WHERE JSON_EXTRACT(body, '$.id') = ?
-        // match ActivityLog::get_with_id(
-        //     self.0.get("id").unwrap().as_str().unwrap(),
-        // )
-        // .await
-        // .unwrap()
-        // {
-        //     None => {
-        //         tracing::error!(
-        //             "Havn't published this acticity {}",
-        //             self.0.get("id").unwrap().to_string()
-        //         )
-        //     }
-        //     Some(x) => {
-        //         let log_obj = activitystream::remove_context(x);
-        //         let given_obj =
-        //             activitystream::remove_context(self.0.to_owned());
-        //         if given_obj != log_obj {
-        //             tracing::error!(
-        //                 "Integration error! No matching follow was published! {}", self.0.get("id").unwrap().to_string()
-        //             );
-        //             return Err(anyhow::Error::msg(
-        //                 "Given activity is not published by SELF!",
-        //             ));
-        //         }
-        //     }
-        // };
+        match ActivityLog::get_with_id(
+            self.0.get("id").unwrap().as_str().unwrap(),
+        )
+        .await
+        .unwrap()
+        {
+            None => {
+                tracing::error!(
+                    "Havn't published this acticity {}",
+                    self.0.get("id").unwrap().to_string()
+                )
+            }
+            Some(x) => {
+                let log_obj = activitystream::remove_context(x);
+                let given_obj =
+                    activitystream::remove_context(self.0.to_owned());
+                if given_obj != log_obj {
+                    tracing::error!(
+                        "Integration error! No matching follow was published! {}", self.0.get("id").unwrap().to_string()
+                    );
+                    return Err(anyhow::Error::msg(
+                        "Given activity is not published by SELF!",
+                    ));
+                }
+            }
+        };
 
-        // let subj = ActorUrl::new(
-        //     self.0.get("actor").unwrap().as_str().unwrap().to_string(),
-        // )
-        // .unwrap();
-        // let obj = ActorUrl::new(
-        //     self.0.get("object").unwrap().as_str().unwrap().to_string(),
-        // )
-        // .unwrap();
-        // let obj_id = self.0.get("id").unwrap().as_str().unwrap().to_string();
+        let subj = ActorUrl::new(
+            self.0.get("actor").unwrap().as_str().unwrap().to_string(),
+        )
+        .unwrap();
+        let obj = ActorUrl::new(
+            self.0.get("object").unwrap().as_str().unwrap().to_string(),
+        )
+        .unwrap();
+        let obj_id = self.0.get("id").unwrap().as_str().unwrap().to_string();
 
-        // let subj_account = MAccount::get(subj).await?;
-        // let subj_account_id = subj_account.uid;
+        let subj_account = MAccount::get(subj).await?;
+        let subj_account_id = subj_account.uid;
 
-        // let obj_account = MAccount::get(obj).await?;
-        // let obj_account_id = obj_account.uid;
+        let obj_account = MAccount::get(obj).await?;
+        let obj_account_id = obj_account.uid;
 
-        // MFollow::new(obj_id, subj_account_id, obj_account_id).await?;
+        MFollow::new(obj_id, subj_account_id, obj_account_id).await?;
 
         Ok(())
     }

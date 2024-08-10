@@ -9,7 +9,7 @@ edition = "2021"
 anyhow = "1"
 serde = { version = "1.0.193", features = ["derive"] }
 serde_derive = "1"
-serde_json = { version = "1.0.108", features = ["preserve_order"] }
+serde_json = { version = "1.0.122", features = ["preserve_order"] }
 digest = "0.11.0-pre.8"
 ed25519-dalek = { version = "2.1.0", features = [
     "alloc",

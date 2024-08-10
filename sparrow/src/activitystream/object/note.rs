@@ -8,9 +8,10 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt;
 
+use crate::activitystream::activity::Activity;
 use crate::activitystream::collection::Collection;
 use crate::activitystream::object::ObjectType;
-use crate::activitystream::Execute;
+use crate::mastodon::status::Status as MStatus;
 
 /*
 
@@ -124,9 +125,8 @@ impl fmt::Debug for Note {
     }
 }
 
-impl Execute for Note {
-    async fn execute(&self, actor: String) -> Result<()> {
-        tracing::debug!("##########################");
-        Ok(())
-    }
-}
+//impl Execute for Note {
+//    async fn execute(&self, _s: Value) -> Result<()> {
+//        MStatus::new(self.to_owned()).await
+//    }
+//}

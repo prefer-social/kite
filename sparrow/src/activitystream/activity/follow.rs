@@ -3,7 +3,8 @@
 use std::fmt;
 use std::fmt::Debug;
 
-use anyhow::Result;
+use anyhow::{Error, Result};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json::Value;
 use uuid::Uuid;
@@ -12,6 +13,7 @@ use crate::activitystream::activity::accept::Accept;
 use crate::activitystream::activity::Activity;
 use crate::activitystream::activity::ActivityType;
 use crate::activitystream::default_context;
+use crate::activitystream::remove_context;
 use crate::activitystream::Execute;
 use crate::mastodon;
 use crate::mastodon::account::actor_url::ActorUrl;
@@ -100,13 +102,14 @@ impl fmt::Debug for Follow {
 }
 
 impl Execute for Follow {
-    async fn execute(&self, actor: String) -> Result<()> {
+    async fn execute(&self, activity_val: Value) -> Result<()> {
         let v = serde_json::to_value(self).unwrap();
+        let actor = activity_val.get("actor").unwrap().as_str().unwrap();
 
-        //let _accept = Accept::new(actor, v).await;
+        let activity_id = activity_val.get("id").unwrap().to_string();
 
         // Insert into DB table
-        let subj = ActorUrl::new(actor)?;
+        let subj = ActorUrl::new(actor.to_owned())?;
         let obj = ActorUrl::new(self.0.to_string()).unwrap();
         let obj_id = obj.to_string();
 
@@ -116,8 +119,51 @@ impl Execute for Follow {
         let obj_account = MAccount::get(obj).await?;
         let obj_account_id = obj_account.uid;
 
-        MFollow::new(obj_id.clone(), subj_account_id, obj_account_id).await?;
+        MFollow::new(
+            //obj_id.clone(),
+            activity_id,
+            subj_account_id.to_owned(),
+            obj_account_id.to_owned(),
+        )
+        .await?;
 
-        Ok(())
+        // Now send back "accept" signal to follower.
+
+        let published = Some(Utc::now());
+        let my_actor_url = obj_id;
+        let accept = Accept(remove_context(activity_val.to_owned()));
+        let to = None;
+        let cc = None;
+        let accept_activity = Activity::new(
+            format!(
+                "https://{}#accepts/follows/{}",
+                my_actor_url, subj_account_id
+            ),
+            ActivityType::Accept,
+            my_actor_url,
+            published,
+            to,
+            cc,
+            accept,
+        );
+
+        let res = crate::mastodon::publish_activity(accept_activity).await?;
+        tracing::debug!("Activity published({})", res);
+        match res {
+            202u16 => Ok(()),
+            _ => {
+                Err(Error::msg(format!("Published Activity received {}", res)))
+            }
+        }
+
+        // tracing::debug!("{:?}", accept_activity);
+        // match accept_activity.activity_object.execute(activity_val).await {
+        //     Ok(_) => return Ok(()),
+        //     Err(e) => {
+        //         tracing::error!("Resending Accept signal error: {:?}", e);
+        //         tracing::error!("{:?}", accept_activity);
+        //         return Err(Error::msg("{e:?}"));
+        //     }
+        // }
     }
 }

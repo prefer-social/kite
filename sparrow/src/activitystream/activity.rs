@@ -24,6 +24,7 @@ pub mod accept;
 pub mod create;
 pub mod delete;
 pub mod follow;
+pub mod undo;
 
 /// ActivityPub Object Types
 #[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone)]
@@ -65,7 +66,7 @@ impl FromStr for ActivityType {
 
 impl fmt::Display for ActivityType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{:?}", serde_json::to_value(self))
     }
 }
 
@@ -132,6 +133,7 @@ where
 
         // If an actor is self, publish/send to world
         if self.actor == my_account.actor_url.to_string() {
+            tracing::debug!("If an actor is self, publish/send to world");
             match mastodon::publish_activity(self.to_owned()).await {
                 Ok(_) => return Ok(()),
                 Err(e) => {
@@ -139,10 +141,10 @@ where
                     return Err(e);
                 }
             }
+        } else {
+            let s = serde_json::to_value(self).unwrap();
+            self.activity_object.execute(s).await
         }
-
-        // Run internal execution.
-        self.activity_object.execute(self.actor.to_owned()).await
     }
 }
 

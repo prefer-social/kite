@@ -10,13 +10,14 @@ use tracing_subscriber::{filter::EnvFilter, FmtSubscriber};
 //use sparrow::activitypub::action::follow::Follow as FollowAction;
 use crate::http_response::HttpResponse;
 use sparrow::activitystream::activity::accept::Accept as AcceptActivity;
+use sparrow::activitystream::activity::create::Create as CreateActivity;
 use sparrow::activitystream::activity::delete::Delete as DeleteActivity;
 use sparrow::activitystream::activity::follow::Follow as FollowActivity;
-use sparrow::activitystream::activity::create::Create as CreateActivity;
-use sparrow::activitystream::object::ObjectType;
+use sparrow::activitystream::activity::undo::Undo as UndoActivity;
 use sparrow::activitystream::activity::Activity;
 use sparrow::activitystream::activity::ActivityType;
 use sparrow::activitystream::object::note::Note as NoteObject;
+use sparrow::activitystream::object::ObjectType;
 
 mod http_response;
 
@@ -71,11 +72,48 @@ pub async fn post(req: Request) -> Result<Response> {
     let (body, activity_type, object_type) =
         inspect(String::from_utf8_lossy(req.body()).to_string());
 
-    tracing::debug!("{:?} {:?}", activity_type, object_type);
+    tracing::debug!(
+        "{:?} {:?} by {:?}",
+        activity_type,
+        object_type,
+        body.get("actor").unwrap()
+    );
 
+    // Todo: Get an Mastodon account from here with actor and passing through end. It will save the database calls.
     let _activity_actor = body.get("actor").unwrap().as_str().unwrap();
 
     match activity_type {
+        ActivityType::Accept => {
+            //action::accept::received(obj).await,
+            let activity =
+                serde_json::from_value::<Activity<AcceptActivity>>(body)
+                    .unwrap();
+            match activity.execute().await {
+                Ok(_) => HttpResponse::accepted(),
+                Err(e) => {
+                    tracing::error!(
+                        "Error from Inbox's Accpet request -> {e:?}",
+                    );
+                    HttpResponse::not_acceptable()
+                }
+            }
+        }
+        ActivityType::Create => {
+            let activity =
+                serde_json::from_value::<Activity<CreateActivity>>(body)
+                    .unwrap();
+            let _ot = ObjectType::from_str(object_type.unwrap().as_str());
+
+            match activity.execute().await {
+                Ok(_) => HttpResponse::accepted(),
+                Err(e) => {
+                    tracing::error!(
+                        "Error from Inbox's Create request -> {e:?}",
+                    );
+                    HttpResponse::not_acceptable()
+                }
+            }
+        }
         ActivityType::Delete => {
             let activity =
                 serde_json::from_value::<Activity<DeleteActivity>>(body)
@@ -84,7 +122,7 @@ pub async fn post(req: Request) -> Result<Response> {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
                     tracing::error!(
-                        "Error from Inbox's Follow request -> {e:?}",
+                        "Error from Inbox's Delete request -> {e:?}",
                     );
                     HttpResponse::not_acceptable()
                 }
@@ -104,27 +142,10 @@ pub async fn post(req: Request) -> Result<Response> {
                 }
             }
         }
-        ActivityType::Accept => {
-            //action::accept::received(obj).await,
+        ActivityType::Undo => {
             let activity =
-                serde_json::from_value::<Activity<AcceptActivity>>(body)
+                serde_json::from_value::<Activity<UndoActivity>>(body)
                     .unwrap();
-            match activity.execute().await {
-                Ok(_) => HttpResponse::accepted(),
-                Err(e) => {
-                    tracing::error!(
-                        "Error from Inbox's Follow request -> {e:?}",
-                    );
-                    HttpResponse::not_acceptable()
-                }
-            }
-        }
-        ActivityType::Create => {
-            let activity =
-                serde_json::from_value::<Activity<CreateActivity>>(body)
-                    .unwrap();
-            let ot = ObjectType::from_str(object_type.unwrap().as_str());
-
             match activity.execute().await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
@@ -136,9 +157,7 @@ pub async fn post(req: Request) -> Result<Response> {
             }
         }
         action => {
-            // returns
-            // HttpResponse::invalid_request()
-            tracing::warn!("action '{:?}' is not implemented yet", action);
+            tracing::warn!("action '{:?}' is UNKNOWN", action);
             HttpResponse::not_acceptable()
         }
     }

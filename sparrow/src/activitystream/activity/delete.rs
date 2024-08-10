@@ -7,11 +7,13 @@ use serde_json::Value;
 use spin_sdk::http::{Method, RequestBuilder, Response};
 use std::fmt;
 use std::fmt::Debug;
+use std::str::FromStr;
 use uuid::Uuid;
 
 use crate::activitystream::activity::Activity;
 use crate::activitystream::activity::ActivityType;
 use crate::activitystream::default_context;
+use crate::activitystream::object::ObjectType;
 use crate::activitystream::Execute;
 use crate::mastodon;
 use crate::mastodon::account::actor_url::ActorUrl;
@@ -20,6 +22,8 @@ use crate::mastodon::account::Get as _;
 use crate::mastodon::account::Remove as _;
 use crate::mastodon::follow::Follow as MFollow;
 use crate::mastodon::setting::Setting;
+
+const MAX_RETRY: usize = 8;
 
 /*
 
@@ -65,7 +69,7 @@ impl Serialize for Delete {
     where
         S: Serializer,
     {
-        s.serialize_str(serde_json::to_string(&self).unwrap().as_str())
+        s.serialize_str(serde_json::to_string(&self.0).unwrap().as_str())
     }
 }
 
@@ -76,7 +80,7 @@ impl Delete {
         object: Value,
     ) -> Result<Activity<Delete>>
     where
-        T: Debug + Serialize + ToString + Execute,
+        T: Debug + Serialize + ToString,
     {
         let delete = Delete(object.clone());
 
@@ -141,21 +145,26 @@ impl fmt::Debug for Delete {
 }
 
 impl Execute for Delete {
-    async fn execute(&self, actor: String) -> Result<()> {
+    async fn execute(&self, activity_val: Value) -> Result<()> {
         // Check object
-
-        let object_type = match self.0.is_object() {
+        let object_type_str = match self.0.is_object() {
             true => self.0.get("type").unwrap().as_str().unwrap(),
             _ => self.0.as_str().unwrap(),
         };
+
+        let object_type = ObjectType::from_str(object_type_str).unwrap();
+
         match object_type {
-            "Tombstone" => {
+            ObjectType::Tombstone => {
                 // Get id and delete it from database' status table.
                 tracing::warn!("Delete from statuse/tombstone process not yet implemented");
                 return Ok(());
             }
-            url => {
+            ObjectType::Url(url) => {
+                // Todo: Validate URL
                 // Delete this url from account.
+                let actor =
+                    activity_val.get("actor").unwrap().as_str().unwrap();
                 let actor_url = ActorUrl::new(actor.to_owned()).unwrap();
 
                 // let request = RequestBuilder::new(Method::Get, url)
@@ -164,8 +173,10 @@ impl Execute for Delete {
                 // let response: Response =
                 //     spin_sdk::http::send(request).await.unwrap();
 
-                let response = redirect_http_request(url, 4).await?;
-                if *response.status() == 401u16 {
+                let response =
+                    redirect_http_request(url.as_str(), MAX_RETRY).await?;
+                if *response.status() == 410u16 {
+                    // HTTP 410 is Gone
                     tracing::debug!("Account '{}' is gone.", actor);
                     match MAccount::remove(actor_url).await {
                         Ok(_) => {
@@ -189,6 +200,10 @@ impl Execute for Delete {
                     return Ok(());
                 };
             }
+            not_implemented => {
+                tracing::error!("{} is not implemented yet", not_implemented);
+                return Ok(());
+            }
         };
     }
 }
@@ -204,6 +219,7 @@ async fn redirect_http_request(
 
     let response: Response = spin_sdk::http::send(request).await.unwrap();
     if max_retry <= 1 {
+        tracing::warn!("Number of max retries attemption reached!");
         return Ok(response);
     }
 

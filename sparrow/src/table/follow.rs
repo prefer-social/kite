@@ -1,9 +1,10 @@
 //! follow table
 
-use anyhow::Result;
+use anyhow::{Error, Result};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use spin_sqlx::sqlite::Connection as dbcon;
+use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 use crate::mastodon::account::uid::Uid as AccountUid;
@@ -18,8 +19,8 @@ pub struct Follow {
     pub created_at: Option<i64>,
     pub updated_at: Option<i64>,
     pub account_uid: Option<String>,
-    pub target_account_uid: Option<i64>,
-    pub show_rebloges: Option<bool>,
+    pub target_account_uid: Option<String>,
+    pub show_reblogs: Option<bool>,
     pub uri: Option<String>,
     pub notify: Option<bool>,
     pub languages: Option<String>,
@@ -35,13 +36,56 @@ impl Follow {
         obj: AccountUid,
     ) -> Result<()> {
         let sqlx_conn = dbcon::open_default()?;
-        let a = sqlx::query("INSERT OR IGNORE INTO follow(uid, account_uid, target_account_uid, uri) VALUES (?, ?, ?, ?)")
+
+        // if follow is already exist, do update or instert
+
+        let a = sqlx::query("INSERT INTO follow(uid, account_uid, target_account_uid, uri) VALUES (?, ?, ?, ?)")
             .bind(Uuid::now_v7().to_string())
+            // .bind(
+            //     SystemTime::now()
+            //     .duration_since(UNIX_EPOCH)
+            //     .unwrap()
+            //     .as_secs() as i64
+            // )
             .bind(sub.to_string())
             .bind(obj.to_string())
             .bind(uri)
             .execute(&sqlx_conn)
             .await;
+
+        match a {
+            Ok(_) => {}
+            Err(e) => {
+                tracing::debug!("{:?}", e);
+            }
+        }
+
+        Ok(())
+    }
+
+    pub async fn update(
+        uri: String,
+        sub: AccountUid,
+        obj: AccountUid,
+    ) -> Result<()> {
+        let sqlx_conn = dbcon::open_default()?;
+
+        // if follow is already exist, do update or instert
+
+        let updated_at = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            .to_string();
+
+        let a =
+            sqlx::query("UPDATE follow SET updated_at = ?, uri = ? WHERE account_uid = ? AND target_account_uid = ?")
+                .bind(updated_at)
+                .bind(uri)
+                .bind(sub.to_string())
+                .bind(obj.to_string())
+                .execute(&sqlx_conn)
+                .await;
 
         match a {
             Ok(_) => {}
@@ -87,21 +131,22 @@ impl Follow {
 
     pub async fn followers(account_uuid: String) -> Result<Vec<Self>> {
         let sqlx_conn = dbcon::open_default()?;
-        let followings: Vec<Follow> = sqlx::query_as("SELECT rowid, * AS COUNT FROM follow WHERE target_account_uid = ?")
-            .bind(account_uuid)
-            .fetch_all(&sqlx_conn)
-            .await?;
+        let followings: Vec<Follow> = sqlx::query_as(
+            "SELECT rowid, * FROM follow WHERE target_account_uid = ?",
+        )
+        .bind(account_uuid)
+        .fetch_all(&sqlx_conn)
+        .await?;
         Ok(followings)
     }
 
     pub async fn followings(account_uuid: String) -> Result<Vec<Self>> {
         let sqlx_conn = dbcon::open_default()?;
-        let followings: Vec<Follow> = sqlx::query_as(
-            "SELECT rowid, * AS COUNT FROM follow WHERE account_id = ?",
-        )
-        .bind(account_uuid)
-        .fetch_all(&sqlx_conn)
-        .await?;
+        let followings: Vec<Follow> =
+            sqlx::query_as("SELECT rowid, * FROM follow WHERE account_id = ?")
+                .bind(account_uuid)
+                .fetch_all(&sqlx_conn)
+                .await?;
         Ok(followings)
     }
 
@@ -156,6 +201,18 @@ impl Follow {
             return Ok(3);
         }
         Ok(0)
+    }
+
+    pub async fn unfollow(uri: String) -> Result<()> {
+        let sqlx_conn = dbcon::open_default()?;
+        let a = sqlx::query("DELETE FROM follow WHERE uri = ?")
+            .bind(uri)
+            .execute(&sqlx_conn)
+            .await;
+        match a {
+            Ok(_) => Ok(()),
+            Err(e) => Err(Error::msg("Unfollow error from table processing")),
+        }
     }
 }
 

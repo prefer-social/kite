@@ -168,7 +168,6 @@ impl Person {
 impl TryFrom<serde_json::Value> for Person {
     type Error = ();
     fn try_from(actor_value: serde_json::Value) -> Result<Self, Self::Error> {
-        //tracing::debug!("{:?}", actor_value);
         let person = serde_json::from_value::<Person>(actor_value).unwrap();
         Ok(person)
     }
