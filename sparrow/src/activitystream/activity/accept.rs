@@ -21,7 +21,11 @@ use crate::mastodon::account::Account as MAccount;
 use crate::mastodon::account::Get as _;
 use crate::mastodon::activity_log::ActivityLog;
 use crate::mastodon::follow::Follow as MFollow;
+<<<<<<< HEAD
 use crate::mastodon::publish_activity;
+=======
+use crate::mastodon::post_activity;
+>>>>>>> 20adcdf955a016e90b8884496fc561f717b516ac
 use crate::mastodon::setting::Setting;
 
 /*
@@ -86,11 +90,17 @@ impl Execute for Accept {
         // Check activiy.object is what I really sent.
         // https://dev.prefer.social/0190fcb0-5272-77c3-acb1-3e9be71ff930
         // SELECT * FROM activity_log WHERE JSON_EXTRACT(body, '$.id') = ?
+<<<<<<< HEAD
         match ActivityLog::get_with_id(
             self.0.get("id").unwrap().as_str().unwrap(),
         )
         .await
         .unwrap()
+=======
+        match ActivityLog::get_with_id(self.0.get("id").unwrap().as_str().unwrap())
+            .await
+            .unwrap()
+>>>>>>> 20adcdf955a016e90b8884496fc561f717b516ac
         {
             None => {
                 tracing::error!(
@@ -100,11 +110,19 @@ impl Execute for Accept {
             }
             Some(x) => {
                 let log_obj = activitystream::remove_context(x);
+<<<<<<< HEAD
                 let given_obj =
                     activitystream::remove_context(self.0.to_owned());
                 if given_obj != log_obj {
                     tracing::error!(
                         "Integration error! No matching follow was published! {}", self.0.get("id").unwrap().to_string()
+=======
+                let given_obj = activitystream::remove_context(self.0.to_owned());
+                if given_obj != log_obj {
+                    tracing::error!(
+                        "Integration error! No matching follow was published! {}",
+                        self.0.get("id").unwrap().to_string()
+>>>>>>> 20adcdf955a016e90b8884496fc561f717b516ac
                     );
                     return Err(anyhow::Error::msg(
                         "Given activity is not published by SELF!",
@@ -113,6 +131,7 @@ impl Execute for Accept {
             }
         };
 
+<<<<<<< HEAD
         let subj = ActorUrl::new(
             self.0.get("actor").unwrap().as_str().unwrap().to_string(),
         )
@@ -121,6 +140,12 @@ impl Execute for Accept {
             self.0.get("object").unwrap().as_str().unwrap().to_string(),
         )
         .unwrap();
+=======
+        let subj =
+            ActorUrl::new(self.0.get("actor").unwrap().as_str().unwrap().to_string()).unwrap();
+        let obj =
+            ActorUrl::new(self.0.get("object").unwrap().as_str().unwrap().to_string()).unwrap();
+>>>>>>> 20adcdf955a016e90b8884496fc561f717b516ac
         let obj_id = self.0.get("id").unwrap().as_str().unwrap().to_string();
 
         let subj_account = MAccount::get(subj).await?;
