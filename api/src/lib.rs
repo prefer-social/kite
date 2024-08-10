@@ -1,13 +1,16 @@
+//! Mastodon API implementation for prefer.social.  
+
 use anyhow::Result;
 use spin_sdk::{
-    http::{IntoResponse, Request, Response, Router},
+    http::{IntoResponse, Request, Router},
     http_component,
 };
-use tracing::{debug, info};
 use tracing_subscriber::filter::EnvFilter;
 use tracing_subscriber::FmtSubscriber;
 
-pub mod endpoint;
+pub(crate) mod auth;
+pub(crate) mod endpoint;
+pub(crate) mod http_response;
 
 #[http_component]
 async fn handle_api(req: Request) -> Result<impl IntoResponse> {
@@ -17,7 +20,8 @@ async fn handle_api(req: Request) -> Result<impl IntoResponse> {
     tracing::subscriber::set_global_default(subscriber)
         .expect("setting default subscriber failed");
 
-    tracing::debug!("<---------- ({}) {} ({}) --------->",
+    tracing::debug!(
+        "<---------- ({}) {} ({}) --------->",
         req.method().to_string(),
         req.path_and_query().unwrap(),
         req.header("x-real-ip").unwrap().as_str().unwrap()
@@ -28,16 +32,43 @@ async fn handle_api(req: Request) -> Result<impl IntoResponse> {
     router.any_async("/api/v1/instance", endpoint::v1::instance::request);
     router.any_async("/api/v1/apps", endpoint::v1::apps::request);
     router.any_async(
-         "/api/v1/accounts/verify_credentials",
-         endpoint::v1::accounts::verify_credentials::request,
+        "/api/v1/accounts/verify_credentials",
+        endpoint::v1::accounts::verify_credentials::request,
     );
-    router.any_async("/api/v1/followed_tags", endpoint::v1::followed_tags::request);
+    router.any_async(
+        "/api/v1/followed_tags",
+        endpoint::v1::followed_tags::request,
+    );
     router.any_async("/api/v1/lists", endpoint::v1::lists::request);
-    router.any_async("/api/v1/follow_requests", endpoint::v1::follow_requests::request);
-    router.any_async("/api/v1/instance/peer", endpoint::v1::instance::peer::request);
-    router.any_async("/api/v1/timelines/home", endpoint::v1::timelines::home::request);
-    router.any_async("/api/v1/push/subscription", endpoint::v1::push::subscription::request);
+    router.any_async(
+        "/api/v1/follow_requests",
+        endpoint::v1::follow_requests::request,
+    );
+    router.any_async(
+        "/api/v1/instance/peer",
+        endpoint::v1::instance::peer::request,
+    );
+    router.any_async(
+        "/api/v1/timelines/home",
+        endpoint::v1::timelines::home::request,
+    );
+    router.any_async(
+        "/api/v1/push/subscription",
+        endpoint::v1::push::subscription::request,
+    );
     router.any_async("/api/v1/streaming", endpoint::v1::streaming::request);
+    router.any_async(
+        "/api/v1/notifications",
+        endpoint::v1::notifications::request,
+    );
+    router.any_async(
+        "/api/v1/conversations",
+        endpoint::v1::conversations::request,
+    );
+    router.any_async(
+        "/api/v1/accounts/relationships",
+        endpoint::v1::accounts::relationships::request,
+    );
 
     // router.any_async("/api/v1/timelines/public", timelines::public::request);
 
@@ -45,6 +76,17 @@ async fn handle_api(req: Request) -> Result<impl IntoResponse> {
     // //router.any_async("/api/v1/streaming", streaming::request);
     // router.any_async("/api/v1/streaming/health", streaming::health::request);
     //
+
+    // Account API requests
+    router.any_async("/api/v1/accounts/:id", endpoint::v1::accounts::request);
+    router.any_async(
+        "/api/v1/accounts/:id/follow",
+        endpoint::v1::accounts::follow::request,
+    );
+    router.any_async(
+        "/api/v1/accounts/:id/unfollow",
+        endpoint::v1::accounts::unfollow::request,
+    );
     // router.any_async(
     //     "/api/v1/accounts/:id/statuses",
     //     accounts::statuses::request,
@@ -53,12 +95,7 @@ async fn handle_api(req: Request) -> Result<impl IntoResponse> {
     //     "/api/v1/accounts/relationships",
     //     accounts::relationships::request,
     // );
-    // router.any_async("/api/v1/accounts/:id", accounts::request);
-    // router.any_async("/api/v1/accounts/:id/follow", accounts::follow::request);
-    // router.any_async(
-    //     "/api/v1/accounts/:id/unfollow",
-    //     accounts::unfollow::request,
-    // );
+
     // router.any_async("/api/v1/statuses", statuses::request);
     // router.any_async("/api/v1/favourites", favourites::request);
     // router.any_async("/api/v1/bookmarks", bookmarks::request);

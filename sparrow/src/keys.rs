@@ -13,7 +13,7 @@ use ed25519_dalek::{SecretKey, SigningKey, VerifyingKey};
 use ed25519_dalek::{KEYPAIR_LENGTH, PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH, SIGNATURE_LENGTH};
 use rand::rngs::OsRng;
 
-use bech32::{self, FromBase32, ToBase32, Variant};
+//use bech32::{self, FromBase32, ToBase32, Variant};
 use ed25519_dalek::pkcs8::spki::der::pem::LineEnding;
 use pem::parse;
 use pkcs1::{EncodeRsaPrivateKey, EncodeRsaPublicKey};

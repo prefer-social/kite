@@ -3,16 +3,18 @@
 // Returns: Array of Status
 
 use anyhow::Result;
-use spin_sdk::{
-    http::{IntoResponse, Method, Params, Request, Response},
-};
+use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
 
+use crate::http_response::HttpResponse;
 use sparrow::mastodon::status::Status;
 
-pub async fn request(req: Request, params: Params) -> Result<impl IntoResponse> {
+pub async fn request(
+    req: Request,
+    params: Params,
+) -> Result<impl IntoResponse> {
     match req.method() {
         Method::Get => get(req, params).await,
-        _ => sparrow::http_response::HttpResponse::not_found().await,
+        _ => HttpResponse::not_found(),
     }
 }
 
@@ -20,7 +22,8 @@ pub async fn request(req: Request, params: Params) -> Result<impl IntoResponse> 
 // Returns: Array of Status (https://docs.joinmastodon.org/entities/Status/)
 // OAuth: User + read:statuses
 pub async fn get(req: Request, _params: Params) -> Result<Response> {
-    tracing::debug!("<---------- ({}) {} ({}) --------->",
+    tracing::debug!(
+        "<---------- ({}) {} ({}) --------->",
         req.method().to_string(),
         req.path_and_query().unwrap(),
         req.header("x-real-ip").unwrap().as_str().unwrap()

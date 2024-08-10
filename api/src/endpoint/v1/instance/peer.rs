@@ -1,14 +1,15 @@
 // https://docs.joinmastodon.org/methods/instance/#peers
+use crate::http_response::HttpResponse;
 use anyhow::Result;
-use spin_sdk::{
-    http::{IntoResponse, Method, Params, Request, Response},
-    sqlite::{QueryResult, Value},
-};
+use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
 
-pub async fn request(req: Request, params: Params) -> Result<impl IntoResponse> {
+pub async fn request(
+    req: Request,
+    params: Params,
+) -> Result<impl IntoResponse> {
     match req.method() {
         Method::Get => get(req, params).await,
-        _ => sparrow::http_response::HttpResponse::not_found().await,
+        _ => HttpResponse::not_found(),
     }
 }
 
@@ -16,7 +17,8 @@ pub async fn request(req: Request, params: Params) -> Result<impl IntoResponse> 
 // Return: Array of String
 // OAuth: Public
 pub async fn get(req: Request, _params: Params) -> Result<Response> {
-    tracing::debug!("<---------- ({}) {} ({}) --------->",
+    tracing::debug!(
+        "<---------- ({}) {} ({}) --------->",
         req.method().to_string(),
         req.path_and_query().unwrap(),
         req.header("x-real-ip").unwrap().as_str().unwrap()

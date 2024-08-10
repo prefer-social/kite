@@ -1,13 +1,12 @@
 use anyhow::Result;
-use spin_sdk::{
-    http::{IntoResponse, Method, Params, Request, Response},
-};
-use std::str;
+use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
 use std::collections::HashMap;
+use std::str;
 use url::Url;
 
-use sparrow::mastodon::username::Username;
-use sparrow::mastodon::application::Application;
+use sparrow::mastodon::account::uri::Uri as AccountUri;
+use sparrow::mastodon::account::Account as MAccount;
+use sparrow::mastodon::account::Get as _;
 
 pub async fn request(
     req: Request,
@@ -150,9 +149,9 @@ pub fn auth_client_error() -> Result<Response> {
 }
 
 // POST /oauth/authorize
-pub async fn post(req: Request, params: Params) -> Result<Response> {
-
-    tracing::debug!("<---------- ({}) {} ({}) --------->",
+pub async fn post(req: Request, _params: Params) -> Result<Response> {
+    tracing::debug!(
+        "<---------- ({}) {} ({}) --------->",
         req.method().to_string(),
         req.path_and_query().unwrap(),
         req.header("x-real-ip").unwrap().as_str().unwrap()
@@ -163,13 +162,14 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
         querystring::querify(body).into_iter().collect();
     let username = a.get("Username").unwrap().to_string();
     let password = a.get("Password").unwrap().to_string();
-
     let referer = req.header("referer").unwrap().as_str().unwrap();
     let r = Url::parse(referer).unwrap();
+    //let domain = r.domain().unwrap().to_string();
     let hash_query: HashMap<_, _> = r.query_pairs().into_owned().collect();
     // {"client_id": "S8G2w1R95d5TDt5Psw80FNx5U4FWr2JHIV490VE61K8b", "redirect_uri": "icecubesapp://", "scope": "read write follow push", "response_type": "code"}
     tracing::debug!("referer ---> {referer}");
     tracing::debug!("hash_query ---> {hash_query:?}");
+    //tracing::debug!("domain ---> {domain}");
 
     let redirect_uri = hash_query.get("redirect_uri").unwrap();
 
@@ -189,7 +189,10 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
             // https://docs.joinmastodon.org/methods/oauth/#token
 
             let client_id = hash_query.get("client_id").unwrap().as_str();
-            let application_json_string = String::from_utf8(sparrow::cache::get(client_id).await?.unwrap()).unwrap();
+            let application_json_string = String::from_utf8(
+                sparrow::cache::get(client_id).await?.unwrap(),
+            )
+            .unwrap();
 
             // Generate Code
             let code = sparrow::utils::create_token().await;
@@ -198,10 +201,18 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
             tracing::debug!(code);
             tracing::debug!(username);
 
-            let user = sparrow::mastodon::account::Account::get_user(Username(username)).await?;
-            let user_id = user.uid;
+            let user = MAccount::get(AccountUri {
+                username,
+                domain: None, // Local account login
+            })
+            .await?;
+            let user_id = user.uid.to_string();
 
-            let _ = sparrow::mastodon::application::Application::add(application_json_string, user_id).await?;
+            let _ = sparrow::mastodon::application::Application::add(
+                application_json_string,
+                Some(user_id),
+            )
+            .await?;
 
             let body = format!(
                 r#"<html><head>
@@ -247,5 +258,7 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
 
 async fn check_password(username: String, password: String) -> bool {
     tracing::debug!("Checking password");
-    sparrow::table::user::User::validate(username, password).await.unwrap()
+    sparrow::mastodon::user::User::validate(username, password)
+        .await
+        .unwrap()
 }

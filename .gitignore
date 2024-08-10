@@ -2,6 +2,7 @@
 .idea/
 .vscode/
 Project.ede
+.projectile
 target/
 .spin/
 .env
@@ -19,7 +20,5 @@ runtime-config.toml
 
 kite.db*
 
-my_*
-
+**.nogit
 spin
-sparrow/migrations/20240508061350_insert_sample_account_row.sql

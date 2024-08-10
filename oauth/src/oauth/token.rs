@@ -4,8 +4,8 @@ use anyhow::Result;
 use serde_json::Value;
 use spin_sdk::http::{Method, Params, Request, Response};
 use std::str;
-use std::time::{SystemTime, UNIX_EPOCH};
-use tracing::debug;
+
+use crate::http_response::HttpResponse;
 
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
@@ -16,19 +16,21 @@ pub async fn request(req: Request, params: Params) -> Result<Response> {
 }
 
 pub async fn get(req: Request, _params: Params) -> Result<Response> {
-    tracing::debug!("<---------- ({}) {} ({}) --------->",
+    tracing::debug!(
+        "<---------- ({}) {} ({}) --------->",
         req.method().to_string(),
         req.path_and_query().unwrap(),
         req.header("x-real-ip").unwrap().as_str().unwrap()
     );
-    sparrow::http_response::HttpResponse::not_found().await
+    HttpResponse::not_found()
 }
 
 // Obtain a token
 // `POST /oauth/token HTTP/1.1`
 
 pub async fn post(req: Request, _params: Params) -> Result<Response> {
-    tracing::debug!("<---------- ({}) {} ({}) --------->",
+    tracing::debug!(
+        "<---------- ({}) {} ({}) --------->",
         req.method().to_string(),
         req.path_and_query().unwrap(),
         req.header("x-real-ip").unwrap().as_str().unwrap()
@@ -44,11 +46,13 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
     let scope = a["scope"].as_str().unwrap();
     let grant_type = a["grant_type"].as_str().unwrap();
 
-    let application = String::from_utf8(sparrow::cache::get(client_id).await?.unwrap())?;
+    let application =
+        String::from_utf8(sparrow::cache::get(client_id).await?.unwrap())?;
     //let application = sparrow::mastodon::application::Application::get
     let b: Value = serde_json::from_str(application.as_str())?;
 
     if a["client_secret"] != b["client_secret"] {
+        tracing::debug!("client_secret not matched");
         let a = r#"{
         "error": "invalid_client",
         "error_description": "Client authentication failed due to unknown client, no client authentication included, or unsupported authentication method."
@@ -63,19 +67,28 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
 
     // PASSED
 
-    let ip = req.header("x-real-ip").unwrap().as_str().unwrap().to_string();
+    let ip = req
+        .header("x-real-ip")
+        .unwrap()
+        .as_str()
+        .unwrap()
+        .to_string();
     let application_id = b["id"].as_str().unwrap().to_string();
 
     let application_from_db =
-        sparrow::mastodon::application::Application::get_by_app_id(application_id.clone()).await?;
+        sparrow::mastodon::application::Application::get_by_app_id(
+            application_id.clone(),
+        )
+        .await?;
     let resource_owner_id = application_from_db.owner_id.unwrap();
-    
+
     let token = sparrow::mastodon::token::Token::new(
         scope.to_string(),
         application_id,
         resource_owner_id,
         ip,
-    ).await?;
+    )
+    .await?;
 
     let json_val = serde_json::to_string(&token).unwrap();
 
@@ -84,10 +97,6 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
         .header("Content-Type", "application/json")
         .body(json_val.to_string())
         .build())
-
-
-
-
 
     // Check code, client_id and client_secret are valid.
 
@@ -145,6 +154,4 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
     //         .body(json_val.to_string())
     //         .build());
     // }
-
-
 }

@@ -1,20 +1,30 @@
+//! Cache library  
+//!
+//! Cache library based on <https://docs.rs/spin-sdk/latest/spin_sdk/key_value/index.html>  
+//! Backend: sqlite in memory  
+//! References:
+//! * <https://developer.fermyon.com/spin/v2/key-value-store-tutorial>  
+//! * <https://developer.fermyon.com/spin/v2/dynamic-configuration#key-value-store-runtime-configuration>  
+
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde_json::Value;
 use spin_sdk::key_value::Store;
-use std::time::Duration;
 
+/// Set key and value into Cache
 pub async fn set(key: &str, val: &[u8]) -> Result<()> {
     let store = Store::open("mem").unwrap();
     store.set(key, val)?;
     Ok(())
 }
 
+/// Get cached value with key
 pub async fn get(key: &str) -> Result<Option<Vec<u8>>> {
     let store = Store::open("mem").unwrap();
     Ok(store.get(key)?)
 }
 
+/// Delete cached key/value
 pub async fn delete(key: &str) -> Result<()> {
     let store = Store::open("mem").unwrap();
     let exp_key = format!("_exp_{}", key);
@@ -25,17 +35,20 @@ pub async fn delete(key: &str) -> Result<()> {
     Ok(())
 }
 
+/// Set key and value, value is json/serdo_json::value
 pub async fn set_json(key: &str, val: &Value) -> Result<()> {
     let store = Store::open("mem").unwrap();
     store.set_json(key, val)?;
     Ok(())
 }
 
+/// Get json(serdo_json::Value) with key
 pub async fn get_json(key: &str) -> Result<Option<Value>> {
     let store = Store::open("mem").unwrap();
     Ok(store.get_json(key).unwrap())
 }
 
+/// Set key/val fair's expiry time
 pub async fn set_expiry(key: &str, exp: DateTime<Utc>) -> Result<()> {
     let store = Store::open("mem").unwrap();
     let val = store.get(key)?;
@@ -46,6 +59,7 @@ pub async fn set_expiry(key: &str, exp: DateTime<Utc>) -> Result<()> {
     Ok(())
 }
 
+/// flush key-val's lifetime
 pub async fn flush() -> Result<()> {
     let store = Store::open("mem").unwrap();
     let keys = store.get_keys().unwrap();
@@ -76,13 +90,17 @@ pub async fn flush() -> Result<()> {
     Ok(())
 }
 
+/// Set key-val with exp time
 pub async fn set_with_exp(
     key: &str,
     val: &[u8],
     exp: DateTime<Utc>,
 ) -> Result<()> {
-
-    tracing::debug!("<----- Cache set: {} : {} ---->", key, std::str::from_utf8(val).unwrap());
+    tracing::debug!(
+        "<----- Cache set: {} : {} ---->",
+        key,
+        std::str::from_utf8(val).unwrap()
+    );
 
     let store = Store::open("mem").unwrap();
     store.set(key, val)?;

@@ -1,22 +1,9 @@
-/*
-CREATE TABLE public.oauth_access_grants (
-    id bigint NOT NULL,
-    token character varying NOT NULL,
-    expires_in integer NOT NULL,
-    redirect_uri text NOT NULL,
-    created_at timestamp without time zone NOT NULL,
-    revoked_at timestamp without time zone,
-    scopes character varying,
-    application_id bigint NOT NULL,
-    resource_owner_id bigint NOT NULL
-);
-*/
+//! oauth_access_grant table  
+//!
 
 use anyhow::Result;
-use chrono::{DateTime, Utc};
-use serde_derive::{Deserialize, Serialize};
-use serde_json::Value;
-use spin_sdk::sqlite::Value as SV;
+use async_trait::async_trait;
+use spin_sqlx::sqlite::Connection as dbcon;
 
 #[derive(Default, Clone, Debug, PartialEq, sqlx::FromRow)]
 pub struct OauthAccessGrant {
@@ -34,7 +21,7 @@ pub struct OauthAccessGrant {
 
 impl OauthAccessGrant {
     pub async fn all() -> Result<Vec<OauthAccessGrant>> {
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+        let sqlx_conn = dbcon::open_default()?;
         let oag: Vec<OauthAccessGrant> =
             sqlx::query_as("SELECT rowid, * FROM oauth_access_grant")
                 .fetch_all(&sqlx_conn)
@@ -42,12 +29,35 @@ impl OauthAccessGrant {
         Ok(oag)
     }
 
-    pub async fn get(w_claus: String) -> Result<Vec<OauthAccessGrant>> {
-        let sqlx_conn = spin_sqlx::Connection::open_default()?;
+    pub async fn get(_w_claus: String) -> Result<Vec<OauthAccessGrant>> {
+        let sqlx_conn = dbcon::open_default()?;
         let oag: Vec<OauthAccessGrant> =
             sqlx::query_as("SELECT rowid, * FROM oauth_access_grant WHERE ")
                 .fetch_all(&sqlx_conn)
                 .await?;
         Ok(oag)
+    }
+}
+
+#[async_trait]
+pub trait Get<T> {
+    async fn get(arg: T) -> Result<Vec<OauthAccessGrant>>;
+}
+
+#[async_trait]
+impl Get<(String, String)> for OauthAccessGrant {
+    async fn get(
+        (key, val): (String, String),
+    ) -> Result<Vec<OauthAccessGrant>> {
+        let query_template = format!(
+            "SELECT rowid, * FROM oauth_access_token WHERE {} = ?",
+            key
+        );
+        let sqlx_conn = dbcon::open_default()?;
+        let accounts = sqlx::query_as(query_template.as_str())
+            .bind(val)
+            .fetch_all(&sqlx_conn)
+            .await?;
+        Ok(accounts)
     }
 }

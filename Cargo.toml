@@ -1,3 +1,13 @@
 [workspace]
 resolver = "2"
-members = ["well-known", "oauth", "web", "api"]
+members = [
+    "api",
+    "following",
+    "followers",
+    "inbox",
+    "oauth",
+    "outbox",
+    "sparrow",
+    "web",
+    "well-known",
+]

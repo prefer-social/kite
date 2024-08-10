@@ -1,17 +1,15 @@
 // https://docs.joinmastodon.org/methods/apps/
 
 use anyhow::Result;
-use spin_sdk::{
-    http::{IntoResponse, Method, Params, Request, Response},
-    sqlite::{Connection, QueryResult, Value},
-    key_value::Store,
-};
-use std::{collections::HashMap};
-use std::ops::Add;
-use uuid::Uuid;
-use url::Url;
-use std::time::Duration;
 use sparrow::utils::random_string;
+use spin_sdk::http::{IntoResponse, Method, Params, Request, Response};
+use std::collections::HashMap;
+use std::ops::Add;
+use std::time::Duration;
+use url::Url;
+use uuid::Uuid;
+
+use crate::http_response::HttpResponse;
 
 pub async fn request(
     req: Request,
@@ -19,17 +17,17 @@ pub async fn request(
 ) -> Result<impl IntoResponse> {
     match req.method() {
         Method::Post => post(req, params).await,
-        _ => sparrow::http_response::HttpResponse::not_found().await,
+        _ => HttpResponse::not_found(),
     }
 }
 
 // TODO: create application https://docs.joinmastodon.org/methods/apps/#create
 //
 pub async fn post(req: Request, _params: Params) -> Result<Response> {
-    tracing::debug!("<---------- ({}) {} ({}) --------->",
+    tracing::debug!(
+        "requested -> {} {}",
         req.method().to_string(),
-        req.path_and_query().unwrap(),
-        req.header("x-real-ip").unwrap().as_str().unwrap()
+        req.path_and_query().unwrap()
     );
 
     let client_id = uuid::Uuid::now_v7().to_string();
@@ -37,7 +35,8 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
     let vapid_key = random_string(44).await;
 
     let url = Url::parse(req.uri()).unwrap();
-    let query_hashmap: HashMap<_, _> = url.query_pairs().into_owned().collect();
+    let query_hashmap: HashMap<_, _> =
+        url.query_pairs().into_owned().collect();
 
     let client_name = query_hashmap
         .get("client_name")
@@ -47,7 +46,7 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
         .get("redirect_uris")
         .unwrap_or(&"urn:ietf:wg:oauth:2.0:oob".to_string())
         .to_string();
-    let scopes = query_hashmap
+    let _scopes = query_hashmap
         .get("scopes")
         .unwrap_or(&"read write push".to_string())
         .to_string();
@@ -57,7 +56,7 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
         .to_string();
 
     let application = sparrow::mastodon::application::Application {
-        uid: Some(Uuid::now_v7().to_string()),
+        uid: Uuid::now_v7().to_string(),
         name: client_name,
         website: Some(website),
         redirect_uri: Some(redirect_uris),
@@ -68,12 +67,14 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
     };
 
     let app_json_string: String = serde_json::to_string(&application).unwrap();
-    let hour_from_now = chrono::offset::Utc::now().add(Duration::from_secs(60*60));
+    let hour_from_now =
+        chrono::offset::Utc::now().add(Duration::from_secs(60 * 60));
     sparrow::cache::set_with_exp(
         application.client_id.clone().unwrap().as_str(),
         app_json_string.as_bytes(),
-        hour_from_now).await?;
-
+        hour_from_now,
+    )
+    .await?;
 
     Ok(Response::builder()
         .status(200)
@@ -81,4 +82,3 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
         .body(app_json_string)
         .build())
 }
-
