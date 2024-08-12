@@ -26,9 +26,12 @@ release:
 	docker push ghcr.io/prefer-social/kite:latest
 	docker run --runtime=io.containerd.spin.v2 --platform wasi/wasm32 ghcr.io/prefer-social/kite:latest
 
-
 clean:
 	cargo clean
+
+cli:
+	cargo build --package cli --target x86_64-unknown-linux-gnu	
+	cargo run --package cli --target x86_64-unknown-linux-gnu	
 
 all:
 	build 

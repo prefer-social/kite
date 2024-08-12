@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use sha2::digest::MacError;
 
 use crate::mastodon::account::actor_url::ActorUrl;
 use crate::mastodon::account::uid::Uid as AccountUid;
@@ -35,11 +36,7 @@ pub enum FollowRelation {
 }
 
 impl Follow {
-    pub async fn new(
-        uri: String,
-        sub: AccountUid,
-        obj: AccountUid,
-    ) -> Result<()> {
+    pub async fn new(uri: String, sub: AccountUid, obj: AccountUid) -> Result<()> {
         match Self::is_exist(sub.to_owned(), obj.to_owned()).await? {
             true => TFollow::update(uri, sub, obj).await,
             false => TFollow::new(uri, sub, obj).await,
@@ -65,10 +62,9 @@ impl Follow {
 
         tracing::debug!("{c} - {d}");
 
-        let follow_relationship =
-            TFollow::relation(a.uid.to_string(), b.uid.to_string())
-                .await
-                .unwrap();
+        let follow_relationship = TFollow::relation(a.uid.to_string(), b.uid.to_string())
+            .await
+            .unwrap();
 
         return match follow_relationship {
             0 => FollowRelation::None,
@@ -87,10 +83,35 @@ impl Follow {
         let s = MAccount::get(sub).await?;
         let o = MAccount::get(obj).await?;
 
-        let relation =
-            TFollow::relation(s.uid.to_string(), o.uid.to_string()).await?;
+        let relation = TFollow::relation(s.uid.to_string(), o.uid.to_string()).await?;
 
         tracing::debug!("-----------------------------> {}", relation);
         Ok(relation == 1usize || relation == 3usize)
+    }
+
+    pub async fn get_follows(id: String) -> Result<Vec<MAccount>> {
+        let mut maccounts: Vec<MAccount> = Vec::new();
+
+        let followers = TFollow::get(("target_account_uid".to_string(), id)).await?;
+        for f in followers.iter() {
+            let account_id = f.to_owned().account_uid.unwrap();
+            let account_uid = AccountUid(account_id);
+            let account = MAccount::get(account_uid).await?;
+            maccounts.push(account);
+        }
+        Ok(maccounts)
+    }
+
+    pub async fn get_following(id: String) -> Result<Vec<MAccount>> {
+        let mut maccounts: Vec<MAccount> = Vec::new();
+
+        let following = TFollow::get(("account_uid".to_string(), id)).await?;
+        for f in following.iter() {
+            let target_account_id = f.to_owned().target_account_uid.unwrap();
+            let target_account_uid = AccountUid(target_account_id);
+            let account = MAccount::get(target_account_uid).await?;
+            maccounts.push(account);
+        }
+        Ok(maccounts)
     }
 }

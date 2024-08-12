@@ -4,6 +4,7 @@
 //pub mod statuses;
 //pub mod unfollow;
 pub mod follow;
+pub mod following;
 pub mod lookup;
 pub mod relationships;
 pub mod unfollow;

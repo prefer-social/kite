@@ -12,9 +12,11 @@ use spin_sdk::http::{Method, Request, Response};
 use std::str;
 use regex::Regex;
 use struct_iterable::Iterable;
+use url::Url;
 
 use crate::activitystream::activity::follow::Follow as FollowActivity;
 use crate::activitystream::ordered_collection::OrderedCollection;
+use crate::mastodon;
 use crate::mastodon::custom_emoji::CustomEmoji;
 use crate::mastodon::user::User;
 use crate::mastodon::user_role::UserRole as Role;
@@ -31,6 +33,8 @@ use crate::table::account::Get as _;
 use crate::table::account::Remove as _;
 use crate::table::user::Get as _;
 use crate::table::account::New as _;
+
+use super::get_fediverse;
 
 
 pub mod source;
@@ -331,31 +335,34 @@ impl Account {
 
     /// Getting statuses_count from Actor url.  
     pub async fn statuses_count(url: String) -> Result<u64> {
-        let request = Request::builder()
-            .method(Method::Get)
-            .uri(url)
-            .header("User-Agent", "prefer.social")
-            .header("Accept", "application/activity+json")
-            .build();
-        let response: Response = spin_sdk::http::send(request).await?;
+        let response = get_fediverse(Url::parse(url.as_str()).unwrap()).await?;
+
         match response.status() {
-            410u16 => { return Err(anyhow::Error::msg("Resource is Gone")); },
+            410u16 => { 
+                tracing::error!("Trying to get statuses count but resource is Gone(410).");
+                return Err(anyhow::Error::msg("Resource is Gone")); 
+            },
             _ => (),
         }
         let body = str::from_utf8(response.body()).unwrap();
+
         let v: OrderedCollection = serde_json::from_str(body).unwrap();
         Ok( v.total_items as u64)
     }
 
     /// Get following_count from Actor url.
     pub async fn following_count(url: String) -> Result<u32> {
-        let request = Request::builder()
-            .method(Method::Get)
-            .uri(url)
-            .header("User-Agent", "prefer.social")
-            .header("Accept", "application/activity+json")
-            .build();
-        let response: Response = spin_sdk::http::send(request).await?;
+        
+        // let request = Request::builder()
+        //     .method(Method::Get)
+        //     .uri(url)
+        //     .header("User-Agent", "prefer.social")
+        //     .header("Accept", "application/activity+json")
+        //     .build();
+        // let response: Response = spin_sdk::http::send(request).await?;
+
+        let response = get_fediverse(Url::parse(url.as_str())?).await?;
+
         match response.status() {
             410u16 => { return Err(anyhow::Error::msg("Resource is Gone")); },
             _ => (),
@@ -368,6 +375,8 @@ impl Account {
     /// Get followers_count from Actor url.  
     pub async fn followers_count(url: String) -> Result<u32> {
         // If url is not local.
+        
+        /* 
         let request = Request::builder()
             .method(Method::Get)
             .uri(url)
@@ -375,6 +384,9 @@ impl Account {
             .header("Accept", "application/activity+json")
             .build();
         let response: Response = spin_sdk::http::send(request).await?;
+        */
+        let response = get_fediverse(Url::parse(url.as_str())?).await?;
+
         match response.status() {
             410u16 => { return Err(anyhow::Error::msg("Resource is Gone")); },
             _ => (),

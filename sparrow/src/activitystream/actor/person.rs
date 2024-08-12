@@ -41,12 +41,12 @@ pub struct Person {
     pub featured_tags: Option<String>,
     pub preferred_username: String,
     pub name: String,
-    pub summary: String,
+    pub summary: Option<String>,
     pub url: String,
     pub manually_approves_followers: Option<bool>,
-    pub discoverable: bool,
-    pub indexable: bool,
-    pub published: String,
+    pub discoverable: Option<bool>,
+    pub indexable: Option<bool>,
+    pub published: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub memorial: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -74,7 +74,7 @@ pub struct PublicKey {
 pub struct Image {
     #[serde(rename = "type")]
     pub kind: String,
-    pub media_type: String,
+    pub media_type: Option<String>,
     pub url: String,
 }
 
@@ -107,13 +107,13 @@ impl Person {
 
         let icon = Image {
             kind: "Image".to_string(),
-            media_type: "image/jpeg".to_string(),
+            media_type: Some("image/jpeg".to_string()),
             url: a.avatar,
         };
 
         let image = Image {
             kind: "Image".to_string(),
-            media_type: "image/jpeg".to_string(),
+            media_type: Some("image/jpeg".to_string()),
             url: a.header,
         };
 
@@ -138,20 +138,17 @@ impl Person {
             inbox: a.inbox_url.to_owned().unwrap_or_default(),
             outbox: a.outbox_url.to_owned().unwrap_or_default(),
             featured: Some(format!("https://{}/collections/featured", domain)), // Todo:
-            featured_tags: Some(format!(
-                "https://{}/collections/tags",
-                domain
-            )), // Todo:
+            featured_tags: Some(format!("https://{}/collections/tags", domain)), // Todo:
             preferred_username: username.to_string().to_owned(),
             name: a.display_name.to_owned(),
-            summary: a.note.to_owned(),
+            summary: Some(a.note.to_owned()),
             url: a.url.to_owned(),
             manually_approves_followers: Some(false), // Todo:
-            discoverable: a.discoverable.to_owned(),
-            indexable: a.indexable.to_owned().unwrap_or_default(),
-            published: crate::utils::convert_epoch_to_iso_8601(
+            discoverable: Some(a.discoverable.to_owned()),
+            indexable: a.indexable.to_owned(),
+            published: Some(crate::utils::convert_epoch_to_iso_8601(
                 a.created_at.timestamp(),
-            ),
+            )),
             memorial: Some(false),
             devices: None,
             public_key: pk,

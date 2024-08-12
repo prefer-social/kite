@@ -27,8 +27,7 @@ async fn handle_inbox(req: Request) -> anyhow::Result<impl IntoResponse> {
     let subscriber = FmtSubscriber::builder()
         .with_env_filter(EnvFilter::from_env("APP_LOG_LEVEL"))
         .finish();
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("setting default subscriber failed");
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     tracing::debug!(
         "<--------- ({}) {} ({}) {} --------->",
@@ -63,6 +62,7 @@ pub async fn post(req: Request) -> Result<Response> {
     // Validate signature, add an actor to account, add to activity_log table
     if !sparrow::mastodon::validate_signature(&req).await? {
         tracing::debug!("NOT VALID SIGNATURE");
+        tracing::debug!("{:?}", String::from_utf8(req.body().to_vec()));
         return HttpResponse::invalid_request();
     }
 
@@ -85,73 +85,53 @@ pub async fn post(req: Request) -> Result<Response> {
     match activity_type {
         ActivityType::Accept => {
             //action::accept::received(obj).await,
-            let activity =
-                serde_json::from_value::<Activity<AcceptActivity>>(body)
-                    .unwrap();
+            let activity = serde_json::from_value::<Activity<AcceptActivity>>(body).unwrap();
             match activity.execute().await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
-                    tracing::error!(
-                        "Error from Inbox's Accpet request -> {e:?}",
-                    );
+                    tracing::error!("Error from Inbox's Accpet request -> {e:?}",);
                     HttpResponse::not_acceptable()
                 }
             }
         }
         ActivityType::Create => {
-            let activity =
-                serde_json::from_value::<Activity<CreateActivity>>(body)
-                    .unwrap();
+            let activity = serde_json::from_value::<Activity<CreateActivity>>(body).unwrap();
             let _ot = ObjectType::from_str(object_type.unwrap().as_str());
 
             match activity.execute().await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
-                    tracing::error!(
-                        "Error from Inbox's Create request -> {e:?}",
-                    );
+                    tracing::error!("Error from Inbox's Create request -> {e:?}",);
                     HttpResponse::not_acceptable()
                 }
             }
         }
         ActivityType::Delete => {
-            let activity =
-                serde_json::from_value::<Activity<DeleteActivity>>(body)
-                    .unwrap();
+            let activity = serde_json::from_value::<Activity<DeleteActivity>>(body).unwrap();
             match activity.execute().await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
-                    tracing::error!(
-                        "Error from Inbox's Delete request -> {e:?}",
-                    );
+                    tracing::error!("Error from Inbox's Delete request -> {e:?}",);
                     HttpResponse::not_acceptable()
                 }
             }
         }
         ActivityType::Follow => {
-            let activity =
-                serde_json::from_value::<Activity<FollowActivity>>(body)
-                    .unwrap();
+            let activity = serde_json::from_value::<Activity<FollowActivity>>(body).unwrap();
             match activity.execute().await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
-                    tracing::error!(
-                        "Error from Inbox's Follow request -> {e:?}",
-                    );
+                    tracing::error!("Error from Inbox's Follow request -> {e:?}",);
                     HttpResponse::not_acceptable()
                 }
             }
         }
         ActivityType::Undo => {
-            let activity =
-                serde_json::from_value::<Activity<UndoActivity>>(body)
-                    .unwrap();
+            let activity = serde_json::from_value::<Activity<UndoActivity>>(body).unwrap();
             match activity.execute().await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
-                    tracing::error!(
-                        "Error from Inbox's Follow request -> {e:?}",
-                    );
+                    tracing::error!("Error from Inbox's Follow request -> {e:?}",);
                     HttpResponse::not_acceptable()
                 }
             }

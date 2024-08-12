@@ -148,19 +148,18 @@ impl Execute for Create {
         let object_type = ObjectType::from_str(a).unwrap();
 
         match object_type {
-            ObjectType::Note => {
-                create_note(self.to_owned(), activity_val).await
-            }
+            ObjectType::Note => create_note(self.to_owned(), activity_val).await,
             unkown_type => unkown(unkown_type).await,
         }
     }
 }
 
 async fn create_note(s: Create, activity: Value) -> Result<()> {
-    match serde_json::from_value::<NoteObject>(s.0) {
+    match serde_json::from_value::<NoteObject>(s.0.to_owned()) {
         Ok(note) => MStatus::new(note).await,
         Err(e) => {
             tracing::error!("Error from Parsing NoteObject: {e:?}");
+            tracing::error!("{:?}", s.0);
             tracing::error!("{activity:?}");
             Err(Error::msg("Error from Parsing NoteObject: {e:?}"))
         }

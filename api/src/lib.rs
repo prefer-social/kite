@@ -17,8 +17,7 @@ async fn handle_api(req: Request) -> Result<impl IntoResponse> {
     let subscriber = FmtSubscriber::builder()
         .with_env_filter(EnvFilter::from_env("APP_LOG_LEVEL"))
         .finish();
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("setting default subscriber failed");
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     tracing::debug!(
         "<---------- ({}) {} ({}) --------->",
@@ -86,6 +85,10 @@ async fn handle_api(req: Request) -> Result<impl IntoResponse> {
     router.any_async(
         "/api/v1/accounts/:id/unfollow",
         endpoint::v1::accounts::unfollow::request,
+    );
+    router.any_async(
+        "/api/v1/accounts/:id/following",
+        endpoint::v1::accounts::following::request,
     );
     // router.any_async(
     //     "/api/v1/accounts/:id/statuses",

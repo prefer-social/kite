@@ -6,27 +6,18 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use spin_sdk::sqlite::{Connection, Value};
 use spin_sqlx::sqlite::Connection as dbcon;
-use std::any::{type_name};
+use std::any::type_name;
 use std::time::{SystemTime, UNIX_EPOCH};
 use struct_iterable::Iterable;
 use url::Url;
 
 use crate::activitystream::actor::person::Person as PersonActor;
-use crate::mastodon::account::uri::Uri as AccountUri;
 use crate::mastodon::account::actor_url::ActorUrl;
+use crate::mastodon::account::uri::Uri as AccountUri;
 use crate::table::FieldType;
 
 /// DB Account table struct
-#[derive(
-    Serialize,
-    Deserialize,
-    Default,
-    Clone,
-    Debug,
-    PartialEq,
-    sqlx::FromRow,
-    Iterable,
-)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug, PartialEq, sqlx::FromRow, Iterable)]
 pub struct Account {
     /// rowid from sqlite, If rowid is negative < 0, It's not from table.
     pub rowid: i64,
@@ -111,10 +102,9 @@ impl Account {
     /// returns all Account rows
     pub async fn all() -> Result<Vec<Account>> {
         let sqlx_conn = dbcon::open_default()?;
-        let accounts: Vec<Account> =
-            sqlx::query_as("SELECT rowid, * FROM account")
-                .fetch_all(&sqlx_conn)
-                .await?;
+        let accounts: Vec<Account> = sqlx::query_as("SELECT rowid, * FROM account")
+            .fetch_all(&sqlx_conn)
+            .await?;
         Ok(accounts)
     }
 
@@ -131,37 +121,34 @@ impl Account {
         domain: Option<String>,
     ) -> Result<Option<Account>> {
         let sqlx_conn = dbcon::open_default()?;
-        let accounts: Vec<Account> = match domain.is_none() { 
+        let accounts: Vec<Account> = match domain.is_none() {
             true => {
                 sqlx::query_as("SELECT rowid, * FROM account WHERE username = ? AND domain IS NULL")
                     .bind(username)
                     .fetch_all(&sqlx_conn)
                     .await?
-            },
-            _ => { 
-                sqlx::query_as( "SELECT rowid, * FROM account WHERE username = ? AND domain = ?")
+            }
+            _ => {
+                sqlx::query_as("SELECT rowid, * FROM account WHERE username = ? AND domain = ?")
                     .bind(username)
                     .bind(domain)
                     .fetch_all(&sqlx_conn)
                     .await?
-            },
-        }; 
-        
+            }
+        };
+
         Ok(Some(accounts.last().unwrap().to_owned()))
     }
 
     /// Get Account struct from Account's Uri
-    pub async fn fr_account_uri(
-        account_uri: AccountUri,
-    ) -> Result<Option<Account>> {
+    pub async fn fr_account_uri(account_uri: AccountUri) -> Result<Option<Account>> {
         let sqlx_conn = dbcon::open_default()?;
-        let accounts: Vec<Account> = sqlx::query_as(
-            "SELECT rowid, * FROM account WHERE username = ? AND domain = ?",
-        )
-        .bind(account_uri.username)
-        .bind(account_uri.domain)
-        .fetch_all(&sqlx_conn)
-        .await?;
+        let accounts: Vec<Account> =
+            sqlx::query_as("SELECT rowid, * FROM account WHERE username = ? AND domain = ?")
+                .bind(account_uri.username)
+                .bind(account_uri.domain)
+                .fetch_all(&sqlx_conn)
+                .await?;
         Ok(Some(accounts.first().unwrap().to_owned()))
     }
 
@@ -177,9 +164,11 @@ impl Account {
     /// Get TAccount from actor url. actor's url is TAccount's uri.
     pub async fn fr_actor_url(url: String) -> Result<Vec<Account>> {
         let sqlx_conn = dbcon::open_default()?;
-        let accounts: Vec<Account> = sqlx::query_as(
-            "SELECT account.rowid, account.* FROM account WHERE account.uri = ?",
-        ).bind(url).fetch_all(&sqlx_conn).await?;
+        let accounts: Vec<Account> =
+            sqlx::query_as("SELECT account.rowid, account.* FROM account WHERE account.uri = ?")
+                .bind(url)
+                .fetch_all(&sqlx_conn)
+                .await?;
         Ok(accounts)
     }
 
@@ -190,7 +179,10 @@ impl Account {
             Value::Text(username.to_owned()),
             Value::Text(domain.to_owned()),
         ];
-        let count = connection.execute("SELECT count(*) AS cnt FROM account WHERE account.username = ? AND account.domain = ?", execute_params.as_slice())?;
+        let count = connection.execute(
+            "SELECT count(*) AS cnt FROM account WHERE account.username = ? AND account.domain = ?",
+            execute_params.as_slice(),
+        )?;
         let cnt = count.rows().next().unwrap().get::<i64>("cnt").unwrap();
         Ok(cnt > 0)
     }
@@ -208,8 +200,7 @@ pub trait Get<T> {
 #[async_trait]
 impl Get<(String, String)> for Account {
     async fn get((key, val): (String, String)) -> Result<Vec<Account>> {
-        let query_template =
-            format!("SELECT rowid, * FROM account WHERE {} = ?", key);
+        let query_template = format!("SELECT rowid, * FROM account WHERE {} = ?", key);
 
         let sqlx_conn = dbcon::open_default()?;
         let accounts = sqlx::query_as(query_template.as_str())
@@ -226,7 +217,8 @@ impl Get<AccountUri> for Account {
         let sqlx_conn = dbcon::open_default()?;
         let accounts: Vec<TAccount> = match uri.domain {
             Some(domain) => {
-                let query_template = format!("SELECT rowid, * FROM account WHERE username = ? AND domain = ?");
+                let query_template =
+                    format!("SELECT rowid, * FROM account WHERE username = ? AND domain = ?");
                 sqlx::query_as(query_template.as_str())
                     .bind(uri.username)
                     .bind(domain)
@@ -234,7 +226,8 @@ impl Get<AccountUri> for Account {
                     .await?
             }
             None => {
-                let query_template = format!("SELECT rowid, * FROM account WHERE username = ? AND domain IS NULL");
+                let query_template =
+                    format!("SELECT rowid, * FROM account WHERE username = ? AND domain IS NULL");
                 sqlx::query_as(query_template.as_str())
                     .bind(uri.username)
                     .fetch_all(&sqlx_conn)
@@ -276,7 +269,6 @@ impl New<PersonActor> for Account {
     }
 }
 
-
 #[async_trait(?Send)]
 impl New<Account> for Account {
     async fn new(tacct: Account) -> Result<()> {
@@ -301,9 +293,7 @@ impl New<Account> for Account {
             }
 
             let value = match super::check_type(v) {
-                FieldType::String => {
-                    v.downcast_ref::<String>().unwrap().to_owned()
-                }
+                FieldType::String => v.downcast_ref::<String>().unwrap().to_owned(),
                 FieldType::OptionString => {
                     let a = &v.downcast_ref::<Option<String>>();
                     if a.unwrap().is_none() {
@@ -353,8 +343,7 @@ impl New<Account> for Account {
         value_mark.pop();
         value_mark.push_str(")");
 
-        let sql_insert =
-            format!("INSERT INTO account {} VALUES {}", fields, value_mark);
+        let sql_insert = format!("INSERT INTO account {} VALUES {}", fields, value_mark);
 
         let connection = Connection::open_default()?;
         connection.execute(sql_insert.as_str(), execute_params.as_slice())?;
@@ -378,9 +367,7 @@ impl New<Account> for Account {
             }
 
             let value = match super::check_type(v) {
-                FieldType::String => {
-                    v.downcast_ref::<String>().unwrap().to_owned()
-                }
+                FieldType::String => v.downcast_ref::<String>().unwrap().to_owned(),
                 FieldType::OptionString => {
                     let a = &v.downcast_ref::<Option<String>>();
                     if a.unwrap().is_none() {
@@ -425,8 +412,10 @@ impl New<Account> for Account {
         execute_params.push(Value::Text(username));
         execute_params.push(Value::Text(domain));
 
-        let sql_stmt =
-            format!("UPDATE account SET {} WHERE account.username = ? AND account.domain = ?", sets);
+        let sql_stmt = format!(
+            "UPDATE account SET {} WHERE account.username = ? AND account.domain = ?",
+            sets
+        );
 
         let connection = Connection::open_default()?;
         connection.execute(sql_stmt.as_str(), execute_params.as_slice())?;
@@ -450,19 +439,30 @@ impl TryFrom<PersonActor> for Account {
             None => None,
         };
 
-        let avatar_content_type = match &actor.icon {
-            Some(i) => Some(i.to_owned().media_type),
-            None => None,
-        };
+        //let avatar_content_type = match &actor.icon {
+        //    Some(i) => Some(i.to_owned().media_type),
+        //    None => None,
+        //};
+        let avatar_content_type = actor
+            .icon
+            .to_owned()
+            .map(|x| x.to_owned().media_type)
+            .unwrap_or_default();
+
         let header_remote_url = match &actor.image {
             Some(i) => Some(i.to_owned().url),
             None => None,
         };
 
-        let header_content_type = match &actor.image {
-            Some(i) => Some(i.to_owned().media_type),
-            None => None,
-        };
+        //let header_content_type = match &actor.image {
+        //    Some(i) => Some(i.to_owned().media_type),
+        //    None => None,
+        //};
+        let header_content_type = actor
+            .icon
+            .to_owned()
+            .map(|x| x.to_owned().media_type)
+            .unwrap_or_default();
 
         let account = Account {
             uid: uuid::Uuid::now_v7().to_string(),
@@ -475,11 +475,11 @@ impl TryFrom<PersonActor> for Account {
                     .to_string(),
             ),
             public_key: actor.public_key.public_key_pem,
-            created_at: current_epoch, // not null
-            updated_at: current_epoch, // not null
-            note: actor.summary,       // default(""), not null
-            display_name: actor.name,  // default(""), not null
-            uri: actor.id,             // default(""), not null
+            created_at: current_epoch,                     // not null
+            updated_at: current_epoch,                     // not null
+            note: actor.summary.unwrap_or("".to_string()), // default(""), not null
+            display_name: actor.name,                      // default(""), not null
+            uri: actor.id,                                 // default(""), not null
             url: Some(actor.url),
             avatar_content_type: avatar_content_type,
             header_content_type: header_content_type,
@@ -491,17 +491,21 @@ impl TryFrom<PersonActor> for Account {
             shared_inbox_url: Some(actor.endpoints.shared_inbox), // default(""), not null
             following_url: Some(actor.following),
             followers_url: Some(actor.followers), // default(""), not null
-            memorial: actor.memorial.map(|x| 
-                match x {
-                    false => 0, 
-                    true => 1,
-                }
-            ),
+            memorial: actor.memorial.map(|x| match x {
+                false => 0,
+                true => 1,
+            }),
             featured_collection_url: actor.featured,
             actor_type: Some(actor.actor_type.to_string()),
-            discoverable: Some(actor.discoverable as i64),
+            discoverable: actor.discoverable.map(|x| match x {
+                false => 0,
+                true => 1,
+            }),
             devices_url: actor.devices,
-            indexable: Some(actor.indexable as i64),
+            indexable: actor.indexable.map(|x| match x {
+                false => 0,
+                true => 1,
+            }),
             ..Default::default() // default(FALSE), not null
         };
         Ok(account)
@@ -511,7 +515,6 @@ impl TryFrom<PersonActor> for Account {
 fn type_of<T>(_: T) -> &'static str {
     type_name::<T>()
 }
-
 
 #[async_trait]
 pub trait Remove<T> {
@@ -535,7 +538,8 @@ impl Remove<ActorUrl> for Account {
 impl Remove<AccountUri> for Account {
     async fn remove(account_uri: AccountUri) -> Result<()> {
         let sqlx_conn = dbcon::open_default()?;
-        let query_template = format!("DELETE FROM account WHERE account.username = ? AND account.domain = ?");
+        let query_template =
+            format!("DELETE FROM account WHERE account.username = ? AND account.domain = ?");
         sqlx::query(query_template.as_str())
             .bind(account_uri.username)
             .bind(account_uri.domain.unwrap())
@@ -543,6 +547,4 @@ impl Remove<AccountUri> for Account {
             .await?;
         Ok(())
     }
-
 }
-

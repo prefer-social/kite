@@ -10,4 +10,5 @@ members = [
     "sparrow",
     "web",
     "well-known",
+    "cli",
 ]
