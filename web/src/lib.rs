@@ -14,8 +14,7 @@ async fn handle_route(req: Request) -> Response {
     let subscriber = FmtSubscriber::builder()
         .with_env_filter(EnvFilter::from_env("APP_LOG_LEVEL"))
         .finish();
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("setting default subscriber failed");
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     tracing::debug!(
         "<---------- ({}) {} ({}) {}--------->",
@@ -31,6 +30,9 @@ async fn handle_route(req: Request) -> Response {
             .unwrap(),
     );
 
+    let a = cfg!(target_family = "wasm");
+    tracing::debug!("is it wasm? {:?}", a);
+
     let headers = req
         .headers()
         .map(|(k, v)| (k.to_string(), v.as_bytes().to_vec()))
@@ -44,10 +46,10 @@ async fn handle_route(req: Request) -> Response {
         .body(req.into_body())
         .build();
 
-    let owner =
-        sparrow::mastodon::setting::Setting::get("site_contact_username")
-            .await
-            .unwrap();
+    // Don't need this. Too many sql queries
+    let owner = sparrow::mastodon::setting::Setting::get("site_contact_username")
+        .await
+        .unwrap();
 
     let mut router = Router::new();
 
