@@ -8,6 +8,7 @@ use std::fmt::Debug;
 use anyhow::Result;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
+use spin_sdk::key_value::Store;
 use uuid::Uuid;
 
 use crate::activitystream;
@@ -23,6 +24,7 @@ use crate::mastodon::activity_log::ActivityLog;
 use crate::mastodon::follow::Follow as MFollow;
 use crate::mastodon::post_activity;
 use crate::mastodon::setting::Setting;
+use crate::mstor;
 
 /*
 {
@@ -113,6 +115,8 @@ impl Execute for Accept {
                 }
             }
         };
+
+        let store = Store::open("mem")?;
 
         let subj = ActorUrl::new(
             self.0.get("actor").unwrap().as_str().unwrap().to_string(),

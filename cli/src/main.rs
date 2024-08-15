@@ -1,7 +1,8 @@
 use clap::{Parser, Subcommand};
-use reqwest as request;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
+
+use crate::search::search;
 
 pub mod search;
 
@@ -18,18 +19,10 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// does testing things
-    Test {
-        /// lists test values
-        #[arg(short, long)]
-        list: bool,
-    },
-    Search {
-        uri: String,
-    },
-    Follow,
-    Unfollow,
-    Publish,
+    Search { uri: String },
+    Follow { uri: String },
+    Unfollow { uri: String },
+    Publish { status: String },
 }
 
 #[tokio::main]
@@ -37,11 +30,13 @@ async fn main() {
     let cli = Cli::parse();
 
     let debug_level = match cli.debug_level.unwrap_or_default().as_str() {
+        "off" => Some(Level::ERROR),
         "error" => Some(Level::ERROR),
         "warn" => Some(Level::WARN),
         "info" => Some(Level::INFO),
         "debug" => Some(Level::DEBUG),
         "trace" => Some(Level::TRACE),
+        "all" => Some(Level::TRACE),
         _ => Some(Level::ERROR),
     };
 
@@ -51,30 +46,18 @@ async fn main() {
         .pretty()
         .with_max_level(debug_level.unwrap())
         .finish();
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    tracing::subscriber::set_global_default(subscriber)
+        .expect("setting default subscriber failed");
 
     // You can check for the existence of subcommands, and if found use their
     // matches just as you would the top level cmd
     match &cli.command {
-        Command::Test { list } => {
-            if *list {
-                println!("Printing testing lists...");
-            } else {
-                println!("Not printing testing lists...");
-            }
-        }
         Command::Search { uri } => {
-            tracing::error!("I am erroring");
-            tracing::warn!("I am waring");
-            tracing::info!("I am informing");
-            tracing::debug!("I am debugging");
-            tracing::trace!("I am tracing");
-
-            tracing::debug!("{:?}", uri);
+            search(uri).await;
         }
-        Command::Follow => {}
-        Command::Unfollow => {}
-        Command::Publish => {}
+        Command::Follow { uri } => {}
+        Command::Unfollow { uri } => {}
+        Command::Publish { status } => {}
     }
 }
 /*

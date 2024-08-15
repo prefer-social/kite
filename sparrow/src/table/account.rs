@@ -17,7 +17,16 @@ use crate::mastodon::account::uri::Uri as AccountUri;
 use crate::table::FieldType;
 
 /// DB Account table struct
-#[derive(Serialize, Deserialize, Default, Clone, Debug, PartialEq, sqlx::FromRow, Iterable)]
+#[derive(
+    Serialize,
+    Deserialize,
+    Default,
+    Clone,
+    Debug,
+    PartialEq,
+    sqlx::FromRow,
+    Iterable,
+)]
 pub struct Account {
     /// rowid from sqlite, If rowid is negative < 0, It's not from table.
     pub rowid: i64,
@@ -102,9 +111,10 @@ impl Account {
     /// returns all Account rows
     pub async fn all() -> Result<Vec<Account>> {
         let sqlx_conn = dbcon::open_default()?;
-        let accounts: Vec<Account> = sqlx::query_as("SELECT rowid, * FROM account")
-            .fetch_all(&sqlx_conn)
-            .await?;
+        let accounts: Vec<Account> =
+            sqlx::query_as("SELECT rowid, * FROM account")
+                .fetch_all(&sqlx_conn)
+                .await?;
         Ok(accounts)
     }
 
@@ -141,14 +151,17 @@ impl Account {
     }
 
     /// Get Account struct from Account's Uri
-    pub async fn fr_account_uri(account_uri: AccountUri) -> Result<Option<Account>> {
+    pub async fn fr_account_uri(
+        account_uri: AccountUri,
+    ) -> Result<Option<Account>> {
         let sqlx_conn = dbcon::open_default()?;
-        let accounts: Vec<Account> =
-            sqlx::query_as("SELECT rowid, * FROM account WHERE username = ? AND domain = ?")
-                .bind(account_uri.username)
-                .bind(account_uri.domain)
-                .fetch_all(&sqlx_conn)
-                .await?;
+        let accounts: Vec<Account> = sqlx::query_as(
+            "SELECT rowid, * FROM account WHERE username = ? AND domain = ?",
+        )
+        .bind(account_uri.username)
+        .bind(account_uri.domain)
+        .fetch_all(&sqlx_conn)
+        .await?;
         Ok(Some(accounts.first().unwrap().to_owned()))
     }
 
@@ -200,7 +213,8 @@ pub trait Get<T> {
 #[async_trait]
 impl Get<(String, String)> for Account {
     async fn get((key, val): (String, String)) -> Result<Vec<Account>> {
-        let query_template = format!("SELECT rowid, * FROM account WHERE {} = ?", key);
+        let query_template =
+            format!("SELECT rowid, * FROM account WHERE {} = ?", key);
 
         let sqlx_conn = dbcon::open_default()?;
         let accounts = sqlx::query_as(query_template.as_str())
@@ -293,7 +307,9 @@ impl New<Account> for Account {
             }
 
             let value = match super::check_type(v) {
-                FieldType::String => v.downcast_ref::<String>().unwrap().to_owned(),
+                FieldType::String => {
+                    v.downcast_ref::<String>().unwrap().to_owned()
+                }
                 FieldType::OptionString => {
                     let a = &v.downcast_ref::<Option<String>>();
                     if a.unwrap().is_none() {
@@ -343,7 +359,8 @@ impl New<Account> for Account {
         value_mark.pop();
         value_mark.push_str(")");
 
-        let sql_insert = format!("INSERT INTO account {} VALUES {}", fields, value_mark);
+        let sql_insert =
+            format!("INSERT INTO account {} VALUES {}", fields, value_mark);
 
         let connection = Connection::open_default()?;
         connection.execute(sql_insert.as_str(), execute_params.as_slice())?;
@@ -367,7 +384,9 @@ impl New<Account> for Account {
             }
 
             let value = match super::check_type(v) {
-                FieldType::String => v.downcast_ref::<String>().unwrap().to_owned(),
+                FieldType::String => {
+                    v.downcast_ref::<String>().unwrap().to_owned()
+                }
                 FieldType::OptionString => {
                     let a = &v.downcast_ref::<Option<String>>();
                     if a.unwrap().is_none() {
@@ -475,11 +494,11 @@ impl TryFrom<PersonActor> for Account {
                     .to_string(),
             ),
             public_key: actor.public_key.public_key_pem,
-            created_at: current_epoch,                     // not null
-            updated_at: current_epoch,                     // not null
+            created_at: current_epoch, // not null
+            updated_at: current_epoch, // not null
             note: actor.summary.unwrap_or("".to_string()), // default(""), not null
-            display_name: actor.name,                      // default(""), not null
-            uri: actor.id,                                 // default(""), not null
+            display_name: actor.name, // default(""), not null
+            uri: actor.id,            // default(""), not null
             url: Some(actor.url),
             avatar_content_type: avatar_content_type,
             header_content_type: header_content_type,

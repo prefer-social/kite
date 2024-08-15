@@ -45,14 +45,23 @@ impl Follow {
         let id = format!("https://{}/{}", Setting::domain().await, uid);
         let follow = Follow(object);
 
-        let follow_object =
-            Activity::new(id, ActivityType::Follow, actor, None, None, None, follow);
+        let follow_object = Activity::new(
+            id,
+            ActivityType::Follow,
+            actor,
+            None,
+            None,
+            None,
+            follow,
+        );
 
         follow_object
     }
 
     /// when follow action received at inbox.
-    pub async fn parse<T>(activity: Activity<Follow>) -> Result<Activity<Self>> {
+    pub async fn parse<T>(
+        activity: Activity<Follow>,
+    ) -> Result<Activity<Self>> {
         let subj = ActorUrl::new(activity.actor.clone()).unwrap();
         let obj = ActorUrl::new(activity.activity_object.to_string()).unwrap();
         let obj_id = obj.to_string();
@@ -105,7 +114,7 @@ impl Execute for Follow {
         let obj_id = obj.to_string();
 
         let subj_account = MAccount::get(subj).await?;
-        let subj_account_id = subj_account.uid;
+        let subj_account_id = subj_account.uid.to_owned();
 
         let obj_account = MAccount::get(obj).await?;
         let obj_account_id = obj_account.uid;
@@ -138,7 +147,9 @@ impl Execute for Follow {
             accept,
         );
 
-        let res = crate::mastodon::post_activity(accept_activity).await?;
+        let res =
+            crate::mastodon::post_activity(subj_account, accept_activity)
+                .await?;
         match res {
             202u16 => {
                 tracing::debug!("Activity published({})", res);

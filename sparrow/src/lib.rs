@@ -23,4 +23,5 @@ pub mod table;
 /// My utils
 pub mod utils;
 
+pub mod mstor;
 pub mod webfinger;

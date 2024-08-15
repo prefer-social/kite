@@ -8,6 +8,7 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use spin_sdk::key_value::Store;
 use std::fmt;
 use std::fmt::Debug;
 use std::str::FromStr;
@@ -17,8 +18,10 @@ use crate::activitystream::activity::accept::Accept;
 use crate::activitystream::activity::follow::Follow;
 use crate::activitystream::Execute;
 use crate::mastodon;
+use crate::mastodon::account::actor_url::ActorUrl;
 //use crate::activitystream::activity::undo::Undo;
 use crate::mastodon::account::Account as MAccount;
+use crate::mastodon::account::Get as _;
 
 pub mod accept;
 pub mod create;
@@ -128,13 +131,13 @@ where
 
     /// Execute activity.  
     pub async fn execute(&self) -> Result<()> {
-        // Todo: get an account from auth token.
-        let (my_account, _) = MAccount::default().await?;
+        let actor =
+            MAccount::get(ActorUrl::new(self.actor.to_owned())?).await?;
 
-        // If an actor is self, publish/send to world
-        if self.actor == my_account.actor_url.to_string() {
+        // If an actor is local, publish to world
+        if actor.local() {
             tracing::debug!("If an actor is self, publish/send to world");
-            match mastodon::post_activity(self.to_owned()).await {
+            match mastodon::post_activity(actor, self.to_owned()).await {
                 Ok(_) => return Ok(()),
                 Err(e) => {
                     tracing::error!("{e:?}");

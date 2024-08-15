@@ -57,13 +57,20 @@ pub mod user_role;
 
 // https://github.com/RustCrypto/RSA/issues/341
 
+#[derive(Eq, PartialEq)]
+pub enum ValidationResult {
+    Valid(MAccount),
+    Invalid,
+    Delete,
+}
+
 /// Validate Mastodon signrature.  
 ///
 /// This adds new actor to Account.  
 /// This adds incoming request to activityLog table.
 /// https://docs.joinmastodon.org/spec/security/#http-verify
 /// https://github.com/mastodon/mastodon/sender_actor_url_stringblob/main/app/controllers/concerns/signature_verification.rb
-pub async fn validate_signature(req: &Request) -> Result<bool> {
+pub async fn validate_signature(req: &Request) -> Result<ValidationResult> {
     let sig_header = req.header("Signature").unwrap().as_str().unwrap();
     let hostname = req
         .header("Host")
@@ -106,26 +113,36 @@ pub async fn validate_signature(req: &Request) -> Result<bool> {
         .await
         .unwrap();
 
-        return Ok(true);
+        return Ok(ValidationResult::Delete);
     }
 
     let sender_actor_url = ActorUrl::new(actor_url_str.to_string()).unwrap();
 
-    // Add this actor to Account (only if this is not local account)
-    let sender_actor = sender_actor_url.actor().await?.clone();
-    let site_domain = Setting::domain().await;
-    let sender_domain = sender_actor_url
-        .clone()
-        .0
-        .unwrap()
-        .host()
-        .unwrap()
-        .to_string();
-    if sender_domain != site_domain {
-        sender_actor.store().await?;
-    }
+    // If this sender_actor_url is already exist,
+    let sender_account = match MAccount::is_actor_exist(
+        sender_actor_url.to_owned().to_string(),
+    )
+    .await?
+    {
+        Some(maccount) => maccount,
+        None => {
+            let sender_actor = sender_actor_url.actor().await?.clone();
+            let site_domain = Setting::domain().await;
+            let sender_domain = sender_actor_url
+                .clone()
+                .0
+                .unwrap()
+                .host()
+                .unwrap()
+                .to_string();
+            if sender_domain != site_domain {
+                sender_actor.store().await?;
+            }
 
-    let sender_account = MAccount::get(sender_actor_url).await?;
+            MAccount::get(sender_actor_url).await?
+        }
+    };
+
     let public_key_string = sender_account.public_key.as_str();
 
     fn parse_sig_header(query: &str) -> HashMap<String, String> {
@@ -138,8 +155,9 @@ pub async fn validate_signature(req: &Request) -> Result<bool> {
         query
             .split(',')
             .filter_map(|s| {
-                s.split_once('=')
-                    .and_then(|t| Some((t.0.to_owned(), rem_first_and_last(t.1).to_owned())))
+                s.split_once('=').and_then(|t| {
+                    Some((t.0.to_owned(), rem_first_and_last(t.1).to_owned()))
+                })
             })
             .collect()
     }
@@ -150,7 +168,8 @@ pub async fn validate_signature(req: &Request) -> Result<bool> {
     // TODO: Check algorithm
     let _algorithm = sig_header_map.get("algorithm").unwrap();
 
-    let decoded_signature = general_purpose::STANDARD.decode(signature).unwrap();
+    let decoded_signature =
+        general_purpose::STANDARD.decode(signature).unwrap();
 
     // TODO: Generate signature string based on actual headers info got from sig_headers
     // See this: https://blog.joinmastodon.org/2018/07/how-to-make-friends-and-verify-requests/
@@ -166,9 +185,10 @@ pub async fn validate_signature(req: &Request) -> Result<bool> {
 
     // tracing::debug!("--> {signature_string}");
 
-    let public_key =
-        RsaPublicKey::from_public_key_pem(public_key_string).expect("RsaPublicKey creation failed");
-    let verifying_key_openssl: VerifyingKey<Sha256> = VerifyingKey::new(public_key.clone());
+    let public_key = RsaPublicKey::from_public_key_pem(public_key_string)
+        .expect("RsaPublicKey creation failed");
+    let verifying_key_openssl: VerifyingKey<Sha256> =
+        VerifyingKey::new(public_key.clone());
     let t = Signature::try_from(decoded_signature.as_slice()).unwrap();
     let valid_key = verifying_key_openssl
         .verify(signature_string.as_bytes(), &t)
@@ -187,19 +207,24 @@ pub async fn validate_signature(req: &Request) -> Result<bool> {
         )
         .await
         .unwrap();
+
+        return Ok(ValidationResult::Valid(sender_account));
     }
 
-    Ok(valid_key && valid_date)
+    Ok(ValidationResult::Invalid)
 }
 
 /// Send ActivityPub Object/Message
-pub async fn post_activity<T>(activity: Activity<T>) -> Result<u16>
+pub async fn post_activity<T>(
+    actor: MAccount,
+    activity: Activity<T>,
+) -> Result<u16>
 where
     T: Debug + Serialize + ToString + Execute,
 {
     tracing::debug!("<========= POSTING ACTIVITY =========>");
 
-    let sender_actor_url_string = activity.actor.clone();
+    let sender_actor_url_string = actor.actor_url.to_string();
 
     let recipient_actor_url_string = match activity.activity_type {
         ActivityType::Follow => activity.activity_object.to_string(),
@@ -221,12 +246,11 @@ where
     tracing::debug!(sender_actor_url_string);
     tracing::debug!(recipient_actor_url_string);
 
-    let sender_actor_url = ActorUrl::new(sender_actor_url_string.clone()).unwrap();
-    let sender_account = MAccount::get(sender_actor_url.clone()).await?;
+    let sender_actor_url = actor.actor_url;
+    let sender_private_key_pem = actor.private_key.clone().unwrap();
 
-    let sender_private_key_pem = sender_account.private_key.clone().unwrap();
-
-    let recipient_actor_url = ActorUrl::new(recipient_actor_url_string).unwrap();
+    let recipient_actor_url =
+        ActorUrl::new(recipient_actor_url_string).unwrap();
     let recipient_account = MAccount::get(recipient_actor_url).await?;
     //let date = get_current_time_for_signing();
     let date = get_current_time_in_rfc_1123();
@@ -267,9 +291,12 @@ where
     let private_key = RsaPrivateKey::from_pkcs8_pem(&sender_private_key_pem)
         .expect("RsaPrivateKey creation failed");
     let signing_key: SigningKey<Sha256> = SigningKey::new(private_key);
-    let signature =
-        <SigningKey<Sha256> as Signer<Signature>>::sign(&signing_key, signature_string.as_bytes());
-    let encoded_signature = general_purpose::STANDARD.encode(signature.to_bytes().as_ref());
+    let signature = <SigningKey<Sha256> as Signer<Signature>>::sign(
+        &signing_key,
+        signature_string.as_bytes(),
+    );
+    let encoded_signature =
+        general_purpose::STANDARD.encode(signature.to_bytes().as_ref());
 
     let sig_header = format!(
         r#"keyId="{}#main-key",algorithm="rsa-sha256",headers="(request-target) host date digest content-type",signature="{}""#,
@@ -318,7 +345,10 @@ where
     Ok(*status)
 }
 
-pub async fn get_fediverse(request_url: Url) -> Result<Response> {
+pub async fn get_fediverse(
+    request_url: Url,
+    //sender_account: MAccount,
+) -> Result<Response> {
     // Todo: get from auth
     let (sender, _) = MAccount::default().await?;
 
@@ -396,9 +426,12 @@ pub fn create_post_signrature(
     );
 
     let signing_key: SigningKey<Sha256> = SigningKey::new(private_key);
-    let signature =
-        <SigningKey<Sha256> as Signer<Signature>>::sign(&signing_key, signature_string.as_bytes());
-    let encoded_signature = general_purpose::STANDARD.encode(signature.to_bytes().as_ref());
+    let signature = <SigningKey<Sha256> as Signer<Signature>>::sign(
+        &signing_key,
+        signature_string.as_bytes(),
+    );
+    let encoded_signature =
+        general_purpose::STANDARD.encode(signature.to_bytes().as_ref());
 
     let signature = format!(
         r#"keyId="{}#main-key",algorithm="rsa-sha256",headers="(request-target) host date digest content-type",signature="{}""#,
@@ -429,9 +462,12 @@ pub fn create_get_signrature(
     );
 
     let signing_key: SigningKey<Sha256> = SigningKey::new(private_key);
-    let signature =
-        <SigningKey<Sha256> as Signer<Signature>>::sign(&signing_key, signature_string.as_bytes());
-    let encoded_signature = general_purpose::STANDARD.encode(signature.to_bytes().as_ref());
+    let signature = <SigningKey<Sha256> as Signer<Signature>>::sign(
+        &signing_key,
+        signature_string.as_bytes(),
+    );
+    let encoded_signature =
+        general_purpose::STANDARD.encode(signature.to_bytes().as_ref());
 
     // keyId="https://threads.net/ap/users/threads.sys/#main-key",algorithm="rsa-sha256",headers="(request-target) host date",signature="HXK570mb...mYHHNtBus6UQ=="
     let sig_header = format!(

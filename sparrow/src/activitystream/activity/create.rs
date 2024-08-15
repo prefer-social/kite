@@ -30,81 +30,6 @@ use chrono::{DateTime, Utc};
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone)]
 pub struct Create(Value);
 
-/*
-{ "@context":["https://www.w3.org/ns/activitystreams",{"ostatus":"http://ostatus.org#","atomUri":"ostatus:atomUri","inReplyToAtomUri":"ostatus:inReplyToAtomUri","conversation":"ostatus:conversation","sensitive":"as:sensitive","toot":"http://joinmastodon.org/ns#","votersCount":"toot:votersCount"}],
-  "id":"https://mstd.seungjin.net/users/wsj/statuses/112881315922274598/activity",
-  "type":"Create",
-  "actor":"https://mstd.seungjin.net/users/wsj",
-  "published":"2024-07-31T13:23:08Z",
-  "to":["https://www.w3.org/ns/activitystreams#Public"],
-  "cc":["https://mstd.seungjin.net/users/wsj/followers"],
-  "object":{
-    "id":"https://mstd.seungjin.net/users/wsj/statuses/112881315922274598",
-    "type":"Note",
-    "summary":null,
-    "inReplyTo":null,
-    "published":"2024-07-31T13:23:08Z",
-    "url":"https://mstd.seungjin.net/@wsj/112881315922274598",
-    "attributedTo":"https://mstd.seungjin.net/users/wsj",
-    "to":["https://www.w3.org/ns/activitystreams#Public"],
-    "cc":["https://mstd.seungjin.net/users/wsj/followers"],
-    "sensitive":false,
-    "atomUri":"https://mstd.seungjin.net/users/wsj/statuses/112881315922274598",
-    "inReplyToAtomUri":null,
-    "conversation": "tag:mstd.seungjin.net,2024-07-31:objectId=2214270:objectType=Conversation",
-    "content":"FooFoo",
-    "contentMap":{"en":"FooFoo"},
-    "attachment":[],
-    "tag":[],
-    "replies":{
-      "id":"https://mstd.seungjin.net/users/wsj/statuses/112881315922274598/replies",
-      "type":"Collection",
-      "first":{
-        "type":"CollectionPage",
-        "next":"https://mstd.seungjin.net/users/wsj/statuses/112881315922274598/replies?only_other_accounts=true\u0026page=true",
-        "partOf":"https://mstd.seungjin.net/users/wsj/statuses/112881315922274598/replies",
-        "items":[]
-      }
-    }
-  },
-  "signature": {
-    "type":"RsaSignature2017",
-    "creator":"https://mstd.seungjin.net/users/wsj#main-key",
-    "created":"2024-07-31T13:23:14Z",
-    "signatureValue":"Dlby/9rMnA6PJqqdUv/eVuNjTPPbwmG2JPf2SKiMqvLZ7BtJ+DFbraMHIp6NmnYbvN0CV9OZQ7HNo3Rvr4vVeARzBfwCLiyp2zNh/GVqtlyaDDVHmCiFvwYzbVqAMBj8dYklHcZiU5zOeaMfznt8q9I9WPuPruqrPrFcZZNEd5nbSSTe17CVkJLeAeQpMrg6uE8MurjolMkzqwakmOjn3pZbbXASXIJvbjOlR/c5+SG9zOnOqJLv8x9fVkanZJlwlZD3CuhfTaiokKcNZpwviYzOTlHxDvHQ5lmISXWQP3FC8seNy2+dvhCgtLdOZwduymOj2zW1fq/4QqHhx0jX7w=="
-  }
-}
-
-  Ok( {
-  "id":"https://mas.to/users/seungjin/statuses/112885048174202789",
-  "type":"Note",
-  "summary":null,
-  "inReplyTo":null,
-  "published":"2024-08-01T05:12:18Z",
-  "url":"https://mas.to/@seungjin/112885048174202789",
-  "attributedTo":"https://mas.to/users/seungjin",
-  "to":["https://www.w3.org/ns/activitystreams#Public"],
-  "bto":null,
-  "cc":["https://mas.to/users/seungjin/followers"],
-  "bcc":null,
-  "sensitivity":null,
-  "atomUrl":null,
-  "inReplyToAtomUri":null,
-  "conversation": "tag:mas.to,2024-08-01:objectId=369259710:objectType=Conversation",
-  "content":"<p>tdd</p>",
-  "contentMap":{"en":"<p>tdd</p>"},
-  "attachment":[],
-  "tag":[],
-  "replies":
-    {"id":"https://mas.to/users/seungjin/statuses/112885048174202789/replies",
-      "type":"Collection","first":{"type":"CollectionPage",
-      "next":"https://mas.to/users/seungjin/statuses/112885048174202789/replies?only_other_accounts=true&page=true",
-      "partOf":"https://mas.to/users/seungjin/statuses/112885048174202789/replies","items":[]}}})
-
-
-
-*/
-
 impl Create {
     /// resturn Accept object.  
     pub async fn new(actor: String, object: Value) -> Activity<Create> {
@@ -148,7 +73,9 @@ impl Execute for Create {
         let object_type = ObjectType::from_str(a).unwrap();
 
         match object_type {
-            ObjectType::Note => create_note(self.to_owned(), activity_val).await,
+            ObjectType::Note => {
+                create_note(self.to_owned(), activity_val).await
+            }
             unkown_type => unkown(unkown_type).await,
         }
     }

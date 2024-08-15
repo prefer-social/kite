@@ -406,6 +406,15 @@ impl Account {
         Ok(v.total_items as u32)
     }
     
+    /// If account exists with ActorUrl, seturn MAccount
+    pub async fn is_actor_exist(url: String) -> Result<Option<Account>> {
+        let a = TAccount::get(("uri".to_string(), url)).await?;
+        match a.last() {
+            None => Ok(None),
+            Some(b) => Ok(Some(MAccount::get(b.to_owned()).await?))
+        }
+        
+    }
 }
 
 impl TryInto<String> for Account {

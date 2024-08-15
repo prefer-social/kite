@@ -28,18 +28,8 @@ impl ActorUrl {
     }
 
     pub async fn actor(&self) -> Result<Person> {
-        // TODO: do secure call!!!
-        // Call get with sining key!
-
         let ct = "application/activity+json";
         let actor_url = self.0.as_ref().unwrap().to_owned();
-
-        // let request = Request::builder()
-        //     .method(Method::Get)
-        //     .header("Accept", ct)
-        //     .uri(actor_url)
-        //     .build();
-        // let response: Response = spin_sdk::http::send(request).await.unwrap();
 
         tracing::debug!("##############");
         tracing::debug!("{:?}", actor_url);
