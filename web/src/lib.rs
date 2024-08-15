@@ -31,7 +31,6 @@ async fn handle_route(req: Request) -> Response {
     );
 
     let a = cfg!(target_family = "wasm");
-    tracing::debug!("is it wasm? {:?}", a);
 
     let headers = req
         .headers()
