@@ -1,4 +1,5 @@
 use anyhow::{Error, Result};
+use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use spin_sdk::http::{Method, Request, Response};
@@ -14,8 +15,10 @@ use crate::mastodon::account::Account as MAccount;
 use crate::mastodon::account::Get as _;
 use crate::table::actor_json::ActorJson;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
-pub struct ActorUrl(pub Option<Url>);
+#[derive(
+    Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Encode, Decode,
+)]
+pub struct ActorUrl(#[bincode(with_serde)] pub Option<Url>);
 
 impl ActorUrl {
     pub fn new(u: String) -> Result<Self> {
@@ -33,10 +36,9 @@ impl ActorUrl {
 
         tracing::debug!("##############");
         tracing::debug!("{:?}", actor_url);
-        let response = mastodon::get_fediverse(actor_url).await?;
+        let response = mastodon::get_fediverse(actor_url, None).await?;
         tracing::debug!("##############");
 
-        //let body = String::from_utf8(response.into_body().await?).unwrap();
         let body = response.body();
         let actor = str::from_utf8(body).unwrap();
 

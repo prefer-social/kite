@@ -3,13 +3,24 @@
 //! Mastodon doc: <https://docs.joinmastodon.org/entities/Account/#source>
 
 use anyhow::Result;
+use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
 use crate::mastodon::account::field::Field;
 
 /// An extra attribute that contains source values to be used with API methods that verify credentials and update credentials.   
 /// Mastodon doc: <https://docs.joinmastodon.org/entities/Account/#source>
-#[derive(Default, Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(
+    Default,
+    Debug,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    Clone,
+    Encode,
+    Decode,
+)]
 pub struct Source {
     /// The default post privacy to be used for new statuses.
     /// public = Public post

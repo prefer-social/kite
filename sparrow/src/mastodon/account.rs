@@ -13,6 +13,7 @@ use std::str;
 use regex::Regex;
 use struct_iterable::Iterable;
 use url::Url;
+use bincode::{Decode, Encode};
 
 use crate::activitystream::activity::follow::Follow as FollowActivity;
 use crate::activitystream::ordered_collection::OrderedCollection;
@@ -49,7 +50,7 @@ pub mod actor_url;
 /// Account struct  
 /// 
 /// Mastodon reference: <https://docs.joinmastodon.org/entities/Account/>  
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone, Iterable)]
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone, Iterable, Encode, Decode)]
 pub struct Account {
     /// The account id(UUID v7).
     #[serde(rename(serialize = "id", deserialize = "id"))]
@@ -108,9 +109,11 @@ pub struct Account {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limited: Option<bool>,
     /// When the account was created.
+    #[bincode(with_serde)]
     pub created_at: DateTime<Utc>,
     /// When the most recent status was posted.
     /// Nullable
+    #[bincode(with_serde)]
     pub last_status_at: DateTime<Utc>,
     /// How many statuses are attached to this account.
     pub statuses_count: u64,
@@ -335,8 +338,7 @@ impl Account {
 
     /// Getting statuses_count from Actor url.  
     pub async fn statuses_count(url: String) -> Result<u64> {
-        let response = get_fediverse(Url::parse(url.as_str()).unwrap()).await?;
-
+        let response = get_fediverse(Url::parse(url.as_str()).unwrap(), None).await?;
         match response.status() {
             410u16 => { 
                 tracing::error!("Trying to get statuses count but resource is Gone(410).");
@@ -347,21 +349,13 @@ impl Account {
         let body = str::from_utf8(response.body()).unwrap();
 
         let v: OrderedCollection = serde_json::from_str(body).unwrap();
-        Ok( v.total_items as u64)
+        Ok(v.total_items as u64)
     }
 
     /// Get following_count from Actor url.
     pub async fn following_count(url: String) -> Result<u32> {
         
-        // let request = Request::builder()
-        //     .method(Method::Get)
-        //     .uri(url)
-        //     .header("User-Agent", "prefer.social")
-        //     .header("Accept", "application/activity+json")
-        //     .build();
-        // let response: Response = spin_sdk::http::send(request).await?;
-
-        let response = get_fediverse(Url::parse(url.as_str())?).await?;
+        let response = get_fediverse(Url::parse(url.as_str())?, None).await?;
 
         match response.status() {
             410u16 => { return Err(anyhow::Error::msg("Resource is Gone")); },
@@ -374,18 +368,8 @@ impl Account {
 
     /// Get followers_count from Actor url.  
     pub async fn followers_count(url: String) -> Result<u32> {
-        // If url is not local.
         
-        /* 
-        let request = Request::builder()
-            .method(Method::Get)
-            .uri(url)
-            .header("User-Agent", "prefer.social")
-            .header("Accept", "application/activity+json")
-            .build();
-        let response: Response = spin_sdk::http::send(request).await?;
-        */
-        let response = get_fediverse(Url::parse(url.as_str())?).await?;
+        let response = get_fediverse(Url::parse(url.as_str())?, None).await?;
 
         match response.status() {
             410u16 => { return Err(anyhow::Error::msg("Resource is Gone")); },
@@ -413,7 +397,7 @@ impl Account {
             None => Ok(None),
             Some(b) => Ok(Some(MAccount::get(b.to_owned()).await?))
         }
-        
+       
     }
 }
 
@@ -441,6 +425,8 @@ pub trait Get<T> {
 #[async_trait(?Send)]
 impl Get<TAccount> for Account {
     async fn get(acct_tbl: TAccount) -> Result<Self> {
+
+        tracing::trace!("+????????????????");
         let bot: bool = match acct_tbl.actor_type.clone().unwrap().as_str() {
             "service" => true,
             _ => false,
@@ -505,6 +491,7 @@ impl Get<TAccount> for Account {
             indexable: Some(convert_to_bool(acct_tbl.indexable.unwrap())),
             ..Default::default()
         };
+        tracing::trace!("-????????????????");
         Ok(account)
     }
 }

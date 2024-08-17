@@ -1,4 +1,5 @@
 use anyhow::{Error, Result};
+use bincode::{config as bincode_config, Decode, Encode};
 use serde_json::Value;
 use spin_sdk::{
     http::{HeaderValue, IntoResponse, Method, Request, Response},
@@ -35,7 +36,7 @@ async fn handle_inbox(req: Request) -> anyhow::Result<impl IntoResponse> {
     tracing::subscriber::set_global_default(subscriber)
         .expect("setting default subscriber failed");
 
-    tracing::debug!(
+    tracing::trace!(
         "<--------- ({}) {} ({}) {} --------->",
         req.method().to_string(),
         req.path_and_query().unwrap_or_default(),
@@ -49,6 +50,8 @@ async fn handle_inbox(req: Request) -> anyhow::Result<impl IntoResponse> {
             .unwrap(),
     );
 
+    let request_uuid = Uuid.
+
     match req.method() {
         Method::Get => get(req).await,
         Method::Post => post(req).await,
@@ -57,64 +60,58 @@ async fn handle_inbox(req: Request) -> anyhow::Result<impl IntoResponse> {
 }
 
 async fn get(_req: Request) -> Result<Response> {
-    tracing::debug!("GET to INBOX");
-    tracing::debug!("Do we get 'GETo request to inbox?");
+    tracing::trace!("GET to INBOX");
+    tracing::trace!("Do we get 'GETo request to inbox?");
     HttpResponse::not_implemented()
 }
 
 pub async fn post(req: Request) -> Result<Response> {
-    tracing::debug!("POST to INBOX");
+    tracing::trace!("POST to INBOX");
 
     let (body, activity_type, object_type) =
         inspect(String::from_utf8_lossy(req.body()).to_string());
 
-    tracing::debug!(
+    tracing::trace!(
         "{:?} {:?} by {:?}",
         activity_type,
         object_type,
         body.get("actor").unwrap()
     );
 
-    // Case Actor/Account delete
-    if activity_type == ActivityType::Delete {
-        if object_type.is_some() {
-            let actor_url = object_type.clone().unwrap();
-            if Url::parse(actor_url.as_str()).is_ok() {
-                // This is Actor Delete. Don't need to check validate_signature
-                let activity =
-                    serde_json::from_value::<Activity<DeleteActivity>>(body)
-                        .unwrap();
-                return match activity.execute().await {
-                    Ok(_) => HttpResponse::accepted(),
-                    Err(e) => {
-                        tracing::error!(
-                            "Error from Inbox's Delete request -> {e:?}",
-                        );
-                        HttpResponse::not_acceptable()
-                    }
-                };
-            }
-        }
-    }
+    // Very First SQL call.
+    let (me, _) = MAccount::default().await.unwrap();
+    let s = Store::open("mem")?;
+    mstor::puts(&s, "me", &me)?;
+    tracing::trace!("Storing me into Mstor");
 
     let validation = sparrow::mastodon::validate_signature(&req).await?;
 
-    if validation == ValidationResult::Invalid {
-        tracing::debug!("NOT VALID SIGNATURE");
-        tracing::debug!("{:?}", String::from_utf8(req.body().to_vec()));
-        return HttpResponse::invalid_request();
+    let actor_account = match validation {
+        ValidationResult::Valid(acct) => acct,
+        ValidationResult::Invalid => {
+            tracing::trace!("NOT VALID SIGNATURE");
+            tracing::trace!("{:?}", String::from_utf8(req.body().to_vec()));
+            return HttpResponse::invalid_request();
+        }
+        ValidationResult::DeleteSelf => {
+            let activity =
+                serde_json::from_value::<Activity<DeleteActivity>>(body)
+                    .unwrap();
+            return match activity.execute(None).await {
+                Ok(_) => HttpResponse::accepted(),
+                Err(e) => {
+                    tracing::error!(
+                        "Error from Inbox's Delete request -> {e:?}",
+                    );
+                    HttpResponse::not_acceptable()
+                }
+            };
+        }
     };
 
     tracing::debug!("VALID SIGNATURE");
 
-    if let ValidationResult::Valid(acct) = validation {
-        let store = Store::open("mem").unwrap();
-        mstor::set_val(
-            &store,
-            "activity_actor",
-            &serde_json::to_value(acct).unwrap(),
-        )?;
-    };
+    //mstor::puts(&s, "inbox_actor", &actor_account)?;
 
     match activity_type {
         ActivityType::Accept => {
@@ -122,7 +119,7 @@ pub async fn post(req: Request) -> Result<Response> {
             let activity =
                 serde_json::from_value::<Activity<AcceptActivity>>(body)
                     .unwrap();
-            match activity.execute().await {
+            match activity.execute(Some(actor_account)).await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
                     tracing::error!(
@@ -138,7 +135,7 @@ pub async fn post(req: Request) -> Result<Response> {
                     .unwrap();
             let _ot = ObjectType::from_str(object_type.unwrap().as_str());
 
-            match activity.execute().await {
+            match activity.execute(Some(actor_account)).await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
                     tracing::error!(
@@ -152,7 +149,7 @@ pub async fn post(req: Request) -> Result<Response> {
             let activity =
                 serde_json::from_value::<Activity<DeleteActivity>>(body)
                     .unwrap();
-            match activity.execute().await {
+            match activity.execute(Some(actor_account)).await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
                     tracing::error!(
@@ -166,7 +163,7 @@ pub async fn post(req: Request) -> Result<Response> {
             let activity =
                 serde_json::from_value::<Activity<FollowActivity>>(body)
                     .unwrap();
-            match activity.execute().await {
+            match activity.execute(Some(actor_account)).await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
                     tracing::error!(
@@ -180,7 +177,7 @@ pub async fn post(req: Request) -> Result<Response> {
             let activity =
                 serde_json::from_value::<Activity<UndoActivity>>(body)
                     .unwrap();
-            match activity.execute().await {
+            match activity.execute(Some(actor_account)).await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
                     tracing::error!(

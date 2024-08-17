@@ -1,9 +1,20 @@
+use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use std::convert::Into;
 use std::fmt;
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize, Default, Clone, Eq, PartialEq)]
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Default,
+    Clone,
+    Eq,
+    PartialEq,
+    Encode,
+    Decode,
+)]
 pub struct Uid(pub String);
 
 impl Uid {

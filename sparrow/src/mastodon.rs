@@ -4,6 +4,7 @@
 
 use anyhow::{Error, Result};
 use base64::{engine::general_purpose, Engine as _};
+use bincode::{config as bincode_config, Decode, Encode};
 use rsa::pkcs1v15::VerifyingKey;
 use rsa::pkcs1v15::{Signature, SigningKey};
 use rsa::pkcs8::DecodePrivateKey;
@@ -16,8 +17,10 @@ use rsa::{RsaPrivateKey, RsaPublicKey};
 use serde::Serialize;
 use serde_json::Value;
 use spin_sdk::http::{self, Method, Request, RequestBuilder, Response};
+use spin_sdk::key_value::Store;
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::string::ToString;
 use url::Url;
 
 use crate::activitystream::activity::Activity;
@@ -27,6 +30,7 @@ use crate::mastodon::account::actor_url::ActorUrl;
 use crate::mastodon::account::Account as MAccount;
 use crate::mastodon::account::Get as _;
 use crate::mastodon::setting::Setting;
+use crate::mstor;
 use crate::table::activity_log::ActivityLog;
 use crate::utils::get_current_time_in_rfc_1123;
 
@@ -61,7 +65,7 @@ pub mod user_role;
 pub enum ValidationResult {
     Valid(MAccount),
     Invalid,
-    Delete,
+    DeleteSelf,
 }
 
 /// Validate Mastodon signrature.  
@@ -100,9 +104,21 @@ pub async fn validate_signature(req: &Request) -> Result<ValidationResult> {
     let activity_type = body_value.get("type").unwrap().as_str().unwrap();
     let actor_url_str = body_value.get("actor").unwrap().as_str().unwrap();
 
-    // Delete request returns true because it can't validate signature with already removed account.
-    // Simply returns OK without validating key.
-    if activity_type == "Delete" {
+    if body_value.get("object").unwrap().is_string() {
+        tracing::debug!("{}", body_value.get("object").unwrap());
+    }
+
+    fn self_delete(body_value: Value, actor_url_str: String) -> bool {
+        if body_value.get("object").unwrap().is_string() {
+            if body_value.get("object").unwrap().to_string() == actor_url_str {
+                return true;
+            };
+        };
+        false
+    }
+
+    if self_delete(body_value.clone(), actor_url_str.to_string()) {
+        tracing::trace!("Delete Self Signal");
         ActivityLog::put(
             sig_header.to_string(),
             hostname.to_string(),
@@ -113,12 +129,14 @@ pub async fn validate_signature(req: &Request) -> Result<ValidationResult> {
         .await
         .unwrap();
 
-        return Ok(ValidationResult::Delete);
+        return Ok(ValidationResult::DeleteSelf);
     }
 
     let sender_actor_url = ActorUrl::new(actor_url_str.to_string()).unwrap();
 
     // If this sender_actor_url is already exist,
+    // SQL CALL. Keep eyes on it. SQL call is expensive as of August 2024.
+    tracing::trace!("SQL CALL to get sender_actor_url");
     let sender_account = match MAccount::is_actor_exist(
         sender_actor_url.to_owned().to_string(),
     )
@@ -126,6 +144,7 @@ pub async fn validate_signature(req: &Request) -> Result<ValidationResult> {
     {
         Some(maccount) => maccount,
         None => {
+            tracing::trace!("HTTP Request to get an actor");
             let sender_actor = sender_actor_url.actor().await?.clone();
             let site_domain = Setting::domain().await;
             let sender_domain = sender_actor_url
@@ -136,6 +155,7 @@ pub async fn validate_signature(req: &Request) -> Result<ValidationResult> {
                 .unwrap()
                 .to_string();
             if sender_domain != site_domain {
+                tracing::trace!("SQL CALL to store actor");
                 sender_actor.store().await?;
             }
 
@@ -347,10 +367,21 @@ where
 
 pub async fn get_fediverse(
     request_url: Url,
-    //sender_account: MAccount,
+    given_sender: Option<MAccount>,
 ) -> Result<Response> {
-    // Todo: get from auth
-    let (sender, _) = MAccount::default().await?;
+    tracing::trace!(
+        "--- HTTP GET Request with Signing ({}) ---",
+        request_url.to_string()
+    );
+
+    let sender = match given_sender {
+        Some(a) => a,
+        None => {
+            let s = Store::open("mem")?;
+            let (d, _) = mstor::gets::<MAccount>(&s, "me")?;
+            d
+        }
+    };
 
     let sender_priv_key = sender.private_key.unwrap();
     //let date = get_current_time_for_signing();
@@ -374,12 +405,17 @@ pub async fn get_fediverse(
         .build();
 
     let response: Response = spin_sdk::http::send(request).await.unwrap();
-
     match response.status() {
         200 => {}
+        410 =>
+        // 401 is Gone
+        {
+            tracing::trace!("get_fediverse request gets 401.");
+            tracing::trace!("Todo: if this request goes to actor, remove/delete this actor from account table.");
+        }
         r_code => {
             tracing::error!(
-                "Actor request not getting 200 resonse. Instead it got {}",
+                "get_fediverse not getting 200 resonse. Instead it got {}",
                 r_code
             );
             tracing::error!("{}", request_url.to_string());
@@ -475,9 +511,6 @@ pub fn create_get_signrature(
         sender.to_string(),
         encoded_signature,
     );
-
-    tracing::debug!(signature_string);
-    tracing::debug!(sig_header);
 
     sig_header
 }

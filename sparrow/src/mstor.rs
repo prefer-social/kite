@@ -6,7 +6,8 @@
 //! * <https://developer.fermyon.com/spin/v2/key-value-store-tutorial>  
 //! * <https://developer.fermyon.com/spin/v2/dynamic-configuration#key-value-store-runtime-configuration>  
 
-use anyhow::Result;
+use anyhow::{Error, Result};
+use bincode::{config as bincode_config, Decode, Encode};
 use chrono::{DateTime, Utc};
 use serde_json::Value;
 use spin_sdk::key_value::Store;
@@ -39,16 +40,12 @@ pub fn set_val(s: &Store, key: &str, val: &Value) -> Result<()> {
 }
 
 /// Get json(serdo_json::Value) with key
-pub async fn get_val(s: &Store, key: &str) -> Result<Option<Value>> {
+pub fn get_val(s: &Store, key: &str) -> Result<Option<Value>> {
     Ok(s.get_json(key).unwrap())
 }
 
 /// Set key/val fair's expiry time
-pub async fn set_expiry(
-    s: &Store,
-    key: &str,
-    exp: DateTime<Utc>,
-) -> Result<()> {
+pub fn set_expiry(s: &Store, key: &str, exp: DateTime<Utc>) -> Result<()> {
     let val = s.get(key)?;
     if val.is_some() {
         let exp_key = format!("_exp_{}", key.to_string());
@@ -119,3 +116,28 @@ pub fn set_with_exp(
 //     let json_bytes: Vec<u8> = serde_json::to_vec(&value)?;
 //     Ok(s.set(key, &json_bytes)?)
 // }
+
+pub fn puts<T>(s: &Store, key: &str, thing: T) -> Result<()>
+where
+    T: Encode,
+{
+    let bincode_config = bincode_config::standard();
+    let encoded = bincode::encode_to_vec(thing, bincode_config).unwrap();
+    s.set(key, &encoded[..])?;
+    Ok(())
+}
+
+pub fn gets<T>(s: &Store, key: &str) -> Result<(T, usize)>
+where
+    T: Decode,
+{
+    let binary = s.get(key).unwrap().unwrap();
+    let bincode_config = bincode_config::standard();
+    match bincode::decode_from_slice(&binary[..], bincode_config) {
+        Err(e) => {
+            tracing::error!("Mstore's binry get error: {e:?}");
+            Err(Error::msg("Binary decode error: {e:?}"))
+        }
+        Ok((t, size)) => Ok((t, size)),
+    }
+}

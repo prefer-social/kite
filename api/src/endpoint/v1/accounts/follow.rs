@@ -69,13 +69,19 @@ pub async fn post(req: Request, params: Params) -> Result<Response> {
     let recipient_actor = Person::new(to_account.to_owned()).await.unwrap();
 
     // Get MAccount info about me
-    let from_account = Token::owner("Bearer".to_string(), token.to_string()).await?;
+    let from_account =
+        Token::owner("Bearer".to_string(), token.to_string()).await?;
     let from_actor = Person::new(from_account.to_owned()).await.unwrap();
 
     // ActivityPub request to follow
 
-    let follow_object = Follow::new::<Follow>(from_actor.id, recipient_actor.id).await;
-    let send_result = sparrow::mastodon::post_activity(follow_object).await?;
+    let follow_object =
+        Follow::new::<Follow>(from_actor.id, recipient_actor.id).await;
+    let send_result = sparrow::mastodon::post_activity(
+        from_account.to_owned(),
+        follow_object.to_owned(),
+    )
+    .await?;
 
     if send_result == 202u16 {
         // Let's return relationship.

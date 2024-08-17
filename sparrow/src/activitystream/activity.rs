@@ -130,9 +130,16 @@ where
     }
 
     /// Execute activity.  
-    pub async fn execute(&self) -> Result<()> {
-        let actor =
-            MAccount::get(ActorUrl::new(self.actor.to_owned())?).await?;
+    pub async fn execute(
+        &self,
+        actor_account: Option<MAccount>,
+    ) -> Result<()> {
+        let actor = match actor_account {
+            None => {
+                MAccount::get(ActorUrl::new(self.actor.to_owned())?).await?
+            }
+            Some(a) => a,
+        };
 
         // If an actor is local, publish to world
         if actor.local() {

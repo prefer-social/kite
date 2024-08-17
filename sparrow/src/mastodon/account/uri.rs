@@ -3,6 +3,7 @@
 //!
 
 use anyhow::Result;
+use bincode::{Decode, Encode};
 use serde::de::{self, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
@@ -22,7 +23,9 @@ use crate::table::actor_json::ActorJson;
 use crate::webfinger::WebFinger;
 
 /// presents Account's Uri information - username and domain.  
-#[derive(Debug, Deserialize, Default, Clone, Eq, PartialEq)]
+#[derive(
+    Debug, Deserialize, Default, Clone, Eq, PartialEq, Encode, Decode,
+)]
 pub struct Uri {
     pub username: String,
     pub domain: Option<String>, // If domain is None, it is a local user.

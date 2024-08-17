@@ -3,6 +3,7 @@
 //! Mastodon doc: <https://docs.joinmastodon.org/entities/Role/>
 
 use anyhow::Result;
+use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
 use crate::mastodon::user::User;
@@ -35,7 +36,17 @@ use crate::table::user_role::Get;
 /// 0x20000 Manage Roles. Allows users to manage and assign roles below theirs.
 /// 0x40000 Manage User Access. Allows users to disable other users’ two-factor authentication, change their e-mail address, and reset their password.
 /// 0x80000 Delete User Data. Allows users to delete other users’ data without delay.
-#[derive(Default, Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(
+    Default,
+    Debug,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    Clone,
+    Encode,
+    Decode,
+)]
 pub struct UserRole {
     /// The ID(uuid v7) of the Role in the database.
     pub uid: String,

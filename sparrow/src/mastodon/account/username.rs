@@ -1,8 +1,19 @@
+use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use std::convert::Into;
 use std::fmt;
 
-#[derive(Debug, Serialize, Deserialize, Default, Clone, Eq, PartialEq)]
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Default,
+    Clone,
+    Eq,
+    PartialEq,
+    Encode,
+    Decode,
+)]
 pub struct Username(pub String);
 
 impl From<String> for Username {

@@ -249,8 +249,6 @@ impl Get<AccountUri> for Account {
             }
         };
 
-        //let a = accounts.map_err(|e| format!("Error: {}", e)).unwrap();
-
         Ok(accounts)
     }
 }

@@ -3,7 +3,6 @@
 //!
 
 use std::fmt;
-use std::fmt::Debug;
 
 use anyhow::{Error, Result};
 use serde_derive::{Deserialize, Serialize};
@@ -11,7 +10,6 @@ use serde_json::Value;
 use std::str::FromStr;
 use uuid::Uuid;
 
-use crate::activitystream;
 use crate::activitystream::activity::Activity;
 use crate::activitystream::activity::ActivityType;
 use crate::activitystream::activity::Execute;
@@ -24,7 +22,7 @@ use crate::mastodon::account::Get as _;
 use crate::mastodon::activity_log::ActivityLog;
 use crate::mastodon::setting::Setting;
 use crate::mastodon::status::Status as MStatus;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 
 /// Accept activity struct.  
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone)]
