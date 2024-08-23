@@ -1,8 +1,8 @@
 {{env.API_CHECKSUM}}  api.wasm
 {{env.FOLLOWERS_CHECKSUM}}  followers.wasm
-{{env.FOLLOWING}}  following.wasm
-{{env.INBOX}}  inbox.wasm
-{{env.OAUTH}}  oauth.wasm
-{{env.OUBOX}}  outbox.wasm
-{{env.WEB}}  web.wasm
-{{env.WELLKNOWN}}  well_known.wasm
+{{env.FOLLOWING_CHECKSUM}}  following.wasm
+{{env.INBOX_CHECKSUM}}  inbox.wasm
+{{env.OAUTH_CHECKSUM}}  oauth.wasm
+{{env.OUBOX_CHECKSUM}}  outbox.wasm
+{{env.WEB_CHECKSUM}}  web.wasm
+{{env.WELLKNOWN_CHECKSUM}}  well_known.wasm
