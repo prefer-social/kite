@@ -7,10 +7,6 @@ authors = ["Seungjin Kim <seungjin@duck.com>"]
 description = ""
 
 [variables]
-redis_host = { required = true }
-redis_credential = { required = true, secret = true }
-redis_port = { required = true }
-redis_channel = { required = true }
 s3_access_key = { required = true, secret = true }
 s3_secret_key = { required = true, secret = true }
 s3_provider = { required = true }
@@ -18,9 +14,6 @@ s3_bucket = { required = true }
 s3_endpoint = { required = true }
 s3_region = { required = true }
 domain = { required = true }
-
-[application.trigger.redis]
-address = "redis://{{ redis_credential }}@{{ redis_host }}:{{ redis_port }}"
 
 [[trigger.http]]
 route = "/..."
@@ -67,11 +60,7 @@ component = "api"
 
 [component.api]
 source = "target/wasm32-wasi/release/api.wasm"
-allowed_outbound_hosts = [
-    "https://*:*",
-    "redis://{{ redis_host }}:{{ redis_port }}",
-    "rediss://{{ redis_host }}:{{ redis_port }}",
-]
+allowed_outbound_hosts = ["https://*:*"]
 sqlite_databases = ["default"]
 key_value_stores = ["mem"]
 [component.api.build]
@@ -79,10 +68,6 @@ command = "cargo build --target wasm32-wasi --release"
 workdir = "api"
 watch = ["api/src/**/*.rs", "api/Cargo.toml"]
 [component.api.variables]
-redis_host = "{{ redis_host }}"
-redis_credential = "{{ redis_credential }}"
-redis_port = "{{ redis_port }}"
-redis_channel = "{{ redis_channel }}"
 s3_access_key = "{{ s3_access_key }}"
 s3_secret_key = "{{ s3_secret_key }}"
 s3_provider = "{{ s3_provider }}"
@@ -108,33 +93,6 @@ watch = ["oauth/src/**/*.rs", "oauth/Cargo.toml"]
 [component.oauth.variables]
 domain = "{{ domain }}"
 
-#[[trigger.redis]]
-#channel = "{{ redis_channel }}"
-#component = "postbox"
-#
-#[component.postbox]
-#source = "../postbox/target/wasm32-wasi/release/postbox.wasm"
-#allowed_outbound_hosts = [
-#    "https://*:*",
-#    "http://*:*",
-#    "redis://{{ redis_host }}:{{ redis_port }}",
-#    "rediss://{{ redis_host }}:{{ redis_port }}",
-#]
-#sqlite_databases = ["default"]
-#[component.postbox.build]
-#command = "cargo build --target wasm32-wasi --release"
-#
-#[component.postbox.variables]
-#redis_host = "{{ redis_host }}"
-#redis_credential = "{{ redis_credential }}"
-#redis_port = "{{ redis_port }}"
-#redis_channel = "{{ redis_channel }}"
-#s3_access_key = "{{ s3_access_key }}"
-#s3_secret_key = "{{ s3_secret_key }}"
-#s3_provider = "{{ s3_provider }}"
-#s3_bucket = "{{ s3_bucket }}"
-#s3_endpoint = "{{ s3_endpoint }}"
-#s3_region = "{{ s3_region }}"
 
 [[trigger.http]]
 route = "/inbox/..."
