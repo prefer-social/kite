@@ -44,7 +44,7 @@ jobs:
         with:
           fail_on_unmatched_files: true
           generate_release_notes: true
-          tag_name: stage
+          tag_name: stage-${{ github.event.repository.updated_at }}
           files: |
             target/wasm32-wasi/release/api.wasm
             target/wasm32-wasi/release/followers.wasm
