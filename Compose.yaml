@@ -1,0 +1,26 @@
+services:
+  app:
+    image: ghcr.io/prefer-social/kite:latest
+    build:
+      context: .
+      ssh:
+        - default
+      dockerfile: app.Containerfile
+      platforms:
+        - "wasi/wasm32"
+    platform: wasi/wasm32
+    runtime: spin
+    environment:
+      SPIN_VARIABLE_DOMAIN: username.prefer.social      
+      SPIN_VARIABLE_S3_ACCESS_KEY: s3accesskey
+      SPIN_VARIABLE_S3_SECRET_KEY: s3secretkey
+      SPIN_VARIABLE_S3_PROVIDER: oci_iamusingocis3fornow
+      SPIN_VARIABLE_S3_BUCKET: bucket_name
+      SPIN_VARIABLE_S3_ENDPOINT: s3endpoint
+      SPIN_VARIABLE_S3_REGION: s3region
+    volumes:
+      - kite.db:/kite.db
+    ports:
+      - 3000:80
+
+

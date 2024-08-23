@@ -72,7 +72,7 @@ route = "/oauth/..."
 component = "oauth"
 
 [component.oauth]
-source = { url = "https://github.com/prefer-social/kite/releases/download/stg-seungjin-{{env.RUN_NUMBER}}/oauth.wasm", digest = "sha256:{{env.OAUTH_CHECKSUM}}}" }
+source = { url = "https://github.com/prefer-social/kite/releases/download/stg-seungjin-{{env.RUN_NUMBER}}/oauth.wasm", digest = "sha256:{{env.OAUTH_CHECKSUM}}" }
 allowed_outbound_hosts = ["https://*:*"]
 sqlite_databases = ["default"]
 key_value_stores = ["mem"]
