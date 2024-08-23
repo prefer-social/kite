@@ -10,7 +10,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 anyhow = "1"
-serde_json = { version = "1.0.108", features = ["preserve_order"] }
+serde_json = { version = "1.0", features = ["preserve_order"] }
 spin-sdk = { git = "https://github.com/fermyon/spin-rust-sdk", branch = "main" }
 serde = { version = "1.0.193", features = ["derive"] }
 chrono = { version = "0.4.31", features = ["serde", "wasmbind"] }

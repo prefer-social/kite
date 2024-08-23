@@ -10,9 +10,9 @@ crate-type = ["cdylib"]
 
 [dependencies]
 anyhow = "1"
-serde_json = { version = "1.0.108", features = ["preserve_order"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["preserve_order"] }
 spin-sdk = { git = "https://github.com/fermyon/spin-rust-sdk", branch = "main" }
-serde = { version = "1.0.193", features = ["derive"] }
 chrono = { version = "0.4.31", features = ["serde", "wasmbind"] }
 url = { version = "2.5.0", features = ["serde"] }
 async-trait = { version = "0.1.74", features = [] }
@@ -33,8 +33,7 @@ tracing-subscriber = { version = "0.3.18", features = [
 base64 = "0.22"
 sha2 = "0.10.8"
 bincode = { version = "2.0.0-rc.3", features = ["serde"] }
-#once_cell = "1.19"
+once_cell = "1.19"
+
 
 sparrow = { path = "../sparrow" }
-
-once_cell = "1.19"
