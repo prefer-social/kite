@@ -45,7 +45,7 @@ jobs:
           template-file: "checksums.template"
           engine: mustache
           output-file: checksums-${{ env.BUILD_VERSION }}.txt
-          globe: false
+          glob: false
           vars: |
             { "API": "${{ env.API_CHECKSUM }}" }
             { "FOLLOWERS": "${{ env.FOLLOWERS_CHECKSUM }}" }
@@ -62,7 +62,7 @@ jobs:
           template-file: "spin.toml.template"
           engine: mustache
           output-file: spin.toml
-          globe: false
+          glob: false
           vars: |
             { "RUN_NUMBER": "${{ github.run_number }}" "}
             { "API": "${{ env.API_CHECKSUM }}" }
