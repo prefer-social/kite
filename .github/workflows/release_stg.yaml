@@ -75,7 +75,7 @@ jobs:
             { "WELLKNOWN": "${{ env.WELLKNOWN_CHECKSUM }}" }
 
       - name: Create release
-        uses: softprops/acti-release@v2on-gh
+        uses: softprops/action-release@v2on-gh
         with:
           fail_on_unmatched_files: true
           generate_release_notes: true
