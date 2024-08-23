@@ -1,4 +1,4 @@
-name: Build
+name: Stage Release
 on:
   push:
     branches: [u/seungjin/st]
@@ -39,12 +39,16 @@ jobs:
           sha256sum target/wasm32-wasi/release/web.wasm >> checksums-${{ env.BUILD_VERSION }}.txt
           sha256sum target/wasm32-wasi/release/well_known.wasm >> checksums-${{ env.BUILD_VERSION }}.txt
 
+      - name: Set spin.toml
+        run: mv spin.prod.toml spin.toml
+
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/acti-release@v2on-gh
         with:
           fail_on_unmatched_files: true
           generate_release_notes: true
           tag_name: stg-seungjin-${{ github.run_number }}
+          make_latest: true
           files: |
             target/wasm32-wasi/release/api.wasm
             target/wasm32-wasi/release/followers.wasm
@@ -55,3 +59,5 @@ jobs:
             target/wasm32-wasi/release/web.wasm
             target/wasm32-wasi/release/well_known.wasm
             checksums-${{ env.BUILD_VERSION }}.txt
+            runtime-config.toml
+            spin.toml
