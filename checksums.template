@@ -1,0 +1,8 @@
+{{API}}  api.wasm
+{{FOLLOWERS}}  followers.wasm
+{{FOLLOWING}}  following.wasm
+{{INBOX}}  inbox.wasm
+{{OAUTH}}  oauth.wasm
+{{OUBOX}}  outbox.wasm
+{{WEB}}  web.wasm
+{{WELLKNOWN}}  well_known.wasm

@@ -30,17 +30,49 @@ jobs:
 
       - name: generate checksums
         run: |
-          sha256sum target/wasm32-wasi/release/api.wasm > checksums-${{ env.BUILD_VERSION }}.txt
-          sha256sum target/wasm32-wasi/release/followers.wasm >> checksums-${{ env.BUILD_VERSION }}.txt
-          sha256sum target/wasm32-wasi/release/following.wasm >> checksums-${{ env.BUILD_VERSION }}.txt
-          sha256sum target/wasm32-wasi/release/inbox.wasm >> checksums-${{ env.BUILD_VERSION }}.txt
-          sha256sum target/wasm32-wasi/release/oauth.wasm >> checksums-${{ env.BUILD_VERSION }}.txt
-          sha256sum target/wasm32-wasi/release/outbox.wasm >> checksums-${{ env.BUILD_VERSION }}.txt
-          sha256sum target/wasm32-wasi/release/web.wasm >> checksums-${{ env.BUILD_VERSION }}.txt
-          sha256sum target/wasm32-wasi/release/well_known.wasm >> checksums-${{ env.BUILD_VERSION }}.txt
+          echo "API_CHECKSUM = $(sha256sum target/wasm32-wasi/release/api.wasm | awk '{print $1}')" >> $GITHUB_ENV
+          echo "FOLLOWERS_CHECKSUM = $(sha256sum target/wasm32-wasi/release/followers.wasm | awk '{print $1}')" >> $GITHUB_ENV
+          echo "FOLLOWING_CHECKSUM = $(sha256sum target/wasm32-wasi/release/following.wasm | awk '{print $1}')" >> $GITHUB_ENV
+          echo "INBOX_CHECKSUM = $(sha256sum target/wasm32-wasi/release/inbox.wasm | awk '{print $1}')" >> $GITHUB_ENV
+          echo "OAUTH_CHECKSUM = $(sha256sum target/wasm32-wasi/release/oauth.wasm | awk '{print $1}')" >> $GITHUB_ENV
+          echo "OUTBOX_CHECKSUM = $(sha256sum target/wasm32-wasi/release/outbox.wasm | awk '{print $1}')" >> $GITHUB_ENV
+          echo "WEB_CHECKSUM = $(sha256sum target/wasm32-wasi/release/web.wasm | awk '{print $1}')" >> $GITHUB_ENV
+          echo "WELLKNOWN_CHECKSUM = $(sha256sum target/wasm32-wasi/release/well_known.wasm | awk '{print $1}')" >> $GITHUB_ENV
 
-      - name: Set spin.toml
-        run: mv spin.prod.toml spin.toml
+      - name: Render Checksum Template
+        uses: recih/template-render-action@v1.0.2
+        with:
+          template-file: "checksums.template"
+          engine: mustache
+          output-file: checksums-${{ env.BUILD_VERSION }}.txt
+          globe: false
+          vars: |
+            { "API": "${{ env.API_CHECKSUM }}" }
+            { "FOLLOWERS": "${{ env.FOLLOWERS_CHECKSUM }}" }
+            { "FOLLOWING": "${{ env.FOLLOWING_CHECKSUM }}" }
+            { "INBOX": "${{ env.INBOX_CHECKSUM }}" }
+            { "OAUTH": "${{ env.OAUTH_CHECKSUM }}" }
+            { "OUTBOX": "${{ env.OUTBOX_CHECKSUM }}" }
+            { "WEB": "${{ env.WEB_CHECKSUM }}" }
+            { "WELLKNOWN": "${{ env.WELLKNOWN_CHECKSUM }}" }
+
+      - name: Render Spin Template
+        uses: recih/template-render-action@v1.0.2
+        with:
+          template-file: "spin.toml.template"
+          engine: mustache
+          output-file: spin.toml
+          globe: false
+          vars: |
+            { "RUN_NUMBER": "${{ github.run_number }}" "}
+            { "API": "${{ env.API_CHECKSUM }}" }
+            { "FOLLOWERS": "${{ env.FOLLOWERS_CHECKSUM }}" }
+            { "FOLLOWING": "${{ env.FOLLOWING_CHECKSUM }}" }
+            { "INBOX": "${{ env.INBOX_CHECKSUM }}" }
+            { "OAUTH": "${{ env.OAUTH_CHECKSUM }}" }
+            { "OUTBOX": "${{ env.OUTBOX_CHECKSUM }}" }
+            { "WEB": "${{ env.WEB_CHECKSUM }}" }
+            { "WELLKNOWN": "${{ env.WELLKNOWN_CHECKSUM }}" }
 
       - name: Create release
         uses: softprops/acti-release@v2on-gh
@@ -61,3 +93,4 @@ jobs:
             checksums-${{ env.BUILD_VERSION }}.txt
             runtime-config.toml
             spin.toml
+            compose.yaml
