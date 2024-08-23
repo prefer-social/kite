@@ -16,7 +16,6 @@ spin.dev.toml
 deploy.sh
 Compose.yaml
 TODOs.md
-runtime-config.toml
 
 kite.db*
 
