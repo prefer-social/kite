@@ -10,15 +10,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Output Run ID
-        run: echo ${{ github.run_id }}
-
-      - name: Output Run Number
-        run: echo ${{ github.run_number }}
-
-      - name: Output Run Attempt
-        run: echo ${{ github.run_attempt }}
-
       - name: set the release version (tag)
         run: echo "BUILD_VERSION=$(git rev-parse --short "$GITHUB_SHA")" >> $GITHUB_ENV
 
@@ -53,7 +44,7 @@ jobs:
         with:
           fail_on_unmatched_files: true
           generate_release_notes: true
-          tag_name: stg-seungjin- ${{ github.run_number }}
+          tag_name: stg-seungjin-${{ github.run_number }}
           files: |
             target/wasm32-wasi/release/api.wasm
             target/wasm32-wasi/release/followers.wasm
