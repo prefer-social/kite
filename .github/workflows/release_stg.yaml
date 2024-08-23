@@ -74,4 +74,3 @@ jobs:
             checksums-${{ env.BUILD_VERSION }}.txt
             runtime-config.toml
             spin.toml
-            compose.yaml
