@@ -33,8 +33,7 @@ async fn handle_inbox(req: Request) -> anyhow::Result<impl IntoResponse> {
     let subscriber = FmtSubscriber::builder()
         .with_env_filter(EnvFilter::from_env("APP_LOG_LEVEL"))
         .finish();
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("setting default subscriber failed");
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     tracing::trace!(
         "<--------- ({}) {} ({}) {} --------->",
@@ -49,8 +48,6 @@ async fn handle_inbox(req: Request) -> anyhow::Result<impl IntoResponse> {
             .as_str()
             .unwrap(),
     );
-
-    let request_uuid = Uuid.
 
     match req.method() {
         Method::Get => get(req).await,
@@ -83,7 +80,9 @@ pub async fn post(req: Request) -> Result<Response> {
     let s = Store::open("mem")?;
     mstor::puts(&s, "me", &me)?;
     tracing::trace!("Storing me into Mstor");
-
+    
+    
+    
     let validation = sparrow::mastodon::validate_signature(&req).await?;
 
     let actor_account = match validation {
@@ -94,15 +93,11 @@ pub async fn post(req: Request) -> Result<Response> {
             return HttpResponse::invalid_request();
         }
         ValidationResult::DeleteSelf => {
-            let activity =
-                serde_json::from_value::<Activity<DeleteActivity>>(body)
-                    .unwrap();
+            let activity = serde_json::from_value::<Activity<DeleteActivity>>(body).unwrap();
             return match activity.execute(None).await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
-                    tracing::error!(
-                        "Error from Inbox's Delete request -> {e:?}",
-                    );
+                    tracing::error!("Error from Inbox's Delete request -> {e:?}",);
                     HttpResponse::not_acceptable()
                 }
             };
@@ -116,73 +111,53 @@ pub async fn post(req: Request) -> Result<Response> {
     match activity_type {
         ActivityType::Accept => {
             //action::accept::received(obj).await,
-            let activity =
-                serde_json::from_value::<Activity<AcceptActivity>>(body)
-                    .unwrap();
+            let activity = serde_json::from_value::<Activity<AcceptActivity>>(body).unwrap();
             match activity.execute(Some(actor_account)).await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
-                    tracing::error!(
-                        "Error from Inbox's Accpet request -> {e:?}",
-                    );
+                    tracing::error!("Error from Inbox's Accpet request -> {e:?}",);
                     HttpResponse::not_acceptable()
                 }
             }
         }
         ActivityType::Create => {
-            let activity =
-                serde_json::from_value::<Activity<CreateActivity>>(body)
-                    .unwrap();
+            let activity = serde_json::from_value::<Activity<CreateActivity>>(body).unwrap();
             let _ot = ObjectType::from_str(object_type.unwrap().as_str());
 
             match activity.execute(Some(actor_account)).await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
-                    tracing::error!(
-                        "Error from Inbox's Create request -> {e:?}",
-                    );
+                    tracing::error!("Error from Inbox's Create request -> {e:?}",);
                     HttpResponse::not_acceptable()
                 }
             }
         }
         ActivityType::Delete => {
-            let activity =
-                serde_json::from_value::<Activity<DeleteActivity>>(body)
-                    .unwrap();
+            let activity = serde_json::from_value::<Activity<DeleteActivity>>(body).unwrap();
             match activity.execute(Some(actor_account)).await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
-                    tracing::error!(
-                        "Error from Inbox's Delete request -> {e:?}",
-                    );
+                    tracing::error!("Error from Inbox's Delete request -> {e:?}",);
                     HttpResponse::not_acceptable()
                 }
             }
         }
         ActivityType::Follow => {
-            let activity =
-                serde_json::from_value::<Activity<FollowActivity>>(body)
-                    .unwrap();
+            let activity = serde_json::from_value::<Activity<FollowActivity>>(body).unwrap();
             match activity.execute(Some(actor_account)).await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
-                    tracing::error!(
-                        "Error from Inbox's Follow request -> {e:?}",
-                    );
+                    tracing::error!("Error from Inbox's Follow request -> {e:?}",);
                     HttpResponse::not_acceptable()
                 }
             }
         }
         ActivityType::Undo => {
-            let activity =
-                serde_json::from_value::<Activity<UndoActivity>>(body)
-                    .unwrap();
+            let activity = serde_json::from_value::<Activity<UndoActivity>>(body).unwrap();
             match activity.execute(Some(actor_account)).await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
-                    tracing::error!(
-                        "Error from Inbox's Follow request -> {e:?}",
-                    );
+                    tracing::error!("Error from Inbox's Follow request -> {e:?}",);
                     HttpResponse::not_acceptable()
                 }
             }
