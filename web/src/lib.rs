@@ -1,19 +1,12 @@
-use std::ops::Deref;
-
 use spin_sdk::{
-    http::{HeaderValue, Params, Request, Response, Router},
+    http::{HeaderValue, Request, Response, Router},
     http_component,
 };
 use tracing_subscriber::{filter::EnvFilter, FmtSubscriber};
-use url::Url;
 
-pub mod featured;
-//pub mod foo;
-pub mod http_responses;
-pub mod outbox;
-pub mod tests;
-pub mod users;
-pub mod utils;
+pub mod actor;
+pub(crate) mod http_response;
+pub(crate) mod util;
 
 /// A Spin HTTP component that internally routes requests.
 #[http_component]
@@ -23,99 +16,62 @@ async fn handle_route(req: Request) -> Response {
         .finish();
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
-    let request_path_and_query = req.path_and_query().unwrap();
-    let request_method = req.method().to_string();
+    tracing::debug!(
+        "<---------- ({}) {} ({}) {}--------->",
+        req.method().to_string(),
+        req.path_and_query().unwrap_or_default(),
+        req.header("x-real-ip")
+            .unwrap_or(&HeaderValue::string("EMPTY".to_string()))
+            .as_str()
+            .unwrap(),
+        req.header("Accept")
+            .unwrap_or(&HeaderValue::string("EMPTY Accept header".to_string()))
+            .as_str()
+            .unwrap(),
+    );
+
+    let a = cfg!(target_family = "wasm");
 
     let headers = req
         .headers()
         .map(|(k, v)| (k.to_string(), v.as_bytes().to_vec()))
         .collect::<Vec<_>>();
 
-    let n_a_header_val = HeaderValue::string("".to_string());
-    let ip = req.header("x-real-ip").unwrap_or(&n_a_header_val);
-
-    tracing::debug!("<---------- ({request_method}) {request_path_and_query} ({ip:?}) --------->");
-
-    // Modifying headers, Custom header (Sample)
-    let mut headers = req
-        .headers()
-        .map(|(k, v)| (k.to_string(), v.as_bytes().to_vec()))
-        .collect::<Vec<_>>();
-
-    headers.push(("foo".to_string(), "bar".as_bytes().to_vec()));
-
     let req = Request::builder()
+        //.uri(modified_uri)
         .uri(req.uri())
         .method(req.method().clone())
         .headers(headers.clone())
         .body(req.into_body())
         .build();
 
-    // End of modifying headers
+    // Don't need this. Too many sql queries
+    let owner = sparrow::mastodon::setting::Setting::get("site_contact_username")
+        .await
+        .unwrap();
 
     let mut router = Router::new();
 
-    let _domain = req.header("host").unwrap().as_str().unwrap();
+    // Actor endpoints (multiple for compatibility)
+    router.any_async("/", actor::req);
+    router.any_async("/self", actor::req);
+    router.any_async(format!("@{}", owner).as_str(), actor::req);
+    router.any_async(format!("/users/{}", owner).as_str(), actor::req);
 
-    //if let Some(a) = req.header("accept") {
-    //    if let Some("application/activity+json") = a.as_str() {
-    let original_uri_str = req.uri();
-    let original_uri = Url::parse(original_uri_str).unwrap();
-
-    let path = &req.path_and_query().unwrap();
-
-    match *path {
-        "/" => {
-            router.get_async("/", users::request);
-            return router.handle_async(req).await;
-        }
-        _ => {
-            let a = &req.path_and_query().unwrap();
-            let b = *a;
-            let c = b.to_string();
-            if c.starts_with("/@") {
-                let user = &req.path_and_query().unwrap()[2..];
-                let uri = format!(
-                    "{}://{}/users/{}",
-                    original_uri.scheme(),
-                    original_uri.host_str().unwrap(),
-                    user,
-                );
-                let req = Request::builder()
-                    .uri(uri)
-                    .method(req.method().clone())
-                    .headers(headers)
-                    .body(req.into_body())
-                    .build();
-                router.get_async("/users/:user", users::request);
-                return router.handle_async(req).await;
-            }
-        }
-    }
-    //    }
-    //}
-
-    router.get_async("/", users::request);
-    router.any_async("/inbox", users::inbox::request);
-
-    router.get_async("/users/:user", users::request);
-
-    router.any_async("/users/:user/inbox", users::inbox::request);
-    router.any_async("/users/:user/outbox", users::outbox::request);
-
-    router.any_async("/following", users::following::request);
-    router.any_async("/users/:user/following", users::following::request);
-    router.any_async("/followers", users::followers::request);
-    router.any_async("/users/:user/followers", users::followers::request);
-    router.any_async("/users/:user/collections/featured", featured::request);
-    //router.get_async("/users/:user/collections/tags", tags::request);
-
-    // tests
-    router.any_async("/tests/db", tests::db);
-
-    //
-    //router.any_async("/foo/following_request", foo::following_request);
-    //router.any_async("/foo", foo::modified_header_test);
-    //router.any_async("/", foo::root);
     router.handle_async(req).await
+}
+
+/// Return HTTP Mime type
+/// https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
+async fn what_type_asked<'a>(req: &Request) -> Option<&'a str> {
+    let asked_string = match req.header("Accept") {
+        None => return None,
+        Some(x) => x.as_str().unwrap(),
+    };
+
+    if asked_string.contains("json") {
+        return Some("application/activity+json");
+    }
+
+    Some("text/html")
 }

@@ -1,0 +1,7 @@
+[net]
+git-fetch-with-cli = true
+
+[build]
+target = "wasm32-wasi"
+rustdoc = "rustdoc"
+target-dir = "target"

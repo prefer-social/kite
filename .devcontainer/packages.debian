@@ -1,0 +1,17 @@
+build-essential
+curl
+mg
+emacs
+nodejs
+tmux
+libssl-dev
+pkg-config
+jq
+sqlite3
+libglib2.0-bin
+gnome-keyring
+cmake
+inotify-tools
+file
+net-tools
+clang

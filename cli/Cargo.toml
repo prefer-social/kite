@@ -1,0 +1,28 @@
+[package]
+name = "cli"
+authors = ["Seungjin Kim <seungjin@duck.com>"]
+description = "Command Line Interface"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1"
+serde_json = { version = "1.0", features = ["preserve_order"] }
+serde = { version = "1.0", features = ["derive"] }
+chrono = { version = "0.4.31", features = ["serde", "wasmbind"] }
+url = { version = "2.5.0", features = ["serde"] }
+async-trait = { version = "0.1.74", features = [] }
+uuid = { version = "1", features = ["v4", "fast-rng"] }
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = [
+    "env-filter",
+    "fmt",
+    "std",
+] }
+sparrow = { path = "../sparrow" }
+clap = { version = "4.5.15", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = [
+    "json",
+] } # reqwest with JSON parsing support
+futures = "0.3" # for our async / await blocks

@@ -1,0 +1,6 @@
+[sqlite_database.default]
+path = "./kite.db"
+type = "spin"
+[key_value_store.mem]
+type = "spin"
+#path = "./key_val_debug.db"

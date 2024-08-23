@@ -1,0 +1,21 @@
+[package]
+name = "outbox"
+authors = ["Seungjin Kim <seungjin@duck.com>"]
+description = "Activitypub Outbox service"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+anyhow = "1"
+spin-sdk = { git = "https://github.com/fermyon/spin-rust-sdk", branch = "main" }
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = [
+    "env-filter",
+    "fmt",
+    "std",
+] }
+
+sparrow = { path = "../sparrow" }

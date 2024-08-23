@@ -7,22 +7,38 @@ authors = ["Seungjin Kim <seungjin@duck.com>"]
 description = ""
 
 [variables]
-redis_host = { required = true }
-redis_credential = { required = true, secret = true }
-redis_port = { required = true }
-redis_channel = { required = true }
 s3_access_key = { required = true, secret = true }
 s3_secret_key = { required = true, secret = true }
 s3_provider = { required = true }
 s3_bucket = { required = true }
 s3_endpoint = { required = true }
 s3_region = { required = true }
+domain = { required = true }
 
-[application.trigger.redis]
-address = "redis://{{ redis_credential }}@{{ redis_host }}:{{ redis_port }}"
+[[trigger.http]]
+route = "/..."
+component = "web"
+
+[component.web]
+source = "target/wasm32-wasi/release/web.wasm"
+sqlite_databases = ["default"]
+key_value_stores = ["mem"]
+allowed_outbound_hosts = ["https://*:*", "http://*:*"]
+[component.web.build]
+command = "cargo build --target wasm32-wasi --release"
+workdir = "web"
+watch = ["web/src/**/*.rs", "web/Cargo.toml"]
+
+[[trigger.http]]
+route = "/assets/..."
+component = "static"
+
+[[trigger.http]]
+route = "/robots.txt"
+component = "static"
 
 [component.static]
-source = { url = "https://github.com/fermyon/spin-fileserver/releases/latest/download/spin_static_fs.wasm", digest = "sha256:ef88708817e107bf49985c7cefe4dd1f199bf26f6727819183d5c996baa3d148" }
+source = { url = "https://github.com/fermyon/spin-fileserver/releases/download/v0.3.0/spin_static_fs.wasm", digest = "sha256:ef88708817e107bf49985c7cefe4dd1f199bf26f6727819183d5c996baa3d148" }
 files = [{ source = "assets", destination = "/" }]
 
 [[trigger.http]]
@@ -33,82 +49,33 @@ component = "well-known"
 source = "target/wasm32-wasi/release/well_known.wasm"
 sqlite_databases = ["default"]
 allowed_outbound_hosts = []
-files = [{ source = "well-known/static", destination = "/" }]
 [component.well-known.build]
 command = "cargo build --target wasm32-wasi --release"
 workdir = "well-known"
 watch = ["well-known/src/**/*.rs", "well-known/Cargo.toml"]
 
 [[trigger.http]]
-route = "/..."
-component = "web"
+route = "/api/..."
+component = "api"
 
-[component.web]
-source = "target/wasm32-wasi/release/web.wasm"
+[component.api]
+source = "target/wasm32-wasi/release/api.wasm"
+allowed_outbound_hosts = ["https://*:*"]
 sqlite_databases = ["default"]
-allowed_outbound_hosts = ["https://*:*", "http://*:*"]
-[component.web.build]
+key_value_stores = ["mem"]
+[component.api.build]
 command = "cargo build --target wasm32-wasi --release"
-workdir = "web"
-watch = ["web/src/**/*.rs", "well-known/Cargo.toml"]
-
-[[trigger.http]]
-route = "/api/v1/..."
-component = "api-v1"
-
-[component.api-v1]
-source = "target/wasm32-wasi/release/api_v1.wasm"
-allowed_outbound_hosts = [
-    "https://*:*",
-    "redis://{{ redis_host }}:{{ redis_port }}",
-    "rediss://{{ redis_host }}:{{ redis_port }}",
-]
-sqlite_databases = ["default"]
-[component.api-v1.build]
-command = "cargo build --target wasm32-wasi --release"
-workdir = "api_v1"
-watch = ["api_v1/src/**/*.rs", "api_v1/Cargo.toml"]
-[component.api-v1.variables]
-redis_host = "{{ redis_host }}"
-redis_credential = "{{ redis_credential }}"
-redis_port = "{{ redis_port }}"
-redis_channel = "{{ redis_channel }}"
+workdir = "api"
+watch = ["api/src/**/*.rs", "api/Cargo.toml"]
+[component.api.variables]
 s3_access_key = "{{ s3_access_key }}"
 s3_secret_key = "{{ s3_secret_key }}"
 s3_provider = "{{ s3_provider }}"
 s3_bucket = "{{ s3_bucket }}"
 s3_endpoint = "{{ s3_endpoint }}"
 s3_region = "{{ s3_region }}"
+domain = "{{ domain }}"
 
-
-[[trigger.http]]
-route = "/api/v2/..."
-component = "api-v2"
-
-[component.api-v2]
-source = "target/wasm32-wasi/release/api_v2.wasm"
-allowed_outbound_hosts = [
-    "https://*:*",
-    "redis://{{ redis_host }}:{{ redis_port }}",
-    "rediss://{{ redis_host }}:{{ redis_port }}",
-]
-sqlite_databases = ["default"]
-[component.api-v2.build]
-command = "cargo build --target wasm32-wasi --release"
-workdir = "api_v2"
-watch = ["api_v2/src/**/*.rs", "api_v2/Cargo.toml"]
-
-[component.api-v2.variables]
-redis_host = "{{ redis_host }}"
-redis_credential = "{{ redis_credential }}"
-redis_port = "{{ redis_port }}"
-redis_channel = "{{ redis_channel }}"
-s3_access_key = "{{ s3_access_key }}"
-s3_secret_key = "{{ s3_secret_key }}"
-s3_provider = "{{ s3_provider }}"
-s3_bucket = "{{ s3_bucket }}"
-s3_endpoint = "{{ s3_endpoint }}"
-s3_region = "{{ s3_region }}"
 
 [[trigger.http]]
 route = "/oauth/..."
@@ -118,36 +85,67 @@ component = "oauth"
 source = "target/wasm32-wasi/release/oauth.wasm"
 allowed_outbound_hosts = ["https://*:*"]
 sqlite_databases = ["default"]
+key_value_stores = ["mem"]
 [component.oauth.build]
 command = "cargo build --target wasm32-wasi --release"
 workdir = "oauth"
 watch = ["oauth/src/**/*.rs", "oauth/Cargo.toml"]
+[component.oauth.variables]
+domain = "{{ domain }}"
 
-[[trigger.redis]]
-channel = "{{ redis_channel }}"
-component = "postbox"
 
-[component.postbox]
-source = { url = "https://github.com/prefer-social/postbox/releases/latest/download/postbox.wasm", digest = "sha256:940ccf362da5439fb4bfb335d11adbb56d695dee1ebcc3dcfb063655a38045f2" }
-#source = "../postbox/target/wasm32-wasi/release/postbox.wasm"
-allowed_outbound_hosts = [
-    "https://*:*",
-    "http://*:*",
-    "redis://{{ redis_host }}:{{ redis_port }}",
-    "rediss://{{ redis_host }}:{{ redis_port }}",
-]
+[[trigger.http]]
+route = "/inbox/..."
+component = "inbox"
+
+[component.inbox]
+source = "target/wasm32-wasi/release/inbox.wasm"
 sqlite_databases = ["default"]
-[component.postbox.build]
+key_value_stores = ["mem"]
+allowed_outbound_hosts = ["https://*:*", "http://*:*"]
+[component.inbox.build]
 command = "cargo build --target wasm32-wasi --release"
+workdir = "inbox"
+watch = ["inbox/src/**/*.rs", "inbox/Cargo.toml"]
 
-[component.postbox.variables]
-redis_host = "{{ redis_host }}"
-redis_credential = "{{ redis_credential }}"
-redis_port = "{{ redis_port }}"
-redis_channel = "{{ redis_channel }}"
-s3_access_key = "{{ s3_access_key }}"
-s3_secret_key = "{{ s3_secret_key }}"
-s3_provider = "{{ s3_provider }}"
-s3_bucket = "{{ s3_bucket }}"
-s3_endpoint = "{{ s3_endpoint }}"
-s3_region = "{{ s3_region }}"
+[[trigger.http]]
+route = "/following/..."
+component = "following"
+
+[component.following]
+source = "target/wasm32-wasi/release/following.wasm"
+sqlite_databases = ["default"]
+key_value_stores = ["mem"]
+allowed_outbound_hosts = ["https://*:*", "http://*:*"]
+[component.following.build]
+command = "cargo build --target wasm32-wasi --release"
+workdir = "following"
+watch = ["following/src/**/*.rs", "following/Cargo.toml"]
+
+[[trigger.http]]
+route = "/followers/..."
+component = "followers"
+
+[component.followers]
+source = "target/wasm32-wasi/release/followers.wasm"
+sqlite_databases = ["default"]
+key_value_stores = ["mem"]
+allowed_outbound_hosts = ["https://*:*", "http://*:*"]
+[component.followers.build]
+command = "cargo build --target wasm32-wasi --release"
+workdir = "followers"
+watch = ["followers/src/**/*.rs", "followers/Cargo.toml"]
+
+[[trigger.http]]
+route = "/outbox/..."
+component = "outbox"
+
+[component.outbox]
+source = "target/wasm32-wasi/release/outbox.wasm"
+sqlite_databases = ["default"]
+key_value_stores = ["mem"]
+allowed_outbound_hosts = []
+[component.outbox.build]
+command = "cargo build --target wasm32-wasi --release"
+workdir = "outbox"
+watch = ["outbox/src/**/*.rs", "outbox/Cargo.toml"]

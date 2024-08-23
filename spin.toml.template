@@ -1,0 +1,120 @@
+spin_manifest_version = 2
+
+[application]
+name = "kite"
+version = "0.1.0"
+authors = ["Seungjin Kim <seungjin@duck.com>"]
+description = ""
+
+[variables]
+s3_access_key = { required = true, secret = true }
+s3_secret_key = { required = true, secret = true }
+s3_provider = { required = true }
+s3_bucket = { required = true }
+s3_endpoint = { required = true }
+s3_region = { required = true }
+domain = { required = true }
+
+[[trigger.http]]
+route = "/..."
+component = "web"
+
+[component.web]
+source = { url = "https://github.com/prefer-social/kite/releases/download/stg-seungjin-{{env.RUN_NUMBER}}/web.wasm", digest = "sha256:{{env.WEB_CHECKSUM}}" }
+sqlite_databases = ["default"]
+key_value_stores = ["mem"]
+allowed_outbound_hosts = ["https://*:*", "http://*:*"]
+
+[[trigger.http]]
+route = "/assets/..."
+component = "static"
+
+[[trigger.http]]
+route = "/robots.txt"
+component = "static"
+
+[component.static]
+source = { url = "https://github.com/fermyon/spin-fileserver/releases/download/v0.3.0/spin_static_fs.wasm", digest = "sha256:ef88708817e107bf49985c7cefe4dd1f199bf26f6727819183d5c996baa3d148" }
+files = [{ source = "assets", destination = "/" }]
+
+[[trigger.http]]
+route = "/.well-known/..."
+component = "well-known"
+
+[component.well-known]
+source = { url = "https://github.com/prefer-social/kite/releases/download/stg-seungjin-{{env.RUN_NUMBER}}/well_known.wasm", digest = "sha256:{{env.WELLKNOWN_CHECKSUM}}" }
+sqlite_databases = ["default"]
+allowed_outbound_hosts = []
+
+[[trigger.http]]
+route = "/api/..."
+component = "api"
+
+[component.api]
+source = { url = "https://github.com/prefer-social/kite/releases/download/stg-seungjin-{{env.RUN_NUMBER}}/api.wasm", digest = "sha256:{{env.API_CHECKSUM}}" }
+allowed_outbound_hosts = [
+    "https://*:*"
+]
+sqlite_databases = ["default"]
+key_value_stores = ["mem"]
+[component.api.variables]
+s3_access_key = "{{ s3_access_key }}"
+s3_secret_key = "{{ s3_secret_key }}"
+s3_provider = "{{ s3_provider }}"
+s3_bucket = "{{ s3_bucket }}"
+s3_endpoint = "{{ s3_endpoint }}"
+s3_region = "{{ s3_region }}"
+domain = "{{ domain }}"
+
+
+[[trigger.http]]
+route = "/oauth/..."
+component = "oauth"
+
+[component.oauth]
+source = { url = "https://github.com/prefer-social/kite/releases/download/stg-seungjin-{{env.RUN_NUMBER}}/oauth.wasm", digest = "sha256:{{env.OAUTH_CHECKSUM}}" }
+allowed_outbound_hosts = ["https://*:*"]
+sqlite_databases = ["default"]
+key_value_stores = ["mem"]
+[component.oauth.variables]
+domain = "{{ domain }}"
+
+[[trigger.http]]
+route = "/inbox/..."
+component = "inbox"
+
+[component.inbox]
+source = { url = "https://github.com/prefer-social/kite/releases/download/stg-seungjin-{{env.RUN_NUMBER}}/inbox.wasm", digest = "sha256:{{env.INBOX_CHECKSUM}}" }
+sqlite_databases = ["default"]
+key_value_stores = ["mem"]
+allowed_outbound_hosts = ["https://*:*", "http://*:*"]
+
+[[trigger.http]]
+route = "/following/..."
+component = "following"
+
+[component.following]
+source = { url = "https://github.com/prefer-social/kite/releases/download/stg-seungjin-{{env.RUN_NUMBER}}/following.wasm", digest = "sha256:{{env.FOLLOWING_CHECKSUM}}" }
+sqlite_databases = ["default"]
+key_value_stores = ["mem"]
+allowed_outbound_hosts = ["https://*:*", "http://*:*"]
+
+[[trigger.http]]
+route = "/followers/..."
+component = "followers"
+
+[component.followers]
+source = { url = "https://github.com/prefer-social/kite/releases/download/stg-seungjin-{{env.RUN_NUMBER}}/followers.wasm", digest = "sha256:{{env.FOLLOWERS_CHECKSUM}}" }
+sqlite_databases = ["default"]
+key_value_stores = ["mem"]
+allowed_outbound_hosts = ["https://*:*", "http://*:*"]
+
+[[trigger.http]]
+route = "/outbox/..."
+component = "outbox"
+
+[component.outbox]
+source = { url = "https://github.com/prefer-social/kite/releases/download/stg-seungjin-{{env.RUN_NUMBER}}/outbox.wasm", digest = "sha256:{{env.OUTBOX_CHECKSUM}}" }
+sqlite_databases = ["default"]
+key_value_stores = ["mem"]
+allowed_outbound_hosts = []
