@@ -24,7 +24,7 @@ jobs:
         run: rustup target add wasm32-wasi
 
       - name: Make
-        run: make release-gh
+        run: make build
         env:
           APP_LOG_LEVEL: TRACE
 
