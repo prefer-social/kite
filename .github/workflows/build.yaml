@@ -44,7 +44,7 @@ jobs:
         with:
           fail_on_unmatched_files: true
           generate_release_notes: true
-          tag_name: stg-seungjin-$GITHUB_RUN_ID
+          tag_name: stg-seungjin- ${{ github.run_id }}
           files: |
             target/wasm32-wasi/release/api.wasm
             target/wasm32-wasi/release/followers.wasm
