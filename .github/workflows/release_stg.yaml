@@ -30,6 +30,7 @@ jobs:
 
       - name: generate checksums
         run: |
+          echo "RUN_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
           echo "API_CHECKSUM=$(sha256sum target/wasm32-wasi/release/api.wasm | awk '{print $1}')" >> $GITHUB_ENV
           echo "FOLLOWERS_CHECKSUM=$(sha256sum target/wasm32-wasi/release/followers.wasm | awk '{print $1}')" >> $GITHUB_ENV
           echo "FOLLOWING_CHECKSUM=$(sha256sum target/wasm32-wasi/release/following.wasm | awk '{print $1}')" >> $GITHUB_ENV

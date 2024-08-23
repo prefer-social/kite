@@ -20,7 +20,7 @@ route = "/..."
 component = "web"
 
 [component.web]
-source = { url = "https://github.com/prefer-social/kite/releases/download/stg-seungjin-{{RUN_NUMBER}}/web.wasm", digest = "sha256:{{WEB_CHECKSUM}}" }
+source = { url = "https://github.com/prefer-social/kite/releases/download/stg-seungjin-{{RUN_NUMBER}}/web.wasm", digest = "sha256:{{env.WEB_CHECKSUM}}" }
 sqlite_databases = ["default"]
 key_value_stores = ["mem"]
 allowed_outbound_hosts = ["https://*:*", "http://*:*"]
