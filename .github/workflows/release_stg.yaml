@@ -46,15 +46,6 @@ jobs:
           engine: mustache
           output-file: checksums-${{ env.BUILD_VERSION }}.txt
           glob: false
-          vars: |
-            { "API": "${{ env.API_CHECKSUM }}" }
-            { "FOLLOWERS": "${{ env.FOLLOWERS_CHECKSUM }}" }
-            { "FOLLOWING": "${{ env.FOLLOWING_CHECKSUM }}" }
-            { "INBOX": "${{ env.INBOX_CHECKSUM }}" }
-            { "OAUTH": "${{ env.OAUTH_CHECKSUM }}" }
-            { "OUTBOX": "${{ env.OUTBOX_CHECKSUM }}" }
-            { "WEB": "${{ env.WEB_CHECKSUM }}" }
-            { "WELLKNOWN": "${{ env.WELLKNOWN_CHECKSUM }}" }
 
       - name: Render Spin Template
         uses: recih/template-render-action@v1.0.2
