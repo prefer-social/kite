@@ -30,14 +30,14 @@ jobs:
 
       - name: generate checksums
         run: |
-          echo "API_CHECKSUM = $(sha256sum target/wasm32-wasi/release/api.wasm | awk '{print $1}')" >> $GITHUB_ENV
-          echo "FOLLOWERS_CHECKSUM = $(sha256sum target/wasm32-wasi/release/followers.wasm | awk '{print $1}')" >> $GITHUB_ENV
-          echo "FOLLOWING_CHECKSUM = $(sha256sum target/wasm32-wasi/release/following.wasm | awk '{print $1}')" >> $GITHUB_ENV
-          echo "INBOX_CHECKSUM = $(sha256sum target/wasm32-wasi/release/inbox.wasm | awk '{print $1}')" >> $GITHUB_ENV
-          echo "OAUTH_CHECKSUM = $(sha256sum target/wasm32-wasi/release/oauth.wasm | awk '{print $1}')" >> $GITHUB_ENV
-          echo "OUTBOX_CHECKSUM = $(sha256sum target/wasm32-wasi/release/outbox.wasm | awk '{print $1}')" >> $GITHUB_ENV
-          echo "WEB_CHECKSUM = $(sha256sum target/wasm32-wasi/release/web.wasm | awk '{print $1}')" >> $GITHUB_ENV
-          echo "WELLKNOWN_CHECKSUM = $(sha256sum target/wasm32-wasi/release/well_known.wasm | awk '{print $1}')" >> $GITHUB_ENV
+          echo "API_CHECKSUM=$(sha256sum target/wasm32-wasi/release/api.wasm | awk '{print $1}')" >> $GITHUB_ENV
+          echo "FOLLOWERS_CHECKSUM=$(sha256sum target/wasm32-wasi/release/followers.wasm | awk '{print $1}')" >> $GITHUB_ENV
+          echo "FOLLOWING_CHECKSUM=$(sha256sum target/wasm32-wasi/release/following.wasm | awk '{print $1}')" >> $GITHUB_ENV
+          echo "INBOX_CHECKSUM=$(sha256sum target/wasm32-wasi/release/inbox.wasm | awk '{print $1}')" >> $GITHUB_ENV
+          echo "OAUTH_CHECKSUM=$(sha256sum target/wasm32-wasi/release/oauth.wasm | awk '{print $1}')" >> $GITHUB_ENV
+          echo "OUTBOX_CHECKSUM=$(sha256sum target/wasm32-wasi/release/outbox.wasm | awk '{print $1}')" >> $GITHUB_ENV
+          echo "WEB_CHECKSUM=$(sha256sum target/wasm32-wasi/release/web.wasm | awk '{print $1}')" >> $GITHUB_ENV
+          echo "WELLKNOWN_CHECKSUM=$(sha256sum target/wasm32-wasi/release/well_known.wasm | awk '{print $1}')" >> $GITHUB_ENV
 
       - name: Render Checksum Template
         uses: recih/template-render-action@v1.0.2
