@@ -1,0 +1,56 @@
+name: Release
+on:
+  push:
+    branches: [u/seungjin/st]
+
+jobs:
+  assets:
+    name: Build and release assets
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: set the release version (tag)
+        run: echo "RELEASE_VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
+
+      - name: Install latest Rust stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          default: true
+          components: clippy, rustfmt
+
+      - name: Install Wasm Rust target
+        run: rustup target add wasm32-wasi
+
+      - name: Make
+        run: make release-gh
+        env:
+          APP_LOG_LEVEL: TRACE
+
+      - name: generate checksums
+        run: |
+          sha256sum target/wasm32-wasi/release/api.wasm > checksums-${{ env.RELEASE_VERSION }}.txt
+          sha256sum target/wasm32-wasi/release/followers.wasm >> checksums-${{ env.RELEASE_VERSION }}.txt
+          sha256sum target/wasm32-wasi/release/following.wasm >> checksums-${{ env.RELEASE_VERSION }}.txt
+          sha256sum target/wasm32-wasi/release/inbox.wasm >> checksums-${{ env.RELEASE_VERSION }}.txt
+          sha256sum target/wasm32-wasi/release/oauth.wasm >> checksums-${{ env.RELEASE_VERSION }}.txt
+          sha256sum target/wasm32-wasi/release/outbox.wasm >> checksums-${{ env.RELEASE_VERSION }}.txt
+          sha256sum target/wasm32-wasi/release/web.wasm >> checksums-${{ env.RELEASE_VERSION }}.txt
+          sha256sum target/wasm32-wasi/release/well_known.wasm >> checksums-${{ env.RELEASE_VERSION }}.txt
+
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          files: |
+            target/wasm32-wasi/release/api.wasm
+            target/wasm32-wasi/release/followers.wasm
+            target/wasm32-wasi/release/following.wasm
+            target/wasm32-wasi/release/inbox.wasm
+            target/wasm32-wasi/release/oauth.wasm
+            target/wasm32-wasi/release/outbox.wasm
+            target/wasm32-wasi/release/web.wasm
+            target/wasm32-wasi/release/well_known.wasm
+            checksums-${{ env.RELEASE_VERSION }}.txt

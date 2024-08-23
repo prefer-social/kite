@@ -56,7 +56,7 @@ impl OrderedCollection {
             context: Some(activitystream::default_context()),
             id: Some(id.clone()),
             object_type: "OrderedCollection".to_string(),
-            total_items,
+            total_items: total_items,
             first: Some(format!("{}?page=1", id)),
             ..Default::default()
         }

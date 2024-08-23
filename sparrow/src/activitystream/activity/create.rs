@@ -22,6 +22,7 @@ use crate::mastodon::account::Get as _;
 use crate::mastodon::activity_log::ActivityLog;
 use crate::mastodon::setting::Setting;
 use crate::mastodon::status::Status as MStatus;
+use crate::mastodon::ACTOR_ACCOUNT;
 use chrono::Utc;
 
 /// Accept activity struct.  
@@ -36,6 +37,7 @@ impl Create {
         let published = Utc::now();
 
         let create_object = Activity::new(
+            true,
             id,
             ActivityType::Create,
             actor.clone(),
@@ -70,18 +72,23 @@ impl Execute for Create {
         let a: &str = self.0.get("type").unwrap().as_str().unwrap();
         let object_type = ObjectType::from_str(a).unwrap();
 
+        let actor_account = ACTOR_ACCOUNT.get().unwrap().to_owned();
         match object_type {
             ObjectType::Note => {
-                create_note(self.to_owned(), activity_val).await
+                create_note(self.to_owned(), activity_val, actor_account).await
             }
             unkown_type => unkown(unkown_type).await,
         }
     }
 }
 
-async fn create_note(s: Create, activity: Value) -> Result<()> {
+async fn create_note(
+    s: Create,
+    activity: Value,
+    actor_account: MAccount,
+) -> Result<()> {
     match serde_json::from_value::<NoteObject>(s.0.to_owned()) {
-        Ok(note) => MStatus::new(note).await,
+        Ok(note) => MStatus::new(note, actor_account).await,
         Err(e) => {
             tracing::error!("Error from Parsing NoteObject: {e:?}");
             tracing::error!("{:?}", s.0);

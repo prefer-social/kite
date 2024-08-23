@@ -4,9 +4,11 @@
 //! Mastodon doc about ActivityPub <https://docs.joinmastodon.org/spec/activitypub/>
 //!
 
-use crate::activitystream::activity::Activity;
 use anyhow::Result;
 use serde_json::Value;
+
+use crate::activitystream::activity::Activity;
+use crate::mastodon::account::Account as MAccount;
 
 pub mod activity;
 pub mod actor;
@@ -22,7 +24,7 @@ pub trait Execute {
 }
 
 /// Helper function that remove @context key from serde_json::Value object.
-pub(crate) fn remove_context(mut v: Value) -> Value {
+pub fn remove_context(mut v: Value) -> Value {
     let a = v.as_object_mut().unwrap();
     a.remove_entry("@context");
     serde_json::to_value(a).unwrap()

@@ -29,11 +29,13 @@ use crate::mastodon::account::uid::Uid as AccountUid;
 use crate::mastodon::account::actor_url::ActorUrl;
 use crate::mastodon::follow::Follow;
 use crate::mastodon::status::Status;
+use crate::mastodon::ME_ACCOUNT;
 use crate::table::account::Account as TAccount;
 use crate::table::account::Get as _;
 use crate::table::account::Remove as _;
 use crate::table::user::Get as _;
 use crate::table::account::New as _;
+
 
 use super::get_fediverse;
 
@@ -162,76 +164,7 @@ pub struct Account {
 type MAccount = Account;
 
 impl Account {
-    /// Getting a (Mastodon) Account from Table Account struct.   
-    async fn from_table(acct_tbl: TAccount) -> Result<Self> {
-        
-        let bot: bool = match acct_tbl.actor_type.clone().unwrap().as_str() {
-            "service" => true,
-            _ => false,
-        };
-
-        let followers_count: u64;
-        let following_count: u64;
-        let statuses_count: u64;
-
-        let account_uri = AccountUri {
-            username: acct_tbl.username.clone(),
-            domain: acct_tbl.domain.clone(),
-        };
-
-        if acct_tbl.private_key.is_some() { // Local user 
-            //tracing::debug!("LOCAL USER");
-            followers_count = Follow::follower_count(account_uri.clone()).await?;
-            following_count = 11; //Follow::following_count(account_uri.clone()).await?;
-            statuses_count = 11; //Status::count(account_uri).await?;
-        } else { // Remote user
-            //tracing::debug!("REMOTE USER");
-            followers_count = Self::followers_count(acct_tbl.followers_url.clone().unwrap()).await?.into();
-            following_count =  Self::following_count(acct_tbl.following_url.clone().unwrap()).await?.into();
-            statuses_count = Self::statuses_count(acct_tbl.outbox_url.clone().unwrap().to_owned()).await.unwrap();
-        }
-
-        let account_uri = AccountUri::new(acct_tbl.username.clone(), acct_tbl.domain);
-
-        let account = Account {
-            uid: acct_tbl.uid.clone().into(),
-            username: acct_tbl.username.clone().into(),
-            account_uri,
-            display_name: acct_tbl.display_name,
-            locked: convert_to_bool(acct_tbl.locked.unwrap_or_default()),
-            bot: bot,
-            discoverable: convert_to_bool(acct_tbl.discoverable.unwrap_or_default()),
-            created_at: DateTime::from_timestamp(
-                acct_tbl.created_at,
-                0,
-            )
-            .unwrap(),
-            note: acct_tbl.note,
-            url: acct_tbl.url.unwrap_or_default(),
-            actor_url: ActorUrl::new(acct_tbl.uri)?,
-            avatar: acct_tbl.avatar_remote_url.clone().unwrap_or(default_avatar()),
-            avatar_static: acct_tbl
-                .avatar_remote_url
-                .clone()
-                .unwrap_or(default_avatar()),
-            header: acct_tbl.header_remote_url.clone().unwrap_or(default_header()),
-            header_static: acct_tbl.header_remote_url.clone().unwrap_or(default_header()),
-            followers_count,
-            following_count,
-            statuses_count,
-            public_key: acct_tbl.public_key,
-            private_key: acct_tbl.private_key,
-            inbox_url: acct_tbl.inbox_url,
-            outbox_url: acct_tbl.outbox_url,
-            shared_inbox_url: acct_tbl.shared_inbox_url,
-            following_url: acct_tbl.following_url,
-            followers_url: acct_tbl.followers_url,
-            indexable: Some(convert_to_bool(acct_tbl.indexable.unwrap())),
-            ..Default::default()
-        };
-        Ok(account)
-    }
-
+   
     /// Getting Mastodon Account for default user(owner).  
     pub async fn default() -> Result<(MAccount, User)> {
         let user = crate::mastodon::user::User::default().await?;
@@ -337,8 +270,8 @@ impl Account {
     }
 
     /// Getting statuses_count from Actor url.  
-    pub async fn statuses_count(url: String) -> Result<u64> {
-        let response = get_fediverse(Url::parse(url.as_str()).unwrap(), None).await?;
+    pub async fn statuses_count(taccount: TAccount, me_account: MAccount) -> Result<u64> {
+        let response = get_fediverse(Url::parse(taccount.to_owned().outbox_url.unwrap().as_str()).unwrap(), me_account).await?;
         match response.status() {
             410u16 => { 
                 tracing::error!("Trying to get statuses count but resource is Gone(410).");
@@ -353,9 +286,9 @@ impl Account {
     }
 
     /// Get following_count from Actor url.
-    pub async fn following_count(url: String) -> Result<u32> {
+    pub async fn following_count(taccount: TAccount, me_account: MAccount) -> Result<u32> {
         
-        let response = get_fediverse(Url::parse(url.as_str())?, None).await?;
+        let response = get_fediverse(Url::parse(taccount.to_owned().following_url.unwrap().as_str())?,me_account).await?;
 
         match response.status() {
             410u16 => { return Err(anyhow::Error::msg("Resource is Gone")); },
@@ -367,9 +300,9 @@ impl Account {
     }
 
     /// Get followers_count from Actor url.  
-    pub async fn followers_count(url: String) -> Result<u32> {
-        
-        let response = get_fediverse(Url::parse(url.as_str())?, None).await?;
+    pub async fn followers_count(taccount: TAccount, me_account: MAccount) -> Result<u32> {
+
+        let response = get_fediverse(Url::parse(taccount.to_owned().followers_url.unwrap().as_str())?, me_account).await?;
 
         match response.status() {
             410u16 => { return Err(anyhow::Error::msg("Resource is Gone")); },
@@ -381,13 +314,15 @@ impl Account {
         let v = match serde_json::from_str::<OrderedCollection>(body) {
             Ok(x) => x,
             Err(e) => {
+                tracing::error!("Error from serde_json::from_str::<OrderedCollection>(body)");
                 tracing::error!(body);
                 tracing::error!("{e:?}");
-                return Err(Error::msg("{e:?}"));
+                return Err(Error::msg(format!("{e:?}")));
             }
         };
         
         Ok(v.total_items as u32)
+        
     }
     
     /// If account exists with ActorUrl, seturn MAccount
@@ -426,7 +361,6 @@ pub trait Get<T> {
 impl Get<TAccount> for Account {
     async fn get(acct_tbl: TAccount) -> Result<Self> {
 
-        tracing::trace!("+????????????????");
         let bot: bool = match acct_tbl.actor_type.clone().unwrap().as_str() {
             "service" => true,
             _ => false,
@@ -443,14 +377,15 @@ impl Get<TAccount> for Account {
 
         if acct_tbl.domain.is_none() { // Local user 
             //tracing::debug!("LOCAL USER");
-            followers_count = Follow::follower_count(account_uri.clone()).await?;
-            following_count = Follow::following_count(account_uri.clone()).await?;
-            statuses_count = Status::count(account_uri).await?;
+            followers_count = Follow::follower_count(acct_tbl.to_owned()).await?;
+            following_count = Follow::following_count(acct_tbl.to_owned()).await?;
+            statuses_count = Status::count(acct_tbl.to_owned()).await?;
         } else { // Remote user
             //tracing::debug!("REMOTE USER");
-            followers_count = Self::followers_count(acct_tbl.followers_url.clone().unwrap()).await?.into();
-            following_count =  Self::following_count(acct_tbl.following_url.clone().unwrap()).await?.into();
-            statuses_count = Self::statuses_count(acct_tbl.outbox_url.clone().unwrap().to_owned()).await.unwrap();
+            let me_account = ME_ACCOUNT.get().unwrap();
+            followers_count = Self::followers_count(acct_tbl.to_owned(), me_account.to_owned()).await?.into();
+            following_count =  Self::following_count(acct_tbl.to_owned(), me_account.to_owned()).await?.into();
+            statuses_count = Self::statuses_count(acct_tbl.to_owned(), me_account.to_owned()).await.unwrap();
         }
 
         let account_uri = AccountUri::new(acct_tbl.username.clone(), acct_tbl.domain);
@@ -491,7 +426,7 @@ impl Get<TAccount> for Account {
             indexable: Some(convert_to_bool(acct_tbl.indexable.unwrap())),
             ..Default::default()
         };
-        tracing::trace!("-????????????????");
+        
         Ok(account)
     }
 }
@@ -529,7 +464,7 @@ impl Get<AccountUri> for Account {
     async fn get(uri: AccountUri) -> Result<Account> {
         let accounts = crate::table::account::Account::get(uri).await?;
         let acct_tbl: TAccount = accounts.last().unwrap().to_owned();
-        let a = Self::from_table(acct_tbl).await?;
+        let a = Self::get(acct_tbl).await?;
         Ok(a)
     }
 }
@@ -540,7 +475,7 @@ impl Get<ActorUrl> for Account {
         let url_string = actor_url.to_string();
         let taccounts = TAccount::fr_actor_url(url_string).await?;
         let taccount = taccounts.last().unwrap();
-        let maccount = Self::from_table(taccount.to_owned()).await?;
+        let maccount = Self::get(taccount.to_owned()).await?;
         Ok(maccount)
 
     }

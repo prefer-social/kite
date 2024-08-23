@@ -9,6 +9,7 @@ use spin_sdk::{
 use std::{io::Read, str::FromStr};
 use tracing_subscriber::{filter::EnvFilter, FmtSubscriber};
 use url::Url;
+use uuid::Uuid;
 
 //use sparrow::activitypub::action::follow::Follow as FollowAction;
 use crate::http_response::HttpResponse;
@@ -23,7 +24,9 @@ use sparrow::activitystream::object::note::Note as NoteObject;
 use sparrow::activitystream::object::ObjectType;
 use sparrow::mastodon::account::Account as MAccount;
 use sparrow::mastodon::ValidationResult;
-use sparrow::mstor;
+use sparrow::mastodon::ACTOR_ACCOUNT;
+use sparrow::mastodon::ME_ACCOUNT;
+use sparrow::REQUEST_UID;
 
 mod http_response;
 
@@ -32,6 +35,10 @@ mod http_response;
 async fn handle_inbox(req: Request) -> anyhow::Result<impl IntoResponse> {
     let subscriber = FmtSubscriber::builder()
         .with_env_filter(EnvFilter::from_env("APP_LOG_LEVEL"))
+        .with_file(false)
+        .with_line_number(false)
+        .with_thread_ids(false)
+        .with_thread_names(false)
         .finish();
     tracing::subscriber::set_global_default(subscriber)
         .expect("setting default subscriber failed");
@@ -50,7 +57,14 @@ async fn handle_inbox(req: Request) -> anyhow::Result<impl IntoResponse> {
             .unwrap(),
     );
 
-    let request_uuid = Uuid.
+    match REQUEST_UID.set(Uuid::now_v7()) {
+        Ok(_) => {
+            tracing::trace!("REQUEST_UID set")
+        }
+        Err(e) => {
+            tracing::error!("REQUEST_UID sentting error {e:?}")
+        }
+    };
 
     match req.method() {
         Method::Get => get(req).await,
@@ -78,13 +92,19 @@ pub async fn post(req: Request) -> Result<Response> {
         body.get("actor").unwrap()
     );
 
-    // Very First SQL call.
     let (me, _) = MAccount::default().await.unwrap();
-    let s = Store::open("mem")?;
-    mstor::puts(&s, "me", &me)?;
-    tracing::trace!("Storing me into Mstor");
 
-    let validation = sparrow::mastodon::validate_signature(&req).await?;
+    match ME_ACCOUNT.set(me.to_owned()) {
+        Ok(_) => {
+            tracing::trace!("ME_ACCOUNT set")
+        }
+        Err(e) => {
+            tracing::error!("ME_ACCOUNT sentting error {e:?}")
+        }
+    };
+
+    let validation =
+        sparrow::mastodon::validate_signature(&req, me.to_owned()).await?;
 
     let actor_account = match validation {
         ValidationResult::Valid(acct) => acct,
@@ -97,7 +117,7 @@ pub async fn post(req: Request) -> Result<Response> {
             let activity =
                 serde_json::from_value::<Activity<DeleteActivity>>(body)
                     .unwrap();
-            return match activity.execute(None).await {
+            return match activity.execute(me, None).await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
                     tracing::error!(
@@ -109,17 +129,16 @@ pub async fn post(req: Request) -> Result<Response> {
         }
     };
 
-    tracing::debug!("VALID SIGNATURE");
+    tracing::trace!("VALID SIGNATURE");
 
-    //mstor::puts(&s, "inbox_actor", &actor_account)?;
+    // Now I have two MAccount, me and actor_account.
 
     match activity_type {
         ActivityType::Accept => {
-            //action::accept::received(obj).await,
             let activity =
                 serde_json::from_value::<Activity<AcceptActivity>>(body)
                     .unwrap();
-            match activity.execute(Some(actor_account)).await {
+            match activity.execute(me, Some(actor_account)).await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
                     tracing::error!(
@@ -135,7 +154,7 @@ pub async fn post(req: Request) -> Result<Response> {
                     .unwrap();
             let _ot = ObjectType::from_str(object_type.unwrap().as_str());
 
-            match activity.execute(Some(actor_account)).await {
+            match activity.execute(me, Some(actor_account)).await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
                     tracing::error!(
@@ -149,7 +168,7 @@ pub async fn post(req: Request) -> Result<Response> {
             let activity =
                 serde_json::from_value::<Activity<DeleteActivity>>(body)
                     .unwrap();
-            match activity.execute(Some(actor_account)).await {
+            match activity.execute(me, Some(actor_account)).await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
                     tracing::error!(
@@ -163,7 +182,7 @@ pub async fn post(req: Request) -> Result<Response> {
             let activity =
                 serde_json::from_value::<Activity<FollowActivity>>(body)
                     .unwrap();
-            match activity.execute(Some(actor_account)).await {
+            match activity.execute(me, Some(actor_account)).await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
                     tracing::error!(
@@ -177,7 +196,7 @@ pub async fn post(req: Request) -> Result<Response> {
             let activity =
                 serde_json::from_value::<Activity<UndoActivity>>(body)
                     .unwrap();
-            match activity.execute(Some(actor_account)).await {
+            match activity.execute(me, Some(actor_account)).await {
                 Ok(_) => HttpResponse::accepted(),
                 Err(e) => {
                     tracing::error!(

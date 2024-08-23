@@ -13,6 +13,7 @@ use uuid::Uuid;
 
 use crate::activitystream::object::note::Note as NoteObject;
 use crate::mastodon::status::Status as MStatus;
+use crate::table::account::Account as TAccount;
 use crate::table::FieldType;
 use crate::table::New;
 
@@ -58,11 +59,17 @@ pub struct Status {
 }
 
 impl Status {
-    pub async fn count(account_uid: String) -> Result<u32> {
-        let s: Vec<Status> =
-            Self::get(("account_id".to_string(), account_uid)).await?;
-        // Todo: Check sensitibility and visiblity
-        Ok(s.len() as u32)
+    /// Count status.
+    /// Todo: Visibility apply.  
+    pub async fn count(taccount: TAccount) -> Result<u32> {
+        let sqlx_conn = dbcon::open_default()?;
+        let (cnt,): (i64,) = sqlx::query_as(
+            "SELECT count(rowid) AS CNT FROM status WHERE account_id = ?",
+        )
+        .bind(taccount.uid)
+        .fetch_one(&sqlx_conn)
+        .await?;
+        Ok(cnt as u32)
     }
 }
 

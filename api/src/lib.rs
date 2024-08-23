@@ -1,12 +1,20 @@
 //! Mastodon API implementation for prefer.social.  
 
+use std::fmt::Debug;
+
 use anyhow::Result;
+use http_response::HttpResponse;
 use spin_sdk::{
     http::{IntoResponse, Request, Router},
     http_component,
 };
 use tracing_subscriber::filter::EnvFilter;
 use tracing_subscriber::FmtSubscriber;
+use uuid::Uuid;
+
+use crate::auth::Authentication;
+use sparrow::mastodon::ME_ACCOUNT;
+use sparrow::REQUEST_UID;
 
 pub(crate) mod auth;
 pub(crate) mod endpoint;
@@ -16,6 +24,10 @@ pub(crate) mod http_response;
 async fn handle_api(req: Request) -> Result<impl IntoResponse> {
     let subscriber = FmtSubscriber::builder()
         .with_env_filter(EnvFilter::from_env("APP_LOG_LEVEL"))
+        .with_file(false)
+        .with_line_number(false)
+        .with_thread_ids(false)
+        .with_thread_names(false)
         .finish();
     tracing::subscriber::set_global_default(subscriber)
         .expect("setting default subscriber failed");
@@ -26,6 +38,31 @@ async fn handle_api(req: Request) -> Result<impl IntoResponse> {
         req.path_and_query().unwrap(),
         req.header("x-real-ip").unwrap().as_str().unwrap()
     );
+
+    match REQUEST_UID.set(Uuid::now_v7()) {
+        Ok(_) => {
+            tracing::trace!("REQUEST_UID set")
+        }
+        Err(e) => {
+            tracing::error!("REQUEST_UID sentting error {e:?}")
+        }
+    };
+
+    // Check req auth and if it valid. set ME_ACCOUNT
+    // Also authorization process.
+    let me_account = match Authentication::verify(&req).await {
+        Some(a) => a,
+        None => return HttpResponse::forbidden(),
+    };
+
+    match ME_ACCOUNT.set(me_account.to_owned()) {
+        Ok(_) => {
+            tracing::trace!("ME_ACCOUNT loaded into global space")
+        }
+        Err(e) => {
+            tracing::error!("ME_ACCOUNT sentting error {e:?}")
+        }
+    };
 
     let mut router = Router::new();
 

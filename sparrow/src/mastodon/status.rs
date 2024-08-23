@@ -14,8 +14,9 @@ use crate::mastodon::{
     account::actor_url::ActorUrl, account::uri::Uri as AccountUri,
     account::Account as MAccount, account::Get, custom_emoji::CustomEmoji,
     filter_result::FilterResult, media_attachment::MediaAttachment,
-    poll::Poll, preview_card::PreviewCard,
+    poll::Poll, preview_card::PreviewCard, ACTOR_ACCOUNT, ME_ACCOUNT,
 };
+use crate::table::account::Account as TAccount;
 use crate::table::status::Status as TStatus;
 use crate::table::New;
 
@@ -133,9 +134,8 @@ impl Status {
     //whose, how many/when
     pub async fn get(_a: MAccount) {}
 
-    pub async fn count(a: AccountUri) -> Result<u64> {
-        let account_uid = a.account_uid().await.unwrap();
-        Ok(TStatus::count(account_uid.to_string()).await.unwrap() as u64)
+    pub async fn count(taccount: TAccount) -> Result<u64> {
+        Ok(TStatus::count(taccount).await.unwrap() as u64)
     }
 }
 
@@ -173,7 +173,7 @@ pub struct Application {
 }
 
 impl Status {
-    pub async fn new(note: NoteObject) -> Result<()> {
+    pub async fn new(note: NoteObject, actor_account: MAccount) -> Result<()> {
         let note_published_at = note.published.unwrap();
         let created_at = NaiveDateTime::parse_from_str(
             &note_published_at.as_str(),
@@ -182,14 +182,11 @@ impl Status {
         .map(|d| DateTime::<Utc>::from_naive_utc_and_offset(d, Utc))
         .unwrap();
 
-        let actor_url = ActorUrl::new(note.attributed_to.unwrap()).unwrap();
-        let account = MAccount::get(actor_url).await.unwrap();
-
         let status = Status {
             uid: Uuid::now_v7().to_string(),
             uri: Some(note.id),
             created_at: created_at,
-            account,
+            account: actor_account,
             //content,
             //visibility: note,
             sensitive: note.sensitivity.unwrap_or_default(),

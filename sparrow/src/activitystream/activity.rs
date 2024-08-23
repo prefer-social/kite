@@ -6,9 +6,9 @@
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
+use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use spin_sdk::key_value::Store;
 use std::fmt;
 use std::fmt::Debug;
 use std::str::FromStr;
@@ -81,7 +81,7 @@ where
     T: Debug + Serialize + ToString + Execute,
 {
     #[serde(rename = "@context")]
-    pub context: Value,
+    pub context: Option<Value>,
     pub id: String,
     #[serde(rename = "type")]
     pub activity_type: ActivityType,
@@ -109,6 +109,7 @@ where
 {
     /// Create new ActivityPub object.  
     pub fn new(
+        context: bool,
         id: String,
         activity_type: ActivityType,
         actor: String,
@@ -117,8 +118,12 @@ where
         cc: Option<Vec<String>>,
         activity: T,
     ) -> Self {
+        let c = match context {
+            true => Some(activitystream::default_context()),
+            false => None,
+        };
         Activity {
-            context: activitystream::default_context(),
+            context: c,
             id,
             activity_type,
             actor,
@@ -132,10 +137,12 @@ where
     /// Execute activity.  
     pub async fn execute(
         &self,
+        me_account: MAccount,
         actor_account: Option<MAccount>,
     ) -> Result<()> {
-        let actor = match actor_account {
+        let actor = match actor_account.to_owned() {
             None => {
+                tracing::trace!("Another sql call??");
                 MAccount::get(ActorUrl::new(self.actor.to_owned())?).await?
             }
             Some(a) => a,

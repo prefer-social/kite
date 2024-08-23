@@ -10,7 +10,10 @@ use std::str::FromStr;
 
 use crate::activitystream::activity::ActivityType;
 use crate::activitystream::activity::Execute;
+use crate::mastodon::account::Account as MAccount;
 use crate::mastodon::follow::Follow;
+use crate::mastodon::ACTOR_ACCOUNT;
+use crate::mastodon::ME_ACCOUNT;
 
 /*
 {

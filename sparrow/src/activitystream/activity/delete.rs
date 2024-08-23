@@ -15,51 +15,15 @@ use crate::activitystream::activity::ActivityType;
 use crate::activitystream::default_context;
 use crate::activitystream::object::ObjectType;
 use crate::activitystream::Execute;
-use crate::mastodon;
 use crate::mastodon::account::actor_url::ActorUrl;
 use crate::mastodon::account::Account as MAccount;
 use crate::mastodon::account::Get as _;
 use crate::mastodon::account::Remove as _;
 use crate::mastodon::follow::Follow as MFollow;
 use crate::mastodon::setting::Setting;
+use crate::mastodon::ACTOR_ACCOUNT;
 
 const MAX_RETRY: usize = 8;
-
-/*
-
-{ "@context":["https://www.w3.org/ns/activitystreams",
-            {"ostatus":"http://ostatus.org#","atomUri":"ostatus:atomUri"}],
-  "id":"https://mstd.seungjin.net/users/wsj/statuses/112796333484021547#delete",
-  "type":"Delete","actor":"https://mstd.seungjin.net/users/wsj",
-  "to":["https://www.w3.org/ns/activitystreams#Public"],
-  "object": {
-    "id": "https://mstd.seungjin.net/users/wsj/statuses/112796333484021547",
-    "type": "Tombstone",
-    "atomUri":"https://mstd.seungjin.net/users/wsj/statuses/112796333484021547"
-  },
-  "signature":{
-    "type":"RsaSignature2017",
-    "creator":"https://mstd.seungjin.net/users/wsj#main-key",
-    "created":"2024-07-30T13:11:27Z",
-    "signatureValue":"hRwSe7dubUEMS82L1sD9K7P4FA5+kaOXiV3+YE3Jl7TFHqZsKbMxYmT/b9Hnsb1US28+wcsMDFwAlVsYynZZoVSgdgG+UbNgULdTXAnOMhGlEUnb1pKPFHgwzNpglpHVKTteK+IexHXL0QRrTDiCTeCiKDHDalUb6nUE5P77SwDSVtwuezeKbj2QOBMv9CfJMMx+kAHQpNaGjg71GT+kc6HTirQqRhox2FPWyLxw/G5gEVBmPz2T8gXncpZ8GeevapVFaUZwn00ArNELUiT7x+79CthXNn24vkilPxD6/YLv957p4qXxVdZLqA/BXHnNk9k6+NulM/X6GUx3wnv0pA=="
-  }
-}
-
-
-{ "@context":"https://www.w3.org/ns/activitystreams",
-  "id":"https://mas.to/users/astoriacrimelife#delete",
-  "type":"Delete",
-  "actor":"https://mas.to/users/astoriacrimelife",
-  "to":["https://www.w3.org/ns/activitystreams#Public"],
-  "object":"https://mas.to/users/astoriacrimelife",
-  "signature":{
-    "type":"RsaSignature2017",
-    "creator":"https://mas.to/users/astoriacrimelife#main-key",
-    "created":"2024-07-28T13:29:25Z",
-    "signatureValue":"VGxj/ke0+9UrSU42ILLUrgXMXqhji2AWm0RMDeyaMHpsgoYHar9fKnEcWxQUuRobFAihfR8v179ZBPWu9UZmL0UCOViWVtfkgaJckfnXaPwIr+Nt7kg8HdeMl9MmcSh7ZWh9kFG0gwA/upcKpt+4KORVeYB5lpS9pcEV8w2EqBSgnh007M+6rq6nN0aU2vHKdXq6S1+Es5U+DAcebATCtl/KzuensjVrKdTf8sCQ1tcTxZYLt3DvPInjrixd32dTWLfIABFmTx/cekHG0hPzABo5XPLEBYKSKsJHzJe0oCLtzziOjIjH0a8u7eMjuxBRFHd0MjmujSxDjqjTms3lCg=="
-  }
-}
-*/
 
 #[derive(Deserialize, Default, PartialEq, Eq, Clone)]
 pub struct Delete(Value);
@@ -89,6 +53,7 @@ impl Delete {
         //let object = serde_json::from_value(obj).unwrap();
 
         let follow_object = Activity::new(
+            true,
             id,
             ActivityType::Delete,
             actor.clone(),
@@ -118,7 +83,7 @@ impl Delete {
         MFollow::new(obj_id.clone(), subj_account_id, obj_account_id).await?;
 
         let follow_activity = Activity {
-            context: default_context(),
+            context: Some(default_context()),
             id: obj_id,
             activity_type: ActivityType::Follow,
             actor: activity.actor,
@@ -166,12 +131,6 @@ impl Execute for Delete {
                 let actor =
                     activity_val.get("actor").unwrap().as_str().unwrap();
                 let actor_url = ActorUrl::new(actor.to_owned()).unwrap();
-
-                // let request = RequestBuilder::new(Method::Get, url)
-                //     .header("Content-Type", "application/activity+json")
-                //     .build();
-                // let response: Response =
-                //     spin_sdk::http::send(request).await.unwrap();
 
                 let response =
                     redirect_http_request(url.as_str(), MAX_RETRY).await?;

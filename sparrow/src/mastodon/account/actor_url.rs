@@ -13,6 +13,8 @@ use crate::activitystream::actor::person::Person;
 use crate::mastodon;
 use crate::mastodon::account::Account as MAccount;
 use crate::mastodon::account::Get as _;
+use crate::mastodon::ME_ACCOUNT;
+use crate::table::account::Account as TAccount;
 use crate::table::actor_json::ActorJson;
 
 #[derive(
@@ -34,15 +36,12 @@ impl ActorUrl {
         let ct = "application/activity+json";
         let actor_url = self.0.as_ref().unwrap().to_owned();
 
-        tracing::debug!("##############");
-        tracing::debug!("{:?}", actor_url);
-        let response = mastodon::get_fediverse(actor_url, None).await?;
-        tracing::debug!("##############");
+        let me_account = ME_ACCOUNT.get().unwrap().to_owned();
+        let taccount = TAccount::default(); // Todo: Remove this sql call.
+        let response = mastodon::get_fediverse(actor_url, me_account).await?;
 
         let body = response.body();
         let actor = str::from_utf8(body).unwrap();
-
-        tracing::debug!(actor);
 
         match response.status().to_owned() {
             200 => {}

@@ -36,3 +36,5 @@ bincode = { version = "2.0.0-rc.3", features = ["serde"] }
 #once_cell = "1.19"
 
 sparrow = { path = "../sparrow" }
+
+once_cell = "1.19"

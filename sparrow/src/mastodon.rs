@@ -5,6 +5,7 @@
 use anyhow::{Error, Result};
 use base64::{engine::general_purpose, Engine as _};
 use bincode::{config as bincode_config, Decode, Encode};
+use once_cell::sync::OnceCell;
 use rsa::pkcs1v15::VerifyingKey;
 use rsa::pkcs1v15::{Signature, SigningKey};
 use rsa::pkcs8::DecodePrivateKey;
@@ -30,7 +31,7 @@ use crate::mastodon::account::actor_url::ActorUrl;
 use crate::mastodon::account::Account as MAccount;
 use crate::mastodon::account::Get as _;
 use crate::mastodon::setting::Setting;
-use crate::mstor;
+use crate::table::account::Account as TAccount;
 use crate::table::activity_log::ActivityLog;
 use crate::utils::get_current_time_in_rfc_1123;
 
@@ -59,6 +60,9 @@ pub mod token;
 pub mod user;
 pub mod user_role;
 
+pub static ME_ACCOUNT: OnceCell<MAccount> = OnceCell::new();
+pub static ACTOR_ACCOUNT: OnceCell<MAccount> = OnceCell::new();
+
 // https://github.com/RustCrypto/RSA/issues/341
 
 #[derive(Eq, PartialEq)]
@@ -74,7 +78,20 @@ pub enum ValidationResult {
 /// This adds incoming request to activityLog table.
 /// https://docs.joinmastodon.org/spec/security/#http-verify
 /// https://github.com/mastodon/mastodon/sender_actor_url_stringblob/main/app/controllers/concerns/signature_verification.rb
-pub async fn validate_signature(req: &Request) -> Result<ValidationResult> {
+pub async fn validate_signature(
+    req: &Request,
+    me_account: MAccount,
+) -> Result<ValidationResult> {
+    // Store me_account and actor_account at global space.
+    // match ME_ACCOUNT.set(me_account.to_owned()) {
+    //     Ok(_) => {
+    //         tracing::trace!("ME_ACCOUNT set")
+    //     }
+    //     Err(e) => {
+    //         tracing::error!("ME_ACCOUNT sentting error {e:?}")
+    //     }
+    // };
+
     let sig_header = req.header("Signature").unwrap().as_str().unwrap();
     let hostname = req
         .header("Host")
@@ -136,7 +153,7 @@ pub async fn validate_signature(req: &Request) -> Result<ValidationResult> {
 
     // If this sender_actor_url is already exist,
     // SQL CALL. Keep eyes on it. SQL call is expensive as of August 2024.
-    tracing::trace!("SQL CALL to get sender_actor_url");
+    // Todo: Reduce this sql call if possible.
     let sender_account = match MAccount::is_actor_exist(
         sender_actor_url.to_owned().to_string(),
     )
@@ -144,7 +161,6 @@ pub async fn validate_signature(req: &Request) -> Result<ValidationResult> {
     {
         Some(maccount) => maccount,
         None => {
-            tracing::trace!("HTTP Request to get an actor");
             let sender_actor = sender_actor_url.actor().await?.clone();
             let site_domain = Setting::domain().await;
             let sender_domain = sender_actor_url
@@ -218,6 +234,14 @@ pub async fn validate_signature(req: &Request) -> Result<ValidationResult> {
     let valid_date = true;
 
     if valid_key && valid_date {
+        match ACTOR_ACCOUNT.set(sender_account.to_owned()) {
+            Ok(_) => {
+                tracing::trace!("ACTOR_ACCOUNT loaded at global space")
+            }
+            Err(e) => {
+                tracing::error!("ACTOR_ACCOUNT sentting error {e:?}")
+            }
+        };
         ActivityLog::put(
             sig_header.to_string(),
             hostname.to_string(),
@@ -227,7 +251,6 @@ pub async fn validate_signature(req: &Request) -> Result<ValidationResult> {
         )
         .await
         .unwrap();
-
         return Ok(ValidationResult::Valid(sender_account));
     }
 
@@ -280,13 +303,13 @@ where
 
     let request_body = serde_json::to_string(&activity).unwrap();
 
-    // tracing::debug!("me -> {me}");
-    // tracing::debug!("my_actor -> {my_actor}");
-    // tracing::debug!("recipient_actor -> {recipient_actor}");
-    // tracing::debug!("recipient_server -> {recipient_server}");
-    // tracing::debug!("private_key_pem -> {private_key_pem}");
-    // tracing::debug!("date -> {date}");
-    // tracing::debug!("content_type -> {content_type}");
+    // tracing::trace!("me -> {me}");
+    // tracing::trace!("my_actor -> {my_actor}");
+    // tracing::trace!("recipient_actor -> {recipient_actor}");
+    // tracing::trace!("recipient_server -> {recipient_server}");
+    // tracing::trace!("private_key_pem -> {private_key_pem}");
+    // tracing::trace!("date -> {date}");
+    // tracing::trace!("content_type -> {content_type}");
 
     let mut hasher = Sha256::new();
     hasher.update(request_body.clone());
@@ -367,21 +390,12 @@ where
 
 pub async fn get_fediverse(
     request_url: Url,
-    given_sender: Option<MAccount>,
+    sender: MAccount,
 ) -> Result<Response> {
     tracing::trace!(
         "--- HTTP GET Request with Signing ({}) ---",
         request_url.to_string()
     );
-
-    let sender = match given_sender {
-        Some(a) => a,
-        None => {
-            let s = Store::open("mem")?;
-            let (d, _) = mstor::gets::<MAccount>(&s, "me")?;
-            d
-        }
-    };
 
     let sender_priv_key = sender.private_key.unwrap();
     //let date = get_current_time_for_signing();
@@ -390,7 +404,7 @@ pub async fn get_fediverse(
     let content_type = "application/ld+json; profile=\"https://www.w3.org/ns/activitystreams\"";
 
     let signature = create_get_signrature(
-        sender.actor_url.to_string().as_str(),
+        sender.actor_url.to_string().as_str(), // Todo: Polish this
         &sender_priv_key,
         &request_url.to_string(),
         &date,
@@ -405,6 +419,7 @@ pub async fn get_fediverse(
         .build();
 
     let response: Response = spin_sdk::http::send(request).await.unwrap();
+
     match response.status() {
         200 => {}
         410 =>

@@ -24,7 +24,7 @@ use crate::mastodon::activity_log::ActivityLog;
 use crate::mastodon::follow::Follow as MFollow;
 use crate::mastodon::post_activity;
 use crate::mastodon::setting::Setting;
-use crate::mstor;
+use crate::mastodon::{ACTOR_ACCOUNT, ME_ACCOUNT};
 
 /*
 {
@@ -52,6 +52,7 @@ impl Accept {
         let id = format!("https://{}/{}", Setting::domain().await, uuid);
 
         let accept_object = Activity::new(
+            true,
             id,
             ActivityType::Accept,
             actor,
@@ -116,21 +117,14 @@ impl Execute for Accept {
             }
         };
 
-        let store = Store::open("mem")?;
+        let subj_account = ME_ACCOUNT.get().unwrap().to_owned();
+        let subj_account_id = subj_account.uid;
 
-        let subj = ActorUrl::new(
-            self.0.get("actor").unwrap().as_str().unwrap().to_string(),
-        )
-        .unwrap();
         let obj = ActorUrl::new(
             self.0.get("object").unwrap().as_str().unwrap().to_string(),
         )
         .unwrap();
         let obj_id = self.0.get("id").unwrap().as_str().unwrap().to_string();
-
-        let subj_account = MAccount::get(subj).await?;
-        let subj_account_id = subj_account.uid;
-
         let obj_account = MAccount::get(obj).await?;
         let obj_account_id = obj_account.uid;
 

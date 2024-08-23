@@ -14,6 +14,7 @@ use url::Url;
 
 use crate::http_response::HttpResponse;
 use sparrow::mastodon::account::Account as MAccount;
+use sparrow::mastodon::ME_ACCOUNT;
 
 pub async fn request(req: Request, params: Params) -> Result<Response> {
     match req.method() {
@@ -35,8 +36,7 @@ pub async fn get(req: Request, _params: Params) -> Result<Response> {
         req.path_and_query().unwrap()
     );
 
-    //let auth = req.header("Authorization").unwrap().as_str().unwrap();
-    //tracing::debug!(auth);
+    let me_account = ME_ACCOUNT.get().unwrap().to_owned();
 
     // https://docs.joinmastodon.org/methods/search/#query-parameters
     let path_and_query = req.path_and_query().unwrap();

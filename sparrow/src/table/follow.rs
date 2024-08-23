@@ -8,9 +8,12 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 use crate::mastodon::account::uid::Uid as AccountUid;
+use crate::table::account::Account as TAccount;
 
 /// follow table in Database
-#[derive(Serialize, Deserialize, Default, Clone, Debug, PartialEq, sqlx::FromRow)]
+#[derive(
+    Serialize, Deserialize, Default, Clone, Debug, PartialEq, sqlx::FromRow,
+)]
 pub struct Follow {
     pub rowid: Option<i64>,
     pub uid: Option<String>,
@@ -28,7 +31,11 @@ impl Follow {
     /// do follow action.  
     /// Record follow in database table.  
     /// Send follo action ok signal to sender.  
-    pub async fn new(uri: String, sub: AccountUid, obj: AccountUid) -> Result<()> {
+    pub async fn new(
+        uri: String,
+        sub: AccountUid,
+        obj: AccountUid,
+    ) -> Result<()> {
         let sqlx_conn = dbcon::open_default()?;
 
         // if follow is already exist, do update or instert
@@ -59,7 +66,11 @@ impl Follow {
         Ok(())
     }
 
-    pub async fn update(uri: String, sub: AccountUid, obj: AccountUid) -> Result<()> {
+    pub async fn update(
+        uri: String,
+        sub: AccountUid,
+        obj: AccountUid,
+    ) -> Result<()> {
         let sqlx_conn = dbcon::open_default()?;
 
         // if follow is already exist, do update or instert
@@ -92,39 +103,43 @@ impl Follow {
     /// Do NOT use this
     pub async fn all() -> Result<Vec<Follow>> {
         let sqlx_conn = dbcon::open_default()?;
-        let follows: Vec<Follow> = sqlx::query_as("SELECT rowid, * FROM follow")
-            .fetch_all(&sqlx_conn)
-            .await?;
+        let follows: Vec<Follow> =
+            sqlx::query_as("SELECT rowid, * FROM follow")
+                .fetch_all(&sqlx_conn)
+                .await?;
         Ok(follows)
     }
 
-    pub async fn follower_count(account_uid: String) -> Result<u64> {
+    pub async fn follower_count(taccount: TAccount) -> Result<u64> {
         let sqlx_conn = dbcon::open_default()?;
-        let follows: (i64,) =
-            sqlx::query_as("SELECT count(*) FROM follow WHERE target_account_uid = ?")
-                .bind(account_uid)
-                .fetch_one(&sqlx_conn)
-                .await?;
+        let follows: (i64,) = sqlx::query_as(
+            "SELECT count(*) FROM follow WHERE target_account_uid = ?",
+        )
+        .bind(taccount.uid)
+        .fetch_one(&sqlx_conn)
+        .await?;
         Ok(follows.0 as u64)
     }
 
-    pub async fn following_count(account_uid: String) -> Result<u64> {
+    pub async fn following_count(taccount: TAccount) -> Result<u64> {
         let sqlx_conn = dbcon::open_default()?;
-        let followings: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) AS COUNT FROM follow WHERE account_uid = ?")
-                .bind(account_uid)
-                .fetch_one(&sqlx_conn)
-                .await?;
+        let followings: (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) AS COUNT FROM follow WHERE account_uid = ?",
+        )
+        .bind(taccount.uid)
+        .fetch_one(&sqlx_conn)
+        .await?;
         Ok(followings.0 as u64)
     }
 
     pub async fn followers(account_uuid: String) -> Result<Vec<Self>> {
         let sqlx_conn = dbcon::open_default()?;
-        let followings: Vec<Follow> =
-            sqlx::query_as("SELECT rowid, * FROM follow WHERE target_account_uid = ?")
-                .bind(account_uuid)
-                .fetch_all(&sqlx_conn)
-                .await?;
+        let followings: Vec<Follow> = sqlx::query_as(
+            "SELECT rowid, * FROM follow WHERE target_account_uid = ?",
+        )
+        .bind(account_uuid)
+        .fetch_all(&sqlx_conn)
+        .await?;
         Ok(followings)
     }
 
@@ -193,6 +208,18 @@ impl Follow {
         Ok(0)
     }
 
+    pub async fn record(a: String, b: String) -> Result<Option<Self>> {
+        let sqlx_conn = dbcon::open_default()?;
+        let sql_template =
+            "SELECT rowid, * FROM follow WHERE account_uid = ? AND target_account_uid = ?";
+        let record: Vec<Self> = sqlx::query_as(sql_template)
+            .bind(a.clone())
+            .bind(b.clone())
+            .fetch_all(&sqlx_conn)
+            .await?;
+        Ok(record.last().map(|x| x.to_owned()))
+    }
+
     pub async fn unfollow(uri: String) -> Result<()> {
         let sqlx_conn = dbcon::open_default()?;
         let a = sqlx::query("DELETE FROM follow WHERE uri = ?")
@@ -214,7 +241,8 @@ pub trait Get<T> {
 #[async_trait]
 impl Get<(String, String)> for Follow {
     async fn get((key, val): (String, String)) -> Result<Vec<Follow>> {
-        let query_template = format!("SELECT rowid, * FROM follow WHERE {} = ?", key);
+        let query_template =
+            format!("SELECT rowid, * FROM follow WHERE {} = ?", key);
         let sqlx_conn = dbcon::open_default()?;
         let follows = sqlx::query_as(query_template.as_str())
             .bind(val)

@@ -23,5 +23,8 @@ pub mod table;
 /// My utils
 pub mod utils;
 
-pub mod mstor;
 pub mod webfinger;
+
+use once_cell::sync::OnceCell;
+use uuid::Uuid;
+pub static REQUEST_UID: OnceCell<Uuid> = OnceCell::new();

@@ -4,7 +4,7 @@ use std::fmt;
 use std::fmt::Debug;
 
 use anyhow::{Error, Result};
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json::Value;
 use uuid::Uuid;
@@ -15,16 +15,16 @@ use crate::activitystream::activity::ActivityType;
 use crate::activitystream::default_context;
 use crate::activitystream::remove_context;
 use crate::activitystream::Execute;
-use crate::mastodon;
 use crate::mastodon::account::actor_url::ActorUrl;
 use crate::mastodon::account::Account as MAccount;
 use crate::mastodon::account::Get as _;
 use crate::mastodon::follow::Follow as MFollow;
 use crate::mastodon::setting::Setting;
+use crate::mastodon::ME_ACCOUNT;
 
 /// Follow actor object.  
 #[derive(Deserialize, Default, PartialEq, Eq, Clone)]
-pub struct Follow(String);
+pub struct Follow(pub String);
 
 impl Serialize for Follow {
     fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
@@ -46,6 +46,7 @@ impl Follow {
         let follow = Follow(object);
 
         let follow_object = Activity::new(
+            true,
             id,
             ActivityType::Follow,
             actor,
@@ -75,7 +76,7 @@ impl Follow {
         MFollow::new(obj_id.clone(), subj_account_id, obj_account_id).await?;
 
         let follow_activity = Activity {
-            context: default_context(),
+            context: Some(default_context()),
             id: obj_id,
             activity_type: ActivityType::Follow,
             actor: activity.actor,
@@ -108,14 +109,11 @@ impl Execute for Follow {
 
         let activity_id = activity_val.get("id").unwrap().to_string();
 
-        // Insert into DB table
-        let subj = ActorUrl::new(actor.to_owned())?;
-        let obj = ActorUrl::new(self.0.to_string()).unwrap();
-        let obj_id = obj.to_string();
-
-        let subj_account = MAccount::get(subj).await?;
+        let subj_account = ME_ACCOUNT.get().unwrap().to_owned(); // Todo: Error checking
         let subj_account_id = subj_account.uid.to_owned();
 
+        let obj = ActorUrl::new(self.0.to_string()).unwrap();
+        let obj_id = obj.to_string();
         let obj_account = MAccount::get(obj).await?;
         let obj_account_id = obj_account.uid;
 
@@ -135,6 +133,7 @@ impl Execute for Follow {
         let to = None;
         let cc = None;
         let accept_activity = Activity::new(
+            true,
             format!(
                 "https://{}#accepts/follows/{}",
                 my_actor_url, subj_account_id

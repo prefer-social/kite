@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 use sha2::digest::MacError;
+use std::convert::TryFrom;
 
-use crate::mastodon::account::actor_url::ActorUrl;
 use crate::mastodon::account::uid::Uid as AccountUid;
-use crate::mastodon::account::uri::Uri as AccountUri;
 use crate::mastodon::account::Account as MAccount;
 use crate::mastodon::account::Get as _;
+use crate::table::account::Account as TAccount;
 use crate::table::follow::Follow as TFollow;
 use crate::table::follow::Get as _;
 use anyhow::Result;
@@ -18,7 +18,7 @@ pub struct Follow {
     pub created_at: Option<i64>,
     pub updated_at: Option<i64>,
     pub account_uid: Option<String>,
-    pub target_account_uid: Option<i64>,
+    pub target_account_uid: Option<String>,
     pub show_reblogs: Option<bool>,
     pub uri: Option<String>,
     pub notify: Option<bool>,
@@ -36,21 +36,23 @@ pub enum FollowRelation {
 }
 
 impl Follow {
-    pub async fn new(uri: String, sub: AccountUid, obj: AccountUid) -> Result<()> {
+    pub async fn new(
+        uri: String,
+        sub: AccountUid,
+        obj: AccountUid,
+    ) -> Result<()> {
         match Self::is_exist(sub.to_owned(), obj.to_owned()).await? {
             true => TFollow::update(uri, sub, obj).await,
             false => TFollow::new(uri, sub, obj).await,
         }
     }
 
-    pub async fn follower_count(account_uri: AccountUri) -> Result<u64> {
-        let account_uid = account_uri.account_uid().await.unwrap().to_string();
-        TFollow::follower_count(account_uid).await
+    pub async fn follower_count(taccount: TAccount) -> Result<u64> {
+        TFollow::follower_count(taccount).await
     }
 
-    pub async fn following_count(account_uri: AccountUri) -> Result<u64> {
-        let a = account_uri.account_uid().await.unwrap().to_string();
-        TFollow::following_count(a).await
+    pub async fn following_count(taccount: TAccount) -> Result<u64> {
+        TFollow::following_count(taccount).await
     }
 
     //pub async fn relations(a: MAccount, b: MAccount) -> Result<Vec<Follow>> {}
@@ -62,9 +64,7 @@ impl Follow {
 
         tracing::debug!("{c} - {d}");
 
-        let follow_relationship = TFollow::relation(a.uid.to_string(), b.uid.to_string())
-            .await
-            .unwrap();
+        let follow_relationship = TFollow::relation(c, d).await.unwrap();
 
         return match follow_relationship {
             0 => FollowRelation::None,
@@ -83,7 +83,8 @@ impl Follow {
         let s = MAccount::get(sub).await?;
         let o = MAccount::get(obj).await?;
 
-        let relation = TFollow::relation(s.uid.to_string(), o.uid.to_string()).await?;
+        let relation =
+            TFollow::relation(s.uid.to_string(), o.uid.to_string()).await?;
 
         tracing::debug!("-----------------------------> {}", relation);
         Ok(relation == 1usize || relation == 3usize)
@@ -92,7 +93,8 @@ impl Follow {
     pub async fn get_follows(id: String) -> Result<Vec<MAccount>> {
         let mut maccounts: Vec<MAccount> = Vec::new();
 
-        let followers = TFollow::get(("target_account_uid".to_string(), id)).await?;
+        let followers =
+            TFollow::get(("target_account_uid".to_string(), id)).await?;
         for f in followers.iter() {
             let account_id = f.to_owned().account_uid.unwrap();
             let account_uid = AccountUid(account_id);
@@ -113,5 +115,39 @@ impl Follow {
             maccounts.push(account);
         }
         Ok(maccounts)
+    }
+
+    pub async fn follow_record(
+        a: &MAccount,
+        b: &MAccount,
+    ) -> Result<Option<Self>> {
+        let c = a.uid.to_string();
+        let d = b.uid.to_string();
+        match TFollow::record(c, d).await? {
+            None => Ok(None),
+            Some(a) => {
+                let b = Self::try_from(a)?;
+                Ok(Some(b))
+            }
+        }
+    }
+}
+
+impl TryFrom<TFollow> for Follow {
+    type Error = anyhow::Error;
+
+    fn try_from(tf: TFollow) -> Result<Follow> {
+        Ok(Follow {
+            rowid: tf.rowid,
+            uid: tf.uid,
+            created_at: tf.created_at,
+            updated_at: tf.updated_at,
+            account_uid: tf.account_uid,
+            target_account_uid: Some(tf.target_account_uid.unwrap()),
+            show_reblogs: tf.show_reblogs,
+            uri: tf.uri,
+            notify: tf.notify,
+            languages: tf.languages,
+        })
     }
 }

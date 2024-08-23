@@ -48,14 +48,17 @@ pub fn get_current_epoch() -> i64 {
 
 pub fn convert_epoch_to_iso_8601(epoch: i64) -> String {
     let naive = DateTime::from_timestamp(epoch, 0).unwrap();
-    let datetime: DateTime<Utc> = DateTime::from_naive_utc_and_offset(naive.naive_utc(), Utc);
+    let datetime: DateTime<Utc> =
+        DateTime::from_naive_utc_and_offset(naive.naive_utc(), Utc);
     datetime.format("%Y-%m-%dT%H:%M:%SZ").to_string()
 }
 
 // debug tool
-pub fn see_headers<'a>(headers: impl Iterator<Item = (&'a str, &'a HeaderValue)>) {
+pub fn see_headers<'a>(
+    headers: impl Iterator<Item = (&'a str, &'a HeaderValue)>,
+) {
     for header in headers {
-        tracing::debug!("{header:?}");
+        tracing::trace!("{header:?}");
     }
 }
 
