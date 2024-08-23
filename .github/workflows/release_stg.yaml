@@ -43,7 +43,7 @@ jobs:
       - name: Render Checksum Template
         uses: recih/template-render-action@v1.0.2
         with:
-          template-file: "checksums.template"
+          template-file: "checksums.txt.template"
           engine: mustache
           output-file: checksums-${{ env.BUILD_VERSION }}.txt
           glob: false

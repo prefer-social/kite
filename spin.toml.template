@@ -53,9 +53,7 @@ component = "api"
 [component.api]
 source = { url = "https://github.com/prefer-social/kite/releases/download/stg-seungjin-{{env.RUN_NUMBER}}/api.wasm", digest = "sha256:{{env.API_CHECKSUM}}" }
 allowed_outbound_hosts = [
-    "https://*:*",
-    "redis://{{ redis_host }}:{{ redis_port }}",
-    "rediss://{{ redis_host }}:{{ redis_port }}",
+    "https://*:*"
 ]
 sqlite_databases = ["default"]
 key_value_stores = ["mem"]

@@ -2,7 +2,7 @@ FROM scratch
 COPY spin.toml /spin.toml
 COPY runtime-config.toml /runtime-config.toml
 COPY target/wasm32-wasi/release/*.wasm /wasm32-wasi/
-ENTRYPOINT ["/spin.prod.toml"]
+ENTRYPOINT ["/spin.toml"]
 
 
 
