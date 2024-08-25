@@ -88,7 +88,7 @@ jobs:
           generate_release_notes: true
           tag_name: ${{ env.BUILD_NAME }}
           make_latest: false
-          target_commitish: $GITHUB_SHA
+          target_commitish: dev-release
           files: |
             target/wasm32-wasi/release/api.wasm
             target/wasm32-wasi/release/followers.wasm
