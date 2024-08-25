@@ -72,6 +72,14 @@ jobs:
           output-file: Containerfile
           glob: false
 
+      - name: Render Compose.yaml Template
+        uses: recih/template-render-action@v1.0.2
+        with:
+          template-file: "Compose.yaml.template"
+          engine: mustache
+          output-file: Compose.yaml
+          glob: false
+
       - name: Upload assets
         uses: softprops/action-gh-release@v2.0.8
         with:

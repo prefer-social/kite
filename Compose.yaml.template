@@ -1,6 +1,6 @@
 services:
   app:
-    image: ghcr.io/prefer-social/kite:latest
+    image: ghcr.io/prefer-social/kite:{{env.BUILD_NAME}}
     build:
       context: .
       ssh:
