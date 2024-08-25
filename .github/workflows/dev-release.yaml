@@ -69,7 +69,7 @@ jobs:
         with:
           template-file: "Containerfile.template"
           engine: mustache
-          output-file: Dockerfile
+          output-file: Containerfile
           glob: false
 
       - name: Create release
