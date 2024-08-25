@@ -5,7 +5,7 @@ services:
       context: .
       ssh:
         - default
-      dockerfile: app.Containerfile
+      dockerfile: Containerfile
       platforms:
         - "wasi/wasm32"
     platform: wasi/wasm32

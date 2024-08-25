@@ -64,6 +64,14 @@ jobs:
           output-file: spin.toml
           glob: false
 
+      - name: Render Containerfile Template
+        uses: recih/template-render-action@v1.0.2
+        with:
+          template-file: "Containerfile.template"
+          engine: mustache
+          output-file: Dockerfile
+          glob: false
+
       - name: Create release
         uses: softprops/action-gh-release@v2.0.8
         with:
@@ -83,3 +91,8 @@ jobs:
             checksums-${{ env.BUILD_VERSION }}.txt
             runtime-config.toml
             spin.toml
+            Containerfile
+            Compose.yaml
+
+      - name: Build and Push Container to ghcr.io
+        uses: GlueOps/github-actions-build-push-containers@v0.3.7

@@ -3,12 +3,12 @@ WORKDIR /work
 RUN apt update -y
 RUN apt-get install -y wget
 RUN wget -c https://github.com/fermyon/spin/releases/download/canary/spin-canary-static-linux-amd64.tar.gz -O - | tar -xz
+RUN wget https://github.com/prefer-social/kite/releases/download/{{env.BUILD_NAME}}/spin.toml 
 
-#FROM debian:stable-slim
 FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /work/spin /usr/bin/spin
-COPY spin.toml spin.toml
+COPY --from=builder /work/spin.toml spin.toml
 COPY runtime-config.toml runtime-config.toml
 CMD ["spin", "up", "--runtime-config-file", "runtime-config.toml"]
 
