@@ -51,7 +51,7 @@ jobs:
       - name: Render Checksum Template
         uses: recih/template-render-action@v1.0.2
         with:
-          template-file: ".github/workfolows/templates/checksums.txt.template"
+          template-file: ".github/workflows/templates/checksums.txt.template"
           engine: mustache
           output-file: checksums-${{ env.BUILD_VERSION }}.txt
           glob: false
@@ -59,7 +59,7 @@ jobs:
       - name: Render Spin Template
         uses: recih/template-render-action@v1.0.2
         with:
-          template-file: ".github/workfolows/templates/spin.toml.template"
+          template-file: ".github/workflows/templates/spin.toml.template"
           engine: mustache
           output-file: spin.toml
           glob: false
@@ -67,7 +67,7 @@ jobs:
       - name: Render Containerfile Template
         uses: recih/template-render-action@v1.0.2
         with:
-          template-file: ".github/workfolows/templates/Containerfile.template"
+          template-file: ".github/workflows/templates/Containerfile.template"
           engine: mustache
           output-file: Containerfile
           glob: false
@@ -75,7 +75,7 @@ jobs:
       - name: Render Compose.yaml Template
         uses: recih/template-render-action@v1.0.2
         with:
-          template-file: ".github/workfolows/templates/Compose.yaml.template"
+          template-file: ".github/workflows/templates/Compose.yaml.template"
           engine: mustache
           output-file: Compose.yaml
           glob: false
