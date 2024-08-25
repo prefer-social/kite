@@ -15,7 +15,7 @@ jobs:
       - name: set the build version (git hash)
         run: echo "BUILD_VERSION=$(git rev-parse --short $GITHUB_SHA)" >> $GITHUB_ENV
 
-      - name: set the build version (git hash)
+      - name: set the build name (prefix 'dev' with BUILD_VERSION)
         run: echo "BUILD_NAME=dev-$BUILD_VERSION" >> $GITHUB_ENV
 
       - name: set the release version (tag)
