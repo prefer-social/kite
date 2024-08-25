@@ -72,7 +72,13 @@ jobs:
           output-file: Containerfile
           glob: false
 
-      - name: Create release
+      - name: Build and Push Container to ghcr.io
+        uses: GlueOps/github-actions-build-push-containers@v0.3.7
+        with:
+          dockerfile: Containerfile
+          tags: ${{ env.BUILD_NAME }}
+
+      - name: Upload assets
         uses: softprops/action-gh-release@v2.0.8
         with:
           fail_on_unmatched_files: true
@@ -93,8 +99,3 @@ jobs:
             spin.toml
             Containerfile
             Compose.yaml
-
-      - name: Build and Push Container to ghcr.io
-        uses: GlueOps/github-actions-build-push-containers@v0.3.7
-        with:
-          dockerfile: Containerfile
