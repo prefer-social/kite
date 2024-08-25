@@ -20,7 +20,7 @@ route = "/..."
 component = "web"
 
 [component.web]
-source = { url = "https://github.com/prefer-social/kite/releases/download/{{env.BLUID_VERSION}}/web.wasm", digest = "sha256:{{env.WEB_CHECKSUM}}" }
+source = { url = "https://github.com/prefer-social/kite/releases/download/{{env.BUILD_VERSION}}/web.wasm", digest = "sha256:{{env.WEB_CHECKSUM}}" }
 sqlite_databases = ["default"]
 key_value_stores = ["mem"]
 allowed_outbound_hosts = ["https://*:*", "http://*:*"]
@@ -42,7 +42,7 @@ route = "/.well-known/..."
 component = "well-known"
 
 [component.well-known]
-source = { url = "https://github.com/prefer-social/kite/releases/download/{{env.BLUID_VERSION}}/well_known.wasm", digest = "sha256:{{env.WELLKNOWN_CHECKSUM}}" }
+source = { url = "https://github.com/prefer-social/kite/releases/download/{{env.BUILD_VERSION}}/well_known.wasm", digest = "sha256:{{env.WELLKNOWN_CHECKSUM}}" }
 sqlite_databases = ["default"]
 allowed_outbound_hosts = []
 
@@ -51,7 +51,7 @@ route = "/api/..."
 component = "api"
 
 [component.api]
-source = { url = "https://github.com/prefer-social/kite/releases/download/{{env.BLUID_VERSION}}/api.wasm", digest = "sha256:{{env.API_CHECKSUM}}" }
+source = { url = "https://github.com/prefer-social/kite/releases/download/{{env.BUILD_VERSION}}/api.wasm", digest = "sha256:{{env.API_CHECKSUM}}" }
 allowed_outbound_hosts = [
     "https://*:*"
 ]
@@ -72,7 +72,7 @@ route = "/oauth/..."
 component = "oauth"
 
 [component.oauth]
-source = { url = "https://github.com/prefer-social/kite/releases/download/{{env.BLUID_VERSION}}/oauth.wasm", digest = "sha256:{{env.OAUTH_CHECKSUM}}" }
+source = { url = "https://github.com/prefer-social/kite/releases/download/{{env.BUILD_VERSION}}/oauth.wasm", digest = "sha256:{{env.OAUTH_CHECKSUM}}" }
 allowed_outbound_hosts = ["https://*:*"]
 sqlite_databases = ["default"]
 key_value_stores = ["mem"]
@@ -84,7 +84,7 @@ route = "/inbox/..."
 component = "inbox"
 
 [component.inbox]
-source = { url = "https://github.com/prefer-social/kite/releases/download/{{env.BLUID_VERSION}}/inbox.wasm", digest = "sha256:{{env.INBOX_CHECKSUM}}" }
+source = { url = "https://github.com/prefer-social/kite/releases/download/{{env.BUILD_VERSION}}/inbox.wasm", digest = "sha256:{{env.INBOX_CHECKSUM}}" }
 sqlite_databases = ["default"]
 key_value_stores = ["mem"]
 allowed_outbound_hosts = ["https://*:*", "http://*:*"]
@@ -94,7 +94,7 @@ route = "/following/..."
 component = "following"
 
 [component.following]
-source = { url = "https://github.com/prefer-social/kite/releases/download/{{env.BLUID_VERSION}}/following.wasm", digest = "sha256:{{env.FOLLOWING_CHECKSUM}}" }
+source = { url = "https://github.com/prefer-social/kite/releases/download/{{env.BUILD_VERSION}}/following.wasm", digest = "sha256:{{env.FOLLOWING_CHECKSUM}}" }
 sqlite_databases = ["default"]
 key_value_stores = ["mem"]
 allowed_outbound_hosts = ["https://*:*", "http://*:*"]
@@ -104,7 +104,7 @@ route = "/followers/..."
 component = "followers"
 
 [component.followers]
-source = { url = "https://github.com/prefer-social/kite/releases/download/{{env.BLUID_VERSION}}/followers.wasm", digest = "sha256:{{env.FOLLOWERS_CHECKSUM}}" }
+source = { url = "https://github.com/prefer-social/kite/releases/download/{{env.BUILD_VERSION}}/followers.wasm", digest = "sha256:{{env.FOLLOWERS_CHECKSUM}}" }
 sqlite_databases = ["default"]
 key_value_stores = ["mem"]
 allowed_outbound_hosts = ["https://*:*", "http://*:*"]
@@ -114,7 +114,7 @@ route = "/outbox/..."
 component = "outbox"
 
 [component.outbox]
-source = { url = "https://github.com/prefer-social/kite/releases/download/{{env.BLUID_VERSION}}/outbox.wasm", digest = "sha256:{{env.OUTBOX_CHECKSUM}}" }
+source = { url = "https://github.com/prefer-social/kite/releases/download/{{env.BUILD_VERSION}}/outbox.wasm", digest = "sha256:{{env.OUTBOX_CHECKSUM}}" }
 sqlite_databases = ["default"]
 key_value_stores = ["mem"]
 allowed_outbound_hosts = []
