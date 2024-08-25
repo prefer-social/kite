@@ -98,4 +98,4 @@ jobs:
         run: docker build . --file Containerfile --tag ghcr.io/prefer-social/kite:${{ env.BUILD_NAME }}
 
       - name: Push the Docker image with version number
-        run: docker push ghcr.io/prefer-social/kite:${{ env.BUILD_NAME }}
+        run: docker image push ghcr.io/prefer-social/kite:${{ env.BUILD_NAME }}
