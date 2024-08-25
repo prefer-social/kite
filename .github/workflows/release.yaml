@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*"
+      - "dev*"
 jobs:
   assets:
     name: Build and release assets
