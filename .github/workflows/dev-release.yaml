@@ -3,7 +3,7 @@ name: DevRelease
 on:
   push:
     branches:
-      - "dev-build"
+      - "dev-release"
 
 jobs:
   assets:
