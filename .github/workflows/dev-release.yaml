@@ -1,9 +1,9 @@
-name: Release
+name: DevRelease
 
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - "dev-build"
 
 jobs:
   assets:
@@ -66,7 +66,7 @@ jobs:
         with:
           fail_on_unmatched_files: true
           generate_release_notes: true
-          #tag_name: ${{ env.BUILD_VERSION }}
+          tag_name: dev-${{ env.BUILD_VERSION }}
           make_latest: true
           files: |
             target/wasm32-wasi/release/api.wasm
