@@ -5,7 +5,8 @@ RUN apt-get install -y wget
 RUN wget -c https://github.com/fermyon/spin/releases/download/canary/spin-canary-static-linux-amd64.tar.gz -O - | tar -xz
 RUN wget https://github.com/prefer-social/kite/releases/download/{{env.BUILD_NAME}}/spin.toml 
 
-FROM alpine:latest
+# For now, it ships with spin binary.
+FROM debian:stable-slim
 WORKDIR /app
 COPY --from=builder /work/spin /usr/bin/spin
 COPY --from=builder /work/spin.toml spin.toml
