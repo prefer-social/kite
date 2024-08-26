@@ -85,11 +85,10 @@ jobs:
         with:
           prerelease: true
           fail_on_unmatched_files: true
-          generate_release_notes: true
+          generate_release_notes: false
           tag_name: ${{ env.BUILD_NAME }}
           make_latest: false
           target_commitish: dev-release
-          generate_release_notes: false
           files: |
             target/wasm32-wasi/release/api.wasm
             target/wasm32-wasi/release/followers.wasm
