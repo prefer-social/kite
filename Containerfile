@@ -15,6 +15,7 @@ COPY --from=builder /usr/lib/x86_64-linux-gnu/libssl.so.3 /usr/lib/x86_64-linux-
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libcrypto.so.3 /usr/lib/x86_64-linux-gnu/libcrypto.so.3
 COPY spin.toml spin.toml
 COPY runtime-config.toml runtime-config.toml
-CMD ["spin", "up", "--runtime-config-file", "runtime-config.toml"]
+EXPOSE 3000
+CMD ["spin", "up", "--runtime-config-file", "runtime-config.toml", "--listen", "0.0.0.0:3000"]
 
 

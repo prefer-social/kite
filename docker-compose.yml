@@ -13,8 +13,10 @@ services:
       SPIN_VARIABLE_S3_BUCKET: bucket_name
       SPIN_VARIABLE_S3_ENDPOINT: s3endpoint
       SPIN_VARIABLE_S3_REGION: s3region
+      APP_LOG_LEVEL: DEBUG
+    command: ./spin up --runtime-config-file runtime-config.toml --listen 0.0.0.0:3000
     volumes:
       - .:/app:z
     ports:
-      - 3000:80
+      - 3001:3000
 
