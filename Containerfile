@@ -1,13 +1,11 @@
-FROM debian:stable-slim as builder
+FROM debian:testing-slim as builder
 WORKDIR /work
-RUN apt update -y
+RUN apt-get update -y
+RUN apt-get upgrade -y
 RUN apt-get install -y wget
-# Copying from fermyon repo is faster than I compile here :-)
-RUN wget -c https://github.com/fermyon/spin/releases/download/canary/spin-canary-static-linux-amd64.tar.gz -O - | tar -xz
-RUN wget https://github.com/prefer-social/kite/releases/download/{{env.BUILD_NAME}}/spin.toml 
 
-# For now, it ships with spin binary.
-FROM debian:stable-slim
+# For local generated image, it does not ship with Spin binary. 
+FROM debian:testing-slim
 WORKDIR /app
 COPY --from=builder /etc/ca-certificates.conf /etc/ca-certificates.conf
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
@@ -15,8 +13,7 @@ COPY --from=builder /usr/share/ca-certificates /usr/share/ca-certificates
 COPY --from=builder /usr/local/share/ca-certificates /usr/local/share/ca-certificates
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libssl.so.3 /usr/lib/x86_64-linux-gnu/libssl.so.3
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libcrypto.so.3 /usr/lib/x86_64-linux-gnu/libcrypto.so.3
-COPY --from=builder /work/spin /usr/bin/spin
-COPY --from=builder /work/spin.toml spin.toml
+COPY spin.toml spin.toml
 COPY runtime-config.toml runtime-config.toml
 CMD ["spin", "up", "--runtime-config-file", "runtime-config.toml"]
 
