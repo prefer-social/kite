@@ -85,26 +85,22 @@ impl Instance {
     /// Get method for Instance.
     pub async fn get() -> Instance {
         let settings = crate::table::setting::Setting::all().await.unwrap();
-        let username =
-            settings.get("site_contact_username").unwrap().to_owned();
+        let username = settings.get("site_contact_username").unwrap().to_owned();
         let account_uri: AccountUri = AccountUri::new(username, None);
         let maccount = MAccount::get(account_uri).await.unwrap();
 
         Instance {
             uri: variables::get("domain").unwrap(),
             title: settings.get("site_title").unwrap().to_owned(),
-            short_description: settings
-                .get("site_short_description")
-                .unwrap()
-                .to_owned(),
+            short_description: settings.get("site_short_description").unwrap().to_owned(),
             description: "".to_string(),
             email: settings.get("site_contact_email").unwrap().to_owned(),
             version: settings.get("site_version").unwrap().to_string(),
             urls: None,
             stats: Some(Stats {
                 user_count: User::user_count().await.unwrap(),
-                status_count: 0,
-                domain_count: 1,
+                status_count: 0, // Todo:
+                domain_count: 1, // Todo:
             }),
             contact_account: Some(maccount),
             ..Default::default()

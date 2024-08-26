@@ -29,8 +29,7 @@ async fn handle_api(req: Request) -> Result<impl IntoResponse> {
         .with_thread_ids(false)
         .with_thread_names(false)
         .finish();
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("setting default subscriber failed");
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     tracing::debug!(
         "<---------- ({}) {} ({}) --------->",
@@ -50,6 +49,12 @@ async fn handle_api(req: Request) -> Result<impl IntoResponse> {
 
     // Check req auth and if it valid. set ME_ACCOUNT
     // Also authorization process.
+
+    // Bug: /api/v1/instance does not come with Auth.
+
+
+    // Todo: BUG!!!! some api request comes with no auth, no me account!
+    Bug!!! 
     let me_account = match Authentication::verify(&req).await {
         Some(a) => a,
         None => return HttpResponse::forbidden(),
