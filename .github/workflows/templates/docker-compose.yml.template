@@ -1,0 +1,17 @@
+services:
+  prefer-social:
+    image: ghcr.io/prefer-social/kite:{{env.BUILD_NAME}}
+    #image: ghcr.io/prefer-social/kite:dev-latest
+    environment:
+      SPIN_VARIABLE_DOMAIN: you.prefer.social      
+      SPIN_VARIABLE_S3_ACCESS_KEY: s3accesskey
+      SPIN_VARIABLE_S3_SECRET_KEY: s3secretkey
+      SPIN_VARIABLE_S3_PROVIDER: oci_iamusingocis3fornow
+      SPIN_VARIABLE_S3_BUCKET: bucket_name
+      SPIN_VARIABLE_S3_ENDPOINT: s3endpoint
+      SPIN_VARIABLE_S3_REGION: s3region
+    volumes:
+      - .:/app:z
+    command: ./spin up --runtime-config-file runtime-config.toml --listen 0.0.0.0:3000
+    ports:
+      - 3001:3000

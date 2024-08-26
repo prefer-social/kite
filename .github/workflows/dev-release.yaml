@@ -72,12 +72,12 @@ jobs:
           output-file: Containerfile
           glob: false
 
-      - name: Render Compose.yaml Template
+      - name: Render docker-compose.yml Template
         uses: recih/template-render-action@v1.0.2
         with:
-          template-file: ".github/workflows/templates/Compose.yaml.template"
+          template-file: ".github/workflows/templates/docker-compose.yml.template"
           engine: mustache
-          output-file: Compose.yaml
+          output-file: docker-compose.yml
           glob: false
 
       - name: Release assets
@@ -102,7 +102,7 @@ jobs:
             runtime-config.toml
             spin.toml
             Containerfile
-            Compose.yaml
+            docker-compose.yml
 
       - name: "Login to GitHub Container Registry"
         uses: docker/login-action@v1
