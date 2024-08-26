@@ -12,7 +12,7 @@ s3_secret_key = { required = true, secret = true }
 s3_provider = { required = true }
 s3_bucket = { required = true }
 s3_endpoint = { required = true }
-s3_region = { required = true }git commit --allow-empty -m "[EMPTY] Relevant commit message here"
+s3_region = { required = true }
 domain = { required = true }
 
 [[trigger.http]]
