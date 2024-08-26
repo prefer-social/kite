@@ -23,7 +23,7 @@ async fn handle_follower(req: Request) -> anyhow::Result<impl IntoResponse> {
         "<---------- ({}) {} ({}) {}--------->",
         req.method().to_string(),
         req.path_and_query().unwrap_or_default(),
-        req.header("x-forwarded-ip")
+        req.header("x-forwarded-for")
             .unwrap_or(&HeaderValue::string("EMPTY".to_string()))
             .as_str()
             .unwrap(),

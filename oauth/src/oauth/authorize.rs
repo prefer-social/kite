@@ -154,7 +154,7 @@ pub async fn post(req: Request, _params: Params) -> Result<Response> {
         "<---------- ({}) {} ({}) --------->",
         req.method().to_string(),
         req.path_and_query().unwrap(),
-        req.header("x-real-ip").unwrap().as_str().unwrap()
+        req.header("x-forwarded-for").unwrap().as_str().unwrap()
     );
 
     let body = str::from_utf8(req.body()).unwrap();

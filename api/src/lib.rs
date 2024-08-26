@@ -36,7 +36,10 @@ async fn handle_api(req: Request) -> Result<impl IntoResponse> {
         "<---------- ({}) {} ({}) --------->",
         req.method().to_string(),
         req.path_and_query().unwrap(),
-        req.header("x-real-ip").unwrap().as_str().unwrap()
+        req.header("x-forwarded-for")
+            .unwrap_or_default()
+            .as_str()
+            .unwrap()
     );
 
     match REQUEST_UID.set(Uuid::now_v7()) {

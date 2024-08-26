@@ -21,7 +21,7 @@ async fn handle_route(req: Request) -> Response {
         "<---------- ({}) {} ({}) --------->",
         req.method().to_string(),
         req.path_and_query().unwrap(),
-        req.header("x-real-ip").unwrap().as_str().unwrap()
+        req.header("x-forwarded-for").unwrap().as_str().unwrap()
     );
 
     let mut router = Router::new();

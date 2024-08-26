@@ -14,13 +14,14 @@ async fn handle_route(req: Request) -> Response {
     let subscriber = FmtSubscriber::builder()
         .with_env_filter(EnvFilter::from_env("APP_LOG_LEVEL"))
         .finish();
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    tracing::subscriber::set_global_default(subscriber)
+        .expect("setting default subscriber failed");
 
     tracing::debug!(
         "<---------- ({}) {} ({}) {}--------->",
         req.method().to_string(),
         req.path_and_query().unwrap_or_default(),
-        req.header("x-real-ip")
+        req.header("x-forwarded-for")
             .unwrap_or(&HeaderValue::string("EMPTY".to_string()))
             .as_str()
             .unwrap(),
@@ -46,9 +47,10 @@ async fn handle_route(req: Request) -> Response {
         .build();
 
     // Don't need this. Too many sql queries
-    let owner = sparrow::mastodon::setting::Setting::get("site_contact_username")
-        .await
-        .unwrap();
+    let owner =
+        sparrow::mastodon::setting::Setting::get("site_contact_username")
+            .await
+            .unwrap();
 
     let mut router = Router::new();
 
