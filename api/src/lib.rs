@@ -52,9 +52,10 @@ async fn handle_api(req: Request) -> Result<impl IntoResponse> {
 
     // Bug: /api/v1/instance does not come with Auth.
 
-
     // Todo: BUG!!!! some api request comes with no auth, no me account!
-    Bug!!! 
+    compile_error!(
+        "FixMe: Some api request like instance do NOT / Can't get me_account. No auth bearere"
+    );
     let me_account = match Authentication::verify(&req).await {
         Some(a) => a,
         None => return HttpResponse::forbidden(),
